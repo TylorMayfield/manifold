@@ -1,103 +1,316 @@
-import Image from "next/image";
+"use client";
+
+import { useState, useEffect } from "react";
+import { Project } from "../types";
+import AppSidebar from "../components/layout/AppSidebar";
+import TitleBar from "../components/layout/TitleBar";
+import ProjectGrid from "../components/projects/ProjectGrid";
+import EmptyState from "../components/projects/EmptyState";
+import NewProjectModal from "../components/projects/NewProjectModal";
+import SettingsModal from "../components/ui/SettingsModal";
+import BackupRestoreModal from "../components/backup/BackupRestoreModal";
+import SystemTab from "../components/system/SystemTab";
+import JobMonitorPage from "../components/system/JobMonitorPage";
+import Button from "../components/ui/Button";
+import { ArrowLeft, Monitor, Zap } from "lucide-react";
+import { DatabaseService } from "../lib/services/DatabaseService";
+import { RealSystemMonitor } from "../lib/services/RealSystemMonitor";
+import { SampleDataGenerator } from "../lib/services/SampleDataGenerator";
+import { logger } from "../lib/utils/logger";
+import useViewTransition from "../hooks/useViewTransition";
+import useKeyboardShortcuts, {
+  COMMON_SHORTCUTS,
+  createShortcut,
+} from "../hooks/useKeyboardShortcuts";
+import KeyboardShortcutsModal from "../components/ui/KeyboardShortcutsModal";
 
 export default function Home() {
-  return (
-    <div className="font-sans grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20">
-      <main className="flex flex-col gap-[32px] row-start-2 items-center sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={180}
-          height={38}
-          priority
-        />
-        <ol className="font-mono list-inside list-decimal text-sm/6 text-center sm:text-left">
-          <li className="mb-2 tracking-[-.01em]">
-            Get started by editing{" "}
-            <code className="bg-black/[.05] dark:bg-white/[.06] font-mono font-semibold px-1 py-0.5 rounded">
-              app/page.tsx
-            </code>
-            .
-          </li>
-          <li className="tracking-[-.01em]">
-            Save and see your changes instantly.
-          </li>
-        </ol>
+  const [projects, setProjects] = useState<Project[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [showNewProjectModal, setShowNewProjectModal] = useState(false);
+  const [showSettingsModal, setShowSettingsModal] = useState(false);
+  const [showBackupRestoreModal, setShowBackupRestoreModal] = useState(false);
+  const [showSystemMonitor, setShowSystemMonitor] = useState(false);
+  const [showJobMonitor, setShowJobMonitor] = useState(false);
+  const [showKeyboardShortcuts, setShowKeyboardShortcuts] = useState(false);
+  const [systemMonitor] = useState(
+    () => RealSystemMonitor.getInstance() as RealSystemMonitor
+  );
+  const [sampleDataGenerator] = useState(() =>
+    SampleDataGenerator.getInstance()
+  );
 
-        <div className="flex gap-4 items-center flex-col sm:flex-row">
-          <a
-            className="rounded-full border border-solid border-transparent transition-colors flex items-center justify-center bg-foreground text-background gap-2 hover:bg-[#383838] dark:hover:bg-[#ccc] font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 sm:w-auto"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={20}
-              height={20}
+  const { navigateWithTransition } = useViewTransition();
+
+  // Keyboard shortcuts configuration
+  const shortcuts = [
+    createShortcut(
+      COMMON_SHORTCUTS.NEW_PROJECT,
+      () => setShowNewProjectModal(true),
+      "Create new project",
+      { ctrlKey: true }
+    ),
+    createShortcut(
+      COMMON_SHORTCUTS.OPEN_SETTINGS,
+      () => setShowSettingsModal(true),
+      "Open settings",
+      { ctrlKey: true }
+    ),
+    createShortcut(
+      COMMON_SHORTCUTS.SYSTEM_MONITOR,
+      () => setShowSystemMonitor(true),
+      "Open system monitor",
+      { ctrlKey: true }
+    ),
+    createShortcut(
+      COMMON_SHORTCUTS.JOB_MONITOR,
+      () => openJobMonitor(),
+      "Open job monitor",
+      { ctrlKey: true }
+    ),
+    createShortcut(
+      COMMON_SHORTCUTS.HELP,
+      () => setShowKeyboardShortcuts(true),
+      "Show keyboard shortcuts"
+    ),
+    createShortcut(
+      COMMON_SHORTCUTS.ESCAPE,
+      () => {
+        setShowNewProjectModal(false);
+        setShowSettingsModal(false);
+        setShowSystemMonitor(false);
+        setShowJobMonitor(false);
+        setShowKeyboardShortcuts(false);
+        setShowBackupRestoreModal(false);
+      },
+      "Close all modals"
+    ),
+  ];
+
+  useKeyboardShortcuts({ shortcuts });
+
+  useEffect(() => {
+    // Initialize sample data and load projects
+    initializeData();
+  }, []);
+
+  const initializeData = async () => {
+    try {
+      // Create sample data if none exists
+      await sampleDataGenerator.createSampleData();
+
+      // Load projects
+      await loadProjects();
+
+      // Refresh jobs from data sources
+      await systemMonitor.refreshJobs();
+
+      logger.success("Data initialization completed", "system");
+    } catch (error) {
+      logger.error("Failed to initialize data", "system", { error });
+      // Still try to load projects even if sample data creation fails
+      await loadProjects();
+    }
+  };
+
+  const openJobMonitor = async () => {
+    try {
+      // Refresh jobs before opening monitor
+      await systemMonitor.refreshJobs();
+      setShowJobMonitor(true);
+    } catch (error) {
+      logger.error("Failed to refresh jobs", "system", { error });
+      // Still open the monitor even if refresh fails
+      setShowJobMonitor(true);
+    }
+  };
+
+  const loadProjects = async () => {
+    try {
+      setLoading(true);
+      logger.info(
+        "Loading projects from database",
+        "database",
+        undefined,
+        "HomePage"
+      );
+
+      const dbService = DatabaseService.getInstance();
+      const loadedProjects = await dbService.getProjects();
+
+      setProjects(loadedProjects);
+      setLoading(false);
+
+      logger.success(
+        "Projects loaded successfully",
+        "database",
+        { count: loadedProjects.length },
+        "HomePage"
+      );
+    } catch (error) {
+      logger.error(
+        "Failed to load projects",
+        "database",
+        { error },
+        "HomePage"
+      );
+      setLoading(false);
+    }
+  };
+
+  const handleCreateProject = async (project: Project) => {
+    try {
+      logger.info(
+        "Creating new project",
+        "user-action",
+        { projectName: project.name },
+        "HomePage"
+      );
+
+      const dbService = DatabaseService.getInstance();
+      await dbService.createProject(project);
+
+      // Reload projects from database
+      await loadProjects();
+
+      setShowNewProjectModal(false);
+      logger.success(
+        "Project created successfully",
+        "user-action",
+        { projectId: project.id, projectName: project.name },
+        "HomePage"
+      );
+    } catch (error) {
+      logger.error(
+        "Failed to create project",
+        "user-action",
+        { error, projectName: project.name },
+        "HomePage"
+      );
+      throw error;
+    }
+  };
+
+  const openProject = (project: Project) => {
+    logger.info(
+      "Opening project",
+      "user-action",
+      { projectId: project.id, projectName: project.name },
+      "HomePage"
+    );
+    // Navigate to project workspace with smooth transition
+    navigateWithTransition(`/project/${project.id}`, {
+      type: "blur",
+      duration: 250,
+      showLoading: true,
+    });
+  };
+
+  if (loading) {
+    return (
+      <div className="min-h-screen gradient-bg flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-2 border-white/30 border-t-white/80 mx-auto mb-4"></div>
+          <p className="text-white/80 text-lg">Loading Manifold...</p>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="min-h-screen gradient-bg flex">
+      {/* Sidebar */}
+      <AppSidebar
+        onNewProject={() => setShowNewProjectModal(true)}
+        onSettings={() => setShowSettingsModal(true)}
+        onBackupRestore={() => setShowBackupRestoreModal(true)}
+        onSystemMonitor={() => setShowSystemMonitor(true)}
+        onJobMonitor={openJobMonitor}
+      />
+
+      {/* Main Content Area */}
+      <main className="flex-1 flex flex-col">
+        {/* Title Bar */}
+        <TitleBar title="Manifold - Data Integration Platform" />
+
+        {/* Content */}
+        <div className="flex-1 p-8">
+          {showJobMonitor ? (
+            <div className="h-full">
+              <JobMonitorPage onBack={() => setShowJobMonitor(false)} />
+            </div>
+          ) : showSystemMonitor ? (
+            <div className="h-full">
+              <div className="mb-6">
+                <div className="flex items-center justify-between mb-4">
+                  <div className="flex items-center space-x-3">
+                    <Button
+                      onClick={() => setShowSystemMonitor(false)}
+                      variant="outline"
+                      icon={<ArrowLeft className="h-4 w-4" />}
+                    >
+                      Back to Projects
+                    </Button>
+                  </div>
+                </div>
+                <div className="flex items-center space-x-3 mb-4">
+                  <div className="p-2 rounded-lg bg-blue-500/20">
+                    <Monitor className="h-6 w-6 text-blue-400" />
+                  </div>
+                  <div>
+                    <h1 className="text-3xl font-bold text-white">
+                      System Monitor
+                    </h1>
+                    <p className="text-white/60">
+                      Real-time system metrics and task monitoring
+                    </p>
+                  </div>
+                </div>
+              </div>
+              <div className="h-[calc(100vh-200px)]">
+                <SystemTab isActive={true} />
+              </div>
+            </div>
+          ) : projects.length === 0 ? (
+            <EmptyState onNewProject={() => setShowNewProjectModal(true)} />
+          ) : (
+            <ProjectGrid
+              projects={projects}
+              onProjectClick={openProject}
+              onNewProject={() => setShowNewProjectModal(true)}
             />
-            Deploy now
-          </a>
-          <a
-            className="rounded-full border border-solid border-black/[.08] dark:border-white/[.145] transition-colors flex items-center justify-center hover:bg-[#f2f2f2] dark:hover:bg-[#1a1a1a] hover:border-transparent font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 w-full sm:w-auto md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Read our docs
-          </a>
+          )}
         </div>
       </main>
-      <footer className="row-start-3 flex gap-[24px] flex-wrap items-center justify-center">
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/file.svg"
-            alt="File icon"
-            width={16}
-            height={16}
-          />
-          Learn
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/window.svg"
-            alt="Window icon"
-            width={16}
-            height={16}
-          />
-          Examples
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/globe.svg"
-            alt="Globe icon"
-            width={16}
-            height={16}
-          />
-          Go to nextjs.org →
-        </a>
-      </footer>
+
+      {/* Modals */}
+      <NewProjectModal
+        isOpen={showNewProjectModal}
+        onClose={() => setShowNewProjectModal(false)}
+        onCreateProject={handleCreateProject}
+      />
+
+      <SettingsModal
+        isOpen={showSettingsModal}
+        onClose={() => setShowSettingsModal(false)}
+        onBackupRestore={() => {
+          setShowSettingsModal(false);
+          setShowBackupRestoreModal(true);
+        }}
+      />
+
+      <BackupRestoreModal
+        isOpen={showBackupRestoreModal}
+        onClose={() => setShowBackupRestoreModal(false)}
+        project={null}
+        dataSources={[]}
+      />
+
+      <KeyboardShortcutsModal
+        isOpen={showKeyboardShortcuts}
+        onClose={() => setShowKeyboardShortcuts(false)}
+        shortcuts={shortcuts}
+      />
     </div>
   );
 }

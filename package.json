@@ -1,23 +1,88 @@
 {
-  "name": "nextjs",
+  "name": "manifold",
   "version": "0.1.0",
+  "description": "A powerful, context-agnostic desktop application for data integration and consolidation",
+  "author": "Tylor Mayfield",
   "private": true,
+  "main": "public/electron.js",
+  "homepage": "./",
   "scripts": {
-    "dev": "next dev --turbopack",
+    "dev": "concurrently \"npm run dev:next\" \"npm run dev:electron\"",
+    "dev:next": "next dev --turbopack",
+    "dev:electron": "wait-on http://localhost:3000 && electron .",
     "build": "next build --turbopack",
-    "start": "next start"
+    "build:electron": "npm run build && electron-builder",
+    "start": "next start",
+    "dist": "npm run build && electron-builder --publish=never",
+    "dist:mac": "npm run build && electron-builder --mac",
+    "dist:win": "npm run build && electron-builder --win",
+    "dist:linux": "npm run build && electron-builder --linux",
+    "electron": "electron .",
+    "type-check": "tsc --noEmit",
+    "lint": "echo 'No lint script configured' && exit 0",
+    "clean": "rm -rf out dist .next",
+    "clean:install": "npm run clean && npm install --legacy-peer-deps",
+    "release": "node scripts/release.js"
   },
   "dependencies": {
+    "@aws-sdk/client-s3": "^3.490.0",
+    "@aws-sdk/s3-request-presigner": "^3.490.0",
+    "@monaco-editor/react": "^4.6.0",
+    "autoprefixer": "^10.4.21",
+    "axios": "^1.6.0",
+    "better-sqlite3": "^9.6.0",
+    "csv-parser": "^3.0.0",
+    "csv-stringify": "^6.4.4",
+    "html2canvas": "^1.4.1",
+    "jspdf": "^3.0.2",
+    "lucide-react": "^0.460.0",
+    "monaco-editor": "^0.45.0",
+    "next": "15.5.3",
+    "node-cron": "^3.0.3",
+    "papaparse": "^5.4.1",
+    "postcss": "^8.5.6",
     "react": "19.1.0",
     "react-dom": "19.1.0",
-    "next": "15.5.3"
+    "react-dropzone": "^14.2.3",
+    "react-split-pane": "^0.1.92",
+    "reactflow": "^11.10.1",
+    "recharts": "^3.2.0",
+    "tailwindcss": "^3.4.17",
+    "uuid": "^9.0.1"
   },
   "devDependencies": {
-    "typescript": "^5",
     "@types/node": "^20",
+    "@types/node-cron": "^3.0.11",
+    "@types/papaparse": "^5.3.14",
     "@types/react": "^19",
     "@types/react-dom": "^19",
-    "@tailwindcss/postcss": "^4",
-    "tailwindcss": "^4"
+    "@types/uuid": "^9.0.7",
+    "concurrently": "^8.2.2",
+    "electron": "^28.0.0",
+    "electron-builder": "^24.6.4",
+    "typescript": "^5",
+    "wait-on": "^7.2.0"
+  },
+  "build": {
+    "appId": "com.manifold.app",
+    "productName": "Manifold",
+    "icon": "icon.png",
+    "directories": {
+      "output": "dist"
+    },
+    "files": [
+      "out/**/*",
+      "public/electron.js",
+      "node_modules/**/*"
+    ],
+    "mac": {
+      "category": "public.app-category.developer-tools"
+    },
+    "win": {
+      "target": "nsis"
+    },
+    "linux": {
+      "target": "AppImage"
+    }
   }
 }
