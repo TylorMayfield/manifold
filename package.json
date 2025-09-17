@@ -46,7 +46,7 @@
     "react-dropzone": "^14.2.3",
     "react-split-pane": "^0.1.92",
     "reactflow": "^11.10.1",
-    "recharts": "^3.2.0",
+    "recharts": "^3.2.1",
     "tailwindcss": "^3.4.17",
     "uuid": "^9.0.1"
   },
