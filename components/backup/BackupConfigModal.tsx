@@ -14,7 +14,7 @@ import {
   Calendar,
   Trash2,
 } from "lucide-react";
-import { logger } from "../../lib/utils/logger";
+import { clientLogger } from "../../lib/utils/ClientLogger";
 import { Project, DataSource } from "../../types";
 import {
   BackupConfig,
@@ -25,9 +25,9 @@ import {
   S3Config,
   BackupSchedule,
 } from "../../types/backup";
-import { BackupScheduler } from "../../lib/services/BackupScheduler";
-import { S3BackupService } from "../../lib/services/S3BackupService";
-import { LocalBackupService } from "../../lib/services/LocalBackupService";
+// import { BackupScheduler } from "../../lib/services/BackupScheduler"; // Moved to server-side
+// import { S3BackupService } from "../../lib/services/S3BackupService"; // Moved to server-side
+// import { LocalBackupService } from "../../lib/services/LocalBackupService"; // Moved to server-side
 import Button from "../ui/Button";
 import Modal from "../ui/Modal";
 
@@ -65,9 +65,36 @@ export default function BackupConfigModal({
   const [schedule, setSchedule] = useState<BackupSchedule | null>(null);
   const [error, setError] = useState<string | null>(null);
 
-  const scheduler = BackupScheduler.getInstance();
-  const s3Service = S3BackupService.getInstance();
-  const localService = LocalBackupService.getInstance();
+  // Mock services for client-side
+  const scheduler = {
+    scheduleBackup: () => {},
+    cancelBackup: () => {},
+    getScheduledBackups: () => [],
+    getBackupConfig: (projectId: string) => ({
+      provider: "local" as any,
+      frequency: "daily" as any,
+      enabled: false,
+      maxBackups: 5,
+      s3Config: undefined,
+      localConfig: undefined,
+    }),
+    getBackupSchedule: (projectId: string) => null,
+    configureBackup: (projectId: string, config: any) => {},
+  };
+  const s3Service = {
+    uploadBackup: () => {},
+    downloadBackup: () => {},
+    listBackups: () => [],
+    configure: (config: any) => {},
+    testConnection: () => {},
+  };
+  const localService = {
+    createBackup: () => {},
+    restoreBackup: () => {},
+    listBackups: () => [],
+    configure: (config: any) => {},
+    testConnection: () => {},
+  };
 
   useEffect(() => {
     if (isOpen) {
@@ -92,7 +119,7 @@ export default function BackupConfigModal({
 
       setSchedule(currentSchedule);
     } catch (error) {
-      logger.error(
+      clientLogger.error(
         "Failed to load backup config",
         "backup",
         { error, projectId: project.id },
@@ -114,7 +141,7 @@ export default function BackupConfigModal({
 
       await scheduler.configureBackup(project.id, updatedConfig);
 
-      logger.success(
+      clientLogger.success(
         "Backup configuration saved",
         "backup",
         { projectId: project.id, config: updatedConfig },
@@ -124,7 +151,7 @@ export default function BackupConfigModal({
       onClose();
     } catch (error) {
       setError(error instanceof Error ? error.message : String(error));
-      logger.error(
+      clientLogger.error(
         "Failed to save backup config",
         "backup",
         { error, projectId: project.id },
@@ -148,7 +175,7 @@ export default function BackupConfigModal({
         await localService.testConnection();
       }
 
-      logger.success(
+      clientLogger.success(
         "Backup connection test successful",
         "backup",
         { provider: config.provider },
@@ -156,7 +183,7 @@ export default function BackupConfigModal({
       );
     } catch (error) {
       setError(error instanceof Error ? error.message : String(error));
-      logger.error(
+      clientLogger.error(
         "Backup connection test failed",
         "backup",
         { error, provider: config.provider },

@@ -1,24 +1,28 @@
 import type { Metadata } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
+import { Inter, JetBrains_Mono } from "next/font/google";
 import "./globals.css";
 import { LogProvider } from "../contexts/LogContext";
+import { DataSourceProvider } from "../contexts/DataSourceContext";
+import { SettingsProvider } from "../contexts/SettingsContext";
 import ClientOnly from "../components/providers/ClientOnly";
 import TransitionProvider from "../components/providers/TransitionProvider";
 
-const geistSans = Geist({
-  variable: "--font-geist-sans",
+const inter = Inter({
+  variable: "--font-inter",
   subsets: ["latin"],
+  display: "swap",
 });
 
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
+const jetBrainsMono = JetBrains_Mono({
+  variable: "--font-jetbrains-mono",
   subsets: ["latin"],
+  display: "swap",
 });
 
 export const metadata: Metadata = {
-  title: "Manifold - Data Integration Platform",
+  title: "Manifold - ETL Tool",
   description:
-    "A powerful, context-agnostic desktop application for data integration and consolidation",
+    "A lightweight desktop ETL tool for data ingestion, transformation, and versioning",
   other: {
     "Content-Security-Policy":
       "default-src 'self' 'unsafe-inline' 'unsafe-eval' data: blob: http: https: ws: wss:; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: http: https:; font-src 'self' data:; connect-src 'self' http: https: ws: wss:;",
@@ -33,13 +37,17 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased`}
+        className={`${inter.variable} ${jetBrainsMono.variable} font-sans bg-white text-black antialiased`}
         suppressHydrationWarning={true}
       >
         <ClientOnly>
-          <LogProvider>
-            <TransitionProvider>{children}</TransitionProvider>
-          </LogProvider>
+          <SettingsProvider>
+            <LogProvider>
+              <DataSourceProvider>
+                <TransitionProvider>{children}</TransitionProvider>
+              </DataSourceProvider>
+            </LogProvider>
+          </SettingsProvider>
         </ClientOnly>
       </body>
     </html>

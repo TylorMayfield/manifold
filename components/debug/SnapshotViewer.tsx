@@ -12,8 +12,8 @@ import {
   FileText,
   HardDrive,
 } from "lucide-react";
-import { logger } from "../../lib/utils/logger";
-import { DatabaseService } from "../../lib/services/DatabaseService";
+import { clientLogger } from "../../lib/utils/ClientLogger";
+import { clientDatabaseService } from "../../lib/database/ClientDatabaseService";
 import { DataSource, Snapshot } from "../../types";
 import Button from "../ui/Button";
 import Modal from "../ui/Modal";
@@ -51,7 +51,7 @@ export default function SnapshotViewer({
     isElectron: boolean;
   } | null>(null);
 
-  const dbService = DatabaseService.getInstance();
+  const dbService = clientDatabaseService;
 
   useEffect(() => {
     if (isOpen) {
@@ -103,7 +103,7 @@ export default function SnapshotViewer({
           dataSource: dataSource || {
             id: snapshot.dataSourceId,
             name: "Unknown Data Source",
-            type: "file",
+            type: "csv",
             projectId,
             config: {},
             status: "idle",
@@ -126,7 +126,7 @@ export default function SnapshotViewer({
 
       setSnapshots(snapshotInfos);
 
-      logger.info(
+      clientLogger.info(
         "Snapshots loaded successfully",
         "data-processing",
         {
@@ -139,7 +139,7 @@ export default function SnapshotViewer({
       );
     } catch (error) {
       console.error("SnapshotViewer: Failed to load snapshots:", error);
-      logger.error(
+      clientLogger.error(
         "Failed to load snapshots",
         "data-processing",
         { error, projectId },
@@ -163,7 +163,7 @@ export default function SnapshotViewer({
       await dbService.deleteSnapshot(snapshotId, projectId);
       await loadSnapshots(); // Reload the list
 
-      logger.success(
+      clientLogger.success(
         "Snapshot deleted successfully",
         "data-processing",
         { snapshotId, projectId },
@@ -171,7 +171,7 @@ export default function SnapshotViewer({
       );
     } catch (error) {
       console.error("Failed to delete snapshot:", error);
-      logger.error(
+      clientLogger.error(
         "Failed to delete snapshot",
         "data-processing",
         { error, snapshotId },

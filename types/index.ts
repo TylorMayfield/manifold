@@ -17,28 +17,60 @@ export interface DataProvider {
   updatedAt: Date;
   lastSyncAt?: Date;
   status?: "idle" | "running" | "completed" | "error";
+  enabled?: boolean;
+  syncInterval?: number;
 }
 
 export type DataProviderType =
-  | "file"
+  | "csv"
+  | "json"
   | "sql_dump"
-  | "custom_script"
-  | "api"
+  | "api_script"
   | "mock"
-  | "mysql";
+  | "mysql"
+  | "postgres"
+  | "sqlite";
 
 // Keep DataSource as alias for backward compatibility
 export type DataSource = DataProvider;
 export type DataSourceType = DataProviderType;
 
 export interface DataProviderConfig {
+  // Unified import method
+  importMethod?: string;
+
   // File provider config
   filePath?: string;
   fileType?: "csv" | "json";
+  uploadFile?: File;
+  importUrl?: string;
+
+  // Database config
+  mysqlConfig?: {
+    host: string;
+    port: number;
+    database: string;
+    username: string;
+    password: string;
+    ssl?: boolean;
+    tables?: string[]; // Specific tables to sync, if empty sync all
+    syncInterval?: number; // Minutes between syncs
+  };
 
   // SQL dump config
   sqlPath?: string;
   sqlDialect?: "mysql" | "postgresql" | "sqlite";
+
+  // API config
+  apiConfig?: {
+    url: string;
+    method: "GET" | "POST" | "PUT" | "DELETE";
+    headers?: Record<string, string>;
+    params?: Record<string, string>;
+    authType?: "none" | "basic" | "bearer" | "api-key";
+    authConfig?: Record<string, any>;
+    body?: any;
+  };
 
   // Custom script config
   scriptContent?: string;
@@ -62,21 +94,11 @@ export interface DataProviderConfig {
 
   // Mock data config
   mockConfig?: {
+    templateId: string;
     recordCount: number;
-    schema: TableSchema;
-    dataTypes: Record<string, string>;
+    schema?: TableSchema;
+    dataTypes?: Record<string, string>;
     seed?: number;
-  };
-
-  // MySQL database config
-  mysqlConfig?: {
-    host: string;
-    port: number;
-    database: string;
-    username: string;
-    password: string;
-    tables?: string[]; // Specific tables to sync, if empty sync all
-    syncInterval?: number; // Minutes between syncs
   };
 
   // Custom script config
@@ -166,4 +188,130 @@ export interface ImportProgress {
   currentColumn?: string;
   validationErrors?: string[];
   warnings?: string[];
+}
+
+// ETL Pipeline Types
+export interface Pipeline {
+  id: string;
+  name: string;
+  description?: string;
+  steps: TransformStep[];
+  inputSourceIds: string[];
+  outputConfig?: ExportConfig;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export interface TransformStep {
+  id: string;
+  type: TransformType;
+  name: string;
+  config: TransformConfig;
+  order: number;
+}
+
+export type TransformType =
+  | "filter"
+  | "map"
+  | "aggregate"
+  | "join"
+  | "sort"
+  | "deduplicate"
+  | "custom_script";
+
+export interface TransformConfig {
+  // Filter config
+  filterExpression?: string;
+
+  // Map config
+  fieldMappings?: { from: string; to: string; transform?: string }[];
+
+  // Aggregate config
+  groupBy?: string[];
+  aggregations?: {
+    field: string;
+    operation: "sum" | "avg" | "count" | "min" | "max";
+  }[];
+
+  // Join config
+  joinType?: "inner" | "left" | "right" | "outer";
+  joinKey?: string;
+  targetSourceId?: string;
+
+  // Sort config
+  sortFields?: { field: string; direction: "asc" | "desc" }[];
+
+  // Custom script config
+  scriptContent?: string;
+  scriptLanguage?: "javascript" | "python";
+}
+
+// Job Scheduling Types
+export interface Job {
+  id: string;
+  name: string;
+  pipelineId: string;
+  schedule: string; // cron expression
+  enabled: boolean;
+  lastRun?: Date;
+  nextRun?: Date;
+  status: JobStatus;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export type JobStatus = "idle" | "running" | "completed" | "failed" | "paused";
+
+export interface JobExecution {
+  id: string;
+  jobId: string;
+  status: JobStatus;
+  startTime: Date;
+  endTime?: Date;
+  recordsProcessed?: number;
+  error?: string;
+  logs?: string[];
+}
+
+// Export Configuration
+export interface ExportConfig {
+  type: ExportType;
+  destination: string;
+  format?: "csv" | "json" | "sql";
+  // File export
+  filePath?: string;
+  // API export
+  apiUrl?: string;
+  apiMethod?: "POST" | "PUT";
+  apiHeaders?: Record<string, string>;
+  // Database export
+  connectionString?: string;
+  tableName?: string;
+  mode?: "replace" | "append" | "upsert";
+}
+
+export type ExportType = "file" | "api" | "database";
+
+// Data Browser Types
+export interface DataBrowserQuery {
+  sourceId: string;
+  snapshotId?: string;
+  tableName?: string;
+  filters?: DataFilter[];
+  sort?: { field: string; direction: "asc" | "desc" };
+  limit?: number;
+  offset?: number;
+}
+
+export interface DataFilter {
+  field: string;
+  operator: "equals" | "contains" | "gt" | "lt" | "between" | "in";
+  value: any;
+}
+
+export interface DataBrowserResult {
+  columns: string[];
+  rows: any[][];
+  totalCount: number;
+  hasMore: boolean;
 }

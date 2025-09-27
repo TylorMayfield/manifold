@@ -2,7 +2,7 @@ import React, { useCallback, useState } from "react";
 import { useDropzone } from "react-dropzone";
 import { Upload, File, X, Eye } from "lucide-react";
 import { ImportProgress } from "../../types";
-import { logger } from "../../lib/utils/logger";
+import { clientLogger } from "../../lib/utils/ClientLogger";
 import ImportProgressIndicator from "../ui/ImportProgressIndicator";
 import DataPreviewModal, { DataPreviewInfo } from "../ui/DataPreviewModal";
 
@@ -42,7 +42,7 @@ const FileUpload: React.FC<FileUploadProps> = ({
 
   const onDrop = useCallback(
     (acceptedFiles: File[]) => {
-      logger.info(
+      clientLogger.info(
         "Files dropped for upload",
         "file-import",
         { fileCount: acceptedFiles.length },
@@ -52,7 +52,7 @@ const FileUpload: React.FC<FileUploadProps> = ({
       acceptedFiles.forEach((file) => {
         setUploadedFiles((prev) => [...prev, file]);
 
-        logger.info(
+        clientLogger.info(
           "Starting file upload simulation",
           "file-import",
           {
@@ -106,7 +106,7 @@ const FileUpload: React.FC<FileUploadProps> = ({
                 newProgress.bytesProcessed = newProgress.totalBytes;
                 newProgress.estimatedCompletion = new Date();
 
-                logger.success(
+                clientLogger.success(
                   "File upload simulation completed",
                   "file-import",
                   { fileName: file.name, fileSize: file.size },

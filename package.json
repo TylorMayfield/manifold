@@ -22,15 +22,24 @@
     "lint": "echo 'No lint script configured' && exit 0",
     "clean": "rm -rf out dist .next",
     "clean:install": "npm run clean && npm install --legacy-peer-deps",
-    "release": "node scripts/release.js"
+    "release": "node scripts/release.js",
+    "db:generate": "prisma generate",
+    "db:generate:project": "prisma generate --schema=prisma/project-schema.prisma",
+    "db:migrate": "prisma migrate dev",
+    "db:migrate:project": "prisma migrate dev --schema=prisma/project-schema.prisma",
+    "db:studio": "prisma studio",
+    "db:reset": "prisma migrate reset",
+    "db:deploy": "prisma migrate deploy"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.490.0",
     "@aws-sdk/s3-request-presigner": "^3.490.0",
     "@monaco-editor/react": "^4.6.0",
+    "@prisma/client": "^6.16.2",
     "autoprefixer": "^10.4.21",
     "axios": "^1.6.0",
-    "better-sqlite3": "^9.6.0",
+    "better-sqlite3": "^12.4.1",
+    "clsx": "^2.1.1",
     "csv-parser": "^3.0.0",
     "csv-stringify": "^6.4.4",
     "html2canvas": "^1.4.1",
@@ -41,16 +50,18 @@
     "node-cron": "^3.0.3",
     "papaparse": "^5.4.1",
     "postcss": "^8.5.6",
+    "prisma": "^6.16.2",
     "react": "19.1.0",
     "react-dom": "19.1.0",
     "react-dropzone": "^14.2.3",
-    "react-split-pane": "^0.1.92",
+    "react-is": "^19.1.1",
     "reactflow": "^11.10.1",
     "recharts": "^3.2.0",
     "tailwindcss": "^3.4.17",
     "uuid": "^9.0.1"
   },
   "devDependencies": {
+    "@types/better-sqlite3": "^7.6.13",
     "@types/node": "^20",
     "@types/node-cron": "^3.0.11",
     "@types/papaparse": "^5.3.14",
@@ -58,8 +69,11 @@
     "@types/react-dom": "^19",
     "@types/uuid": "^9.0.7",
     "concurrently": "^8.2.2",
-    "electron": "^28.0.0",
+    "electron": "^28.3.3",
     "electron-builder": "^24.6.4",
+    "stylelint": "^16.24.0",
+    "stylelint-config-standard": "^39.0.0",
+    "stylelint-config-tailwindcss": "^1.0.0",
     "typescript": "^5",
     "wait-on": "^7.2.0"
   },
@@ -74,6 +88,9 @@
       "out/**/*",
       "public/electron.js",
       "node_modules/**/*"
+    ],
+    "asarUnpack": [
+      "node_modules/better-sqlite3/**/*"
     ],
     "mac": {
       "category": "public.app-category.developer-tools"

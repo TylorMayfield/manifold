@@ -1,5 +1,5 @@
 import { DataProvider, DataProviderConfig } from "../../types";
-import { logger } from "../utils/logger";
+import { clientLogger } from "../utils/ClientLogger";
 
 export interface ApiResponse {
   success: boolean;
@@ -40,7 +40,7 @@ export class ApiProvider {
    */
   async fetchData(config: ApiConfig): Promise<ApiResponse> {
     try {
-      logger.info(
+      clientLogger.info(
         "Fetching data from API",
         "data-processing",
         {
@@ -102,7 +102,7 @@ export class ApiProvider {
             JSON.parse(config.body);
             requestOptions.body = config.body;
           } catch (error) {
-            logger.warn(
+            clientLogger.warn(
               "Invalid JSON body provided, sending as text",
               "data-processing",
               { body: config.body, error },
@@ -140,7 +140,7 @@ export class ApiProvider {
       }
 
       if (!response.ok) {
-        logger.error(
+        clientLogger.error(
           "API request failed",
           "data-processing",
           {
@@ -164,7 +164,7 @@ export class ApiProvider {
       // Normalize the response data to an array format
       const normalizedData = this.normalizeResponseData(data);
 
-      logger.success(
+      clientLogger.success(
         "API data fetched successfully",
         "data-processing",
         {
@@ -183,7 +183,7 @@ export class ApiProvider {
         headers: responseHeaders,
       };
     } catch (error) {
-      logger.error(
+      clientLogger.error(
         "Failed to fetch API data",
         "data-processing",
         {
@@ -398,7 +398,7 @@ export class ApiProvider {
         recordCount: response.data.length,
       };
 
-      logger.success(
+      clientLogger.success(
         "API snapshot created successfully",
         "data-processing",
         {
@@ -412,7 +412,7 @@ export class ApiProvider {
 
       return snapshot;
     } catch (error) {
-      logger.error(
+      clientLogger.error(
         "Failed to create API snapshot",
         "data-processing",
         {

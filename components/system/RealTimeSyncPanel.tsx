@@ -19,13 +19,13 @@ import {
 import Button from "../ui/Button";
 import Modal from "../ui/Modal";
 import Input from "../ui/Input";
-import { logger } from "../../lib/utils/logger";
-import { DatabaseService } from "../../lib/services/DatabaseService";
+import { clientLogger } from "../../lib/utils/ClientLogger";
+import { clientDatabaseService } from "../../lib/database/ClientDatabaseService";
 import {
   RealTimeSyncManager,
   DataSource as SyncDataSource,
   SyncConfig,
-} from "../../lib/services/RealTimeSyncManager";
+} from "../../lib/server/services/RealTimeSyncManager";
 import { DataSource } from "../../types";
 
 interface SyncStatus {
@@ -61,8 +61,8 @@ export const RealTimeSyncPanel: React.FC<RealTimeSyncPanelProps> = ({
   // Form state for adding new sources
   const [newSourceName, setNewSourceName] = useState("");
   const [newSourceType, setNewSourceType] = useState<
-    "api" | "database" | "file" | "websocket"
-  >("api");
+    "api_script" | "mysql" | "csv" | "postgres"
+  >("api_script");
   const [newSourceConfig, setNewSourceConfig] = useState<any>({});
   const [newSourceInterval, setNewSourceInterval] = useState<number>(30);
 
@@ -73,7 +73,7 @@ export const RealTimeSyncPanel: React.FC<RealTimeSyncPanelProps> = ({
   >("last_write_wins");
   const [maxRetries, setMaxRetries] = useState<number>(3);
 
-  const dbService = DatabaseService.getInstance();
+  const dbService = clientDatabaseService;
 
   // Load data sources from the database
   useEffect(() => {
@@ -82,12 +82,16 @@ export const RealTimeSyncPanel: React.FC<RealTimeSyncPanelProps> = ({
         setLoading(true);
         const sources = await dbService.getDataSources(projectId);
         setDataSources(sources);
-        logger.info("Data sources loaded for real-time sync", "realtime-sync", {
-          projectId,
-          sourceCount: sources.length,
-        });
+        clientLogger.info(
+          "Data sources loaded for real-time sync",
+          "realtime-sync",
+          {
+            projectId,
+            sourceCount: sources.length,
+          }
+        );
       } catch (error) {
-        logger.error("Failed to load data sources", "realtime-sync", {
+        clientLogger.error("Failed to load data sources", "realtime-sync", {
           projectId,
           error: (error as Error).message,
         });
@@ -110,7 +114,7 @@ export const RealTimeSyncPanel: React.FC<RealTimeSyncPanelProps> = ({
           name: ds.name,
           type: ds.type as "api" | "database" | "file" | "websocket",
           config: ds.config,
-          syncInterval: ds.syncInterval || globalSyncInterval * 1000,
+          syncInterval: (ds as any).syncInterval || globalSyncInterval * 1000,
           enabled: true, // Start with all sources enabled
         })),
         globalSyncInterval: globalSyncInterval * 1000,
@@ -123,16 +127,16 @@ export const RealTimeSyncPanel: React.FC<RealTimeSyncPanelProps> = ({
       // Set up event handlers
       manager.on("connected", () => {
         setIsConnected(true);
-        logger.info("Real-time sync connected", "realtime-sync");
+        clientLogger.info("Real-time sync connected", "realtime-sync");
       });
 
       manager.on("disconnected", () => {
         setIsConnected(false);
-        logger.warn("Real-time sync disconnected", "realtime-sync");
+        clientLogger.warn("Real-time sync disconnected", "realtime-sync");
       });
 
       manager.on("dataUpdate", (update) => {
-        logger.info("Data update received", "realtime-sync", {
+        clientLogger.info("Data update received", "realtime-sync", {
           updateId: update.id,
           source: update.source,
           type: update.type,
@@ -149,7 +153,7 @@ export const RealTimeSyncPanel: React.FC<RealTimeSyncPanelProps> = ({
       });
 
       manager.on("error", (error) => {
-        logger.error("Real-time sync error", "realtime-sync", {
+        clientLogger.error("Real-time sync error", "realtime-sync", {
           error: (error as Error).message,
         });
       });
@@ -180,16 +184,20 @@ export const RealTimeSyncPanel: React.FC<RealTimeSyncPanelProps> = ({
       if (isRunning) {
         syncManager.stop();
         setIsRunning(false);
-        logger.info("Real-time sync stopped", "realtime-sync");
+        clientLogger.info("Real-time sync stopped", "realtime-sync");
       } else {
         await syncManager.start();
         setIsRunning(true);
-        logger.info("Real-time sync started", "realtime-sync");
+        clientLogger.info("Real-time sync started", "realtime-sync");
       }
     } catch (error) {
-      logger.error("Failed to start/stop real-time sync", "realtime-sync", {
-        error: (error as Error).message,
-      });
+      clientLogger.error(
+        "Failed to start/stop real-time sync",
+        "realtime-sync",
+        {
+          error: (error as Error).message,
+        }
+      );
     }
   };
 
@@ -198,9 +206,9 @@ export const RealTimeSyncPanel: React.FC<RealTimeSyncPanelProps> = ({
 
     try {
       syncManager.forceSync(sourceId);
-      logger.info("Force sync requested", "realtime-sync", { sourceId });
+      clientLogger.info("Force sync requested", "realtime-sync", { sourceId });
     } catch (error) {
-      logger.error("Failed to force sync", "realtime-sync", {
+      clientLogger.error("Failed to force sync", "realtime-sync", {
         sourceId,
         error: (error as Error).message,
       });
@@ -215,7 +223,9 @@ export const RealTimeSyncPanel: React.FC<RealTimeSyncPanelProps> = ({
       if (!source) return;
 
       const newEnabled = !source.enabled;
-      await dbService.updateDataSource(sourceId, { enabled: newEnabled });
+      await dbService.updateDataSource("default", sourceId, {
+        enabled: newEnabled,
+      });
 
       syncManager.updateDataSource(sourceId, { enabled: newEnabled });
 
@@ -225,12 +235,12 @@ export const RealTimeSyncPanel: React.FC<RealTimeSyncPanelProps> = ({
         )
       );
 
-      logger.info("Data source toggled", "realtime-sync", {
+      clientLogger.info("Data source toggled", "realtime-sync", {
         sourceId,
         enabled: newEnabled,
       });
     } catch (error) {
-      logger.error("Failed to toggle data source", "realtime-sync", {
+      clientLogger.error("Failed to toggle data source", "realtime-sync", {
         sourceId,
         error: (error as Error).message,
       });
@@ -253,13 +263,20 @@ export const RealTimeSyncPanel: React.FC<RealTimeSyncPanelProps> = ({
         updatedAt: new Date(),
       };
 
-      await dbService.createDataSource(newSource);
+      await dbService.createDataSource(projectId, newSource);
 
       if (syncManager) {
         const syncDataSource: SyncDataSource = {
           id: newSource.id,
           name: newSource.name,
-          type: newSourceType,
+          type:
+            newSourceType === "api_script"
+              ? "api"
+              : newSourceType === "mysql" || newSourceType === "postgres"
+              ? "database"
+              : newSourceType === "csv"
+              ? "file"
+              : "api",
           config: newSourceConfig,
           syncInterval: newSourceInterval * 1000,
           enabled: true,
@@ -272,16 +289,16 @@ export const RealTimeSyncPanel: React.FC<RealTimeSyncPanelProps> = ({
 
       // Reset form
       setNewSourceName("");
-      setNewSourceType("api");
+      setNewSourceType("api_script");
       setNewSourceConfig({});
       setNewSourceInterval(30);
 
-      logger.info("Data source added", "realtime-sync", {
+      clientLogger.info("Data source added", "realtime-sync", {
         sourceId: newSource.id,
         sourceName: newSource.name,
       });
     } catch (error) {
-      logger.error("Failed to add data source", "realtime-sync", {
+      clientLogger.error("Failed to add data source", "realtime-sync", {
         error: (error as Error).message,
       });
     }
@@ -291,13 +308,13 @@ export const RealTimeSyncPanel: React.FC<RealTimeSyncPanelProps> = ({
     if (!syncManager) return;
 
     try {
-      await dbService.deleteDataSource(sourceId);
+      await dbService.deleteDataSource(sourceId, projectId);
       syncManager.removeDataSource(sourceId);
       setDataSources((prev) => prev.filter((ds) => ds.id !== sourceId));
 
-      logger.info("Data source deleted", "realtime-sync", { sourceId });
+      clientLogger.info("Data source deleted", "realtime-sync", { sourceId });
     } catch (error) {
-      logger.error("Failed to delete data source", "realtime-sync", {
+      clientLogger.error("Failed to delete data source", "realtime-sync", {
         sourceId,
         error: (error as Error).message,
       });
@@ -549,14 +566,14 @@ export const RealTimeSyncPanel: React.FC<RealTimeSyncPanelProps> = ({
               value={newSourceType}
               onChange={(e: React.ChangeEvent<HTMLSelectElement>) =>
                 setNewSourceType(
-                  e.target.value as "api" | "database" | "file" | "websocket"
+                  e.target.value as "api_script" | "mysql" | "csv" | "postgres"
                 )
               }
             >
-              <option value="api">API</option>
-              <option value="database">Database</option>
-              <option value="file">File</option>
-              <option value="websocket">WebSocket</option>
+              <option value="api_script">API Script</option>
+              <option value="mysql">MySQL Database</option>
+              <option value="csv">CSV File</option>
+              <option value="postgres">PostgreSQL</option>
             </select>
           </div>
 
@@ -647,7 +664,7 @@ export const RealTimeSyncPanel: React.FC<RealTimeSyncPanelProps> = ({
               onClick={() => {
                 // Settings are automatically applied when they change
                 setShowSettings(false);
-                logger.info("Sync settings updated", "realtime-sync", {
+                clientLogger.info("Sync settings updated", "realtime-sync", {
                   globalSyncInterval,
                   conflictResolution,
                   maxRetries,

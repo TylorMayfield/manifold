@@ -1,16 +1,29 @@
 import { v4 as uuidv4 } from "uuid";
 import { LogEntry, LogLevel, LogCategory } from "../../types/logs";
+// import { DatabaseLogger } from "../services/DatabaseLogger"; // Server-side only
 
 class Logger {
   private static instance: Logger;
   private listeners: ((entry: LogEntry) => void)[] = [];
   private maxEntries: number = 1000;
+  private dbLogger: any = null; // DatabaseLogger | null = null; // Server-side only
 
   static getInstance(): Logger {
     if (!Logger.instance) {
       Logger.instance = new Logger();
     }
     return Logger.instance;
+  }
+
+  // Initialize database logging (server-side only)
+  async initializeDatabaseLogging(): Promise<void> {
+    try {
+      // Server-side database logging is not available in client-side logger
+      console.log("Database logging not available in client-side logger");
+    } catch (error) {
+      console.warn("Failed to initialize database logging:", error);
+      this.dbLogger = null;
+    }
   }
 
   private createLogEntry(
@@ -35,9 +48,27 @@ class Logger {
     };
   }
 
-  private emit(entry: LogEntry): void {
+  private async emit(entry: LogEntry): Promise<void> {
     // Emit to listeners
     this.listeners.forEach((listener) => listener(entry));
+
+    // Log to database if available
+    if (this.dbLogger) {
+      try {
+        await this.dbLogger.logAppEvent(
+          entry.level,
+          entry.category,
+          entry.message,
+          entry.details,
+          entry.source,
+          entry.projectId,
+          entry.dataSourceId
+        );
+      } catch (error) {
+        // Fallback to console if database logging fails
+        console.error("Failed to log to database:", error);
+      }
+    }
 
     // Also log to console for development
     if (process.env.NODE_ENV === "development") {

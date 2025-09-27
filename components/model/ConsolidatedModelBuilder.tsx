@@ -16,7 +16,7 @@ import {
   AlertCircle,
   Loader2,
 } from "lucide-react";
-import { logger } from "../../lib/utils/logger";
+import { clientLogger } from "../../lib/utils/ClientLogger";
 import { DataSource, Relationship, ConsolidatedModel } from "../../types";
 import { DatabaseService } from "../../lib/services/DatabaseService";
 import Button from "../ui/Button";
@@ -108,7 +108,7 @@ export default function ConsolidatedModelBuilder({
       // Auto-select all data sources
       setSelectedDataSources(previews.map((p) => p.id));
 
-      logger.info(
+      clientLogger.info(
         "Data source previews loaded",
         "data-processing",
         {
@@ -118,7 +118,7 @@ export default function ConsolidatedModelBuilder({
         "ConsolidatedModelBuilder"
       );
     } catch (error) {
-      logger.error(
+      clientLogger.error(
         "Failed to load data source previews",
         "data-processing",
         { error },
@@ -193,7 +193,7 @@ export default function ConsolidatedModelBuilder({
       setRelationships(suggestions);
       setSelectedRelationships(suggestions.map((r) => r.id)); // Auto-select all
 
-      logger.success(
+      clientLogger.success(
         "Relationship analysis completed",
         "data-processing",
         {
@@ -203,7 +203,7 @@ export default function ConsolidatedModelBuilder({
         "ConsolidatedModelBuilder"
       );
     } catch (error) {
-      logger.error(
+      clientLogger.error(
         "Failed to analyze relationships",
         "data-processing",
         { error },
@@ -265,7 +265,7 @@ export default function ConsolidatedModelBuilder({
 
       setGeneratedModel(model);
 
-      logger.success(
+      clientLogger.success(
         "Consolidated model generated",
         "data-processing",
         {
@@ -277,7 +277,7 @@ export default function ConsolidatedModelBuilder({
         "ConsolidatedModelBuilder"
       );
     } catch (error) {
-      logger.error(
+      clientLogger.error(
         "Failed to generate consolidated model",
         "data-processing",
         { error },
@@ -311,14 +311,14 @@ export default function ConsolidatedModelBuilder({
     try {
       await dbService.createConsolidatedModel(generatedModel);
 
-      logger.success(
+      clientLogger.success(
         "Model saved to database",
         "data-processing",
         { modelId: generatedModel.id, modelName: generatedModel.name },
         "ConsolidatedModelBuilder"
       );
     } catch (error) {
-      logger.error(
+      clientLogger.error(
         "Failed to save model",
         "data-processing",
         { error, modelId: generatedModel.id },
@@ -357,14 +357,14 @@ export default function ConsolidatedModelBuilder({
       document.body.removeChild(a);
       URL.revokeObjectURL(url);
 
-      logger.success(
+      clientLogger.success(
         "Model exported",
         "data-processing",
         { modelId: generatedModel.id },
         "ConsolidatedModelBuilder"
       );
     } catch (error) {
-      logger.error(
+      clientLogger.error(
         "Failed to export model",
         "data-processing",
         { error },

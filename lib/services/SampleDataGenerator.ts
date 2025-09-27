@@ -1,13 +1,13 @@
 import { Project, DataProvider } from "../../types";
-import { DatabaseService } from "./DatabaseService";
+import { clientDatabaseService } from "../database/ClientDatabaseService";
 import { MySqlProvider } from "./MySqlProvider";
 import { ApiProvider } from "./ApiProvider";
 import { CustomScriptProvider } from "./CustomScriptProvider";
-import { logger } from "../utils/logger";
+import { clientLogger } from "../utils/ClientLogger";
 
 export class SampleDataGenerator {
   private static instance: SampleDataGenerator;
-  private dbService = DatabaseService.getInstance();
+  private dbService = clientDatabaseService;
   private mysqlProvider = MySqlProvider.getInstance();
   private apiProvider = ApiProvider.getInstance();
   private customScriptProvider = CustomScriptProvider.getInstance();
@@ -24,12 +24,15 @@ export class SampleDataGenerator {
    */
   async createSampleData(): Promise<void> {
     try {
-      logger.info("Creating sample data", "system");
+      clientLogger.info("Creating sample data", "system");
 
       // Check if sample data already exists
       const existingProjects = await this.dbService.getProjects();
       if (existingProjects.length > 0) {
-        logger.info("Sample data already exists, skipping creation", "system");
+        clientLogger.info(
+          "Sample data already exists, skipping creation",
+          "system"
+        );
         return;
       }
 
@@ -37,12 +40,12 @@ export class SampleDataGenerator {
       const project1 = await this.createSampleProject1();
       const project2 = await this.createSampleProject2();
 
-      logger.success("Sample data created successfully", "system", {
+      clientLogger.success("Sample data created successfully", "system", {
         projectCount: 2,
         dataSourceCount: 6,
       });
     } catch (error) {
-      logger.error("Failed to create sample data", "system", { error });
+      clientLogger.error("Failed to create sample data", "system", { error });
       throw error;
     }
   }
@@ -72,12 +75,11 @@ export class SampleDataGenerator {
         database: "ecommerce_orders",
         username: "analytics_user",
         password: "secure_password",
-        syncInterval: 6, // Every 6 hours
       }
     );
 
     // Create API data source
-    await this.dbService.createDataSource({
+    await this.dbService.createDataSource(project.id, {
       id: `api_${Date.now()}_stripe`,
       projectId: project.id,
       name: "Stripe API",
@@ -156,7 +158,7 @@ return await generateSalesReport();`,
     await this.dbService.createProject(project);
 
     // Create API data source for Zendesk
-    await this.dbService.createDataSource({
+    await this.dbService.createDataSource(project.id, {
       id: `api_${Date.now()}_zendesk`,
       projectId: project.id,
       name: "Zendesk API",
@@ -183,7 +185,7 @@ return await generateSalesReport();`,
     });
 
     // Create API data source for Intercom
-    await this.dbService.createDataSource({
+    await this.dbService.createDataSource(project.id, {
       id: `api_${Date.now()}_intercom`,
       projectId: project.id,
       name: "Intercom API",
@@ -215,7 +217,6 @@ return await generateSalesReport();`,
         database: "support_metrics",
         username: "metrics_user",
         password: "metrics_password",
-        syncInterval: 1, // Every hour
       }
     );
 
@@ -240,9 +241,9 @@ return await generateSalesReport();`,
         await this.dbService.deleteProject(project.id);
       }
 
-      logger.success("Sample data cleared", "system");
+      clientLogger.success("Sample data cleared", "system");
     } catch (error) {
-      logger.error("Failed to clear sample data", "system", { error });
+      clientLogger.error("Failed to clear sample data", "system", { error });
       throw error;
     }
   }

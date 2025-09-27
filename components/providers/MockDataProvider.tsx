@@ -18,7 +18,7 @@ import {
   mockDataProvider,
   MockDataConfig,
 } from "../../lib/providers/MockDataProvider";
-import { logger } from "../../lib/utils/logger";
+import { clientLogger } from "../../lib/utils/ClientLogger";
 import { Project, DataProvider, TableSchema } from "../../types";
 import Button from "../ui/Button";
 import Modal from "../ui/Modal";
@@ -99,6 +99,7 @@ const MockDataProviderComponent: React.FC<MockDataProviderProps> = ({
   const [showModal, setShowModal] = useState(false);
   const [selectedTemplate, setSelectedTemplate] = useState<string>("");
   const [customConfig, setCustomConfig] = useState<MockDataConfig>({
+    templateId: "user-data",
     recordCount: 100,
     schema: {
       columns: [
@@ -171,6 +172,7 @@ const MockDataProviderComponent: React.FC<MockDataProviderProps> = ({
     });
 
     setCustomConfig({
+      templateId: customConfig.templateId,
       recordCount: customConfig.recordCount,
       schema: {
         columns: customColumns.map((col) => ({
@@ -198,7 +200,12 @@ const MockDataProviderComponent: React.FC<MockDataProviderProps> = ({
 
   const handleCreateDataSource = async () => {
     if (!dataSourceName.trim()) {
-      logger.warn("Data source name is required", "ui", {}, "MockDataProvider");
+      clientLogger.warn(
+        "Data source name is required",
+        "ui",
+        {},
+        "MockDataProvider"
+      );
       return;
     }
 
@@ -220,7 +227,7 @@ const MockDataProviderComponent: React.FC<MockDataProviderProps> = ({
         onDataSourceCreated(dataSource);
       }
 
-      logger.success(
+      clientLogger.success(
         "Mock data source created",
         "data-processing",
         {
@@ -235,7 +242,7 @@ const MockDataProviderComponent: React.FC<MockDataProviderProps> = ({
       setDataSourceName("");
       setSelectedTemplate("");
     } catch (error) {
-      logger.error(
+      clientLogger.error(
         "Failed to create mock data source",
         "data-processing",
         { error },
@@ -444,7 +451,7 @@ const MockDataProviderComponent: React.FC<MockDataProviderProps> = ({
                     </p>
                     <p className="text-white/50 text-xs mt-1">
                       {template.recordCount} records •{" "}
-                      {template.schema.columns.length} columns
+                      {template.schema?.columns.length || 0} columns
                     </p>
                   </div>
                 </div>
@@ -457,7 +464,7 @@ const MockDataProviderComponent: React.FC<MockDataProviderProps> = ({
           <div className="glass-card rounded-xl p-4">
             <h4 className="text-white font-medium mb-3">Template Preview</h4>
             <div className="space-y-2">
-              {templates[selectedTemplate].schema.columns.map((column) => (
+              {templates[selectedTemplate]?.schema?.columns.map((column) => (
                 <div
                   key={column.name}
                   className="flex items-center justify-between text-sm"
@@ -471,7 +478,7 @@ const MockDataProviderComponent: React.FC<MockDataProviderProps> = ({
             </div>
             <div className="mt-3 pt-3 border-t border-white/10">
               <p className="text-white/60 text-sm">
-                <strong>{templates[selectedTemplate].recordCount}</strong>{" "}
+                <strong>{templates[selectedTemplate]?.recordCount}</strong>{" "}
                 records will be generated
               </p>
             </div>
@@ -657,7 +664,7 @@ const MockDataProviderComponent: React.FC<MockDataProviderProps> = ({
                       </p>
                       <p className="text-white/50 text-xs mt-1">
                         {template.recordCount} records •{" "}
-                        {template.schema.columns.length} columns
+                        {template.schema?.columns.length || 0} columns
                       </p>
                     </div>
                   </div>
@@ -670,7 +677,7 @@ const MockDataProviderComponent: React.FC<MockDataProviderProps> = ({
             <div className="glass-card rounded-xl p-4">
               <h4 className="text-white font-medium mb-3">Template Preview</h4>
               <div className="space-y-2">
-                {templates[selectedTemplate].schema.columns.map((column) => (
+                {templates[selectedTemplate]?.schema?.columns.map((column) => (
                   <div
                     key={column.name}
                     className="flex items-center justify-between text-sm"
@@ -684,7 +691,7 @@ const MockDataProviderComponent: React.FC<MockDataProviderProps> = ({
               </div>
               <div className="mt-3 pt-3 border-t border-white/10">
                 <p className="text-white/60 text-sm">
-                  <strong>{templates[selectedTemplate].recordCount}</strong>{" "}
+                  <strong>{templates[selectedTemplate]?.recordCount}</strong>{" "}
                   records will be generated
                 </p>
               </div>

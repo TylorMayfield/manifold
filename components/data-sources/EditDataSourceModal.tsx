@@ -19,7 +19,7 @@ import {
   Database,
   Code,
 } from "lucide-react";
-import { logger } from "../../lib/utils/logger";
+import { clientLogger } from "../../lib/utils/ClientLogger";
 import { DataSource } from "../../types";
 import Button from "../ui/Button";
 import Input from "../ui/Input";
@@ -102,7 +102,7 @@ export default function EditDataSourceModal({
       setDataSourceName(dataSource.name);
 
       // Initialize config based on data source type
-      if (dataSource.type === "api" && dataSource.config) {
+      if (dataSource.type === "api_script" && dataSource.config) {
         setConfig({
           url: dataSource.config.apiUrl || "",
           method: dataSource.config.apiMethod || "GET",
@@ -282,7 +282,7 @@ export default function EditDataSourceModal({
     }
 
     // Type-specific validation
-    if (dataSource.type === "api" && !config.url?.trim()) {
+    if (dataSource.type === "api_script" && !config.url?.trim()) {
       alert("Please enter a valid API URL");
       return;
     }
@@ -295,7 +295,7 @@ export default function EditDataSourceModal({
       return;
     }
 
-    if (dataSource.type === "file" && !config.filePath?.trim()) {
+    if (dataSource.type === "csv" && !config.filePath?.trim()) {
       alert("Please enter a file path");
       return;
     }
@@ -311,7 +311,7 @@ export default function EditDataSourceModal({
       let updatedConfig;
 
       // Build config based on data source type
-      if (dataSource.type === "api") {
+      if (dataSource.type === "api_script") {
         updatedConfig = {
           apiUrl: config.url,
           apiMethod: config.method,
@@ -336,7 +336,7 @@ export default function EditDataSourceModal({
       onDataSourceUpdated(updatedDataSource);
       onClose();
 
-      logger.success(
+      clientLogger.success(
         `${getDataSourceTypeLabel(
           dataSource.type
         )} data source updated successfully`,
@@ -350,7 +350,7 @@ export default function EditDataSourceModal({
       );
     } catch (error) {
       console.error(`Failed to update ${dataSource.type} data source:`, error);
-      logger.error(
+      clientLogger.error(
         `Failed to update ${dataSource.type} data source`,
         "data-processing",
         { error },
@@ -364,13 +364,13 @@ export default function EditDataSourceModal({
   // Get the appropriate icon for the data source type
   const getDataSourceIcon = (type: string) => {
     switch (type) {
-      case "api":
+      case "api_script":
         return <Globe className="h-5 w-5" />;
-      case "file":
+      case "csv":
         return <FileText className="h-5 w-5" />;
       case "mysql":
         return <Database className="h-5 w-5" />;
-      case "custom_script":
+      case "sql_dump":
         return <Code className="h-5 w-5" />;
       case "sql_dump":
         return <Database className="h-5 w-5" />;
@@ -384,13 +384,13 @@ export default function EditDataSourceModal({
   // Get the display name for the data source type
   const getDataSourceTypeLabel = (type: string) => {
     switch (type) {
-      case "api":
+      case "api_script":
         return "API Endpoint";
-      case "file":
+      case "csv":
         return "File Upload";
       case "mysql":
         return "MySQL Database";
-      case "custom_script":
+      case "sql_dump":
         return "Custom Script";
       case "sql_dump":
         return "SQL Dump";
@@ -437,7 +437,7 @@ export default function EditDataSourceModal({
           </div>
 
           {/* Type-specific configuration forms */}
-          {dataSource.type === "api" && (
+          {dataSource.type === "api_script" && (
             <>
               {/* API URL */}
               <div>
@@ -453,7 +453,7 @@ export default function EditDataSourceModal({
             </>
           )}
 
-          {dataSource.type === "file" && (
+          {dataSource.type === "csv" && (
             <>
               {/* File Upload Configuration */}
               <div>
@@ -572,7 +572,7 @@ export default function EditDataSourceModal({
             </>
           )}
 
-          {dataSource.type === "custom_script" && (
+          {dataSource.type === "sql_dump" && (
             <>
               {/* Custom Script Configuration */}
               <div>
@@ -690,7 +690,7 @@ export default function EditDataSourceModal({
           )}
 
           {/* API-specific fields - only show for API type */}
-          {dataSource.type === "api" && (
+          {dataSource.type === "api_script" && (
             <>
               {/* HTTP Method */}
               <div>

@@ -2,9 +2,9 @@
 
 import React, { useState, useEffect } from "react";
 import { Edit3, Save, X, AlertCircle } from "lucide-react";
-import { logger } from "../../lib/utils/logger";
+import { clientLogger } from "../../lib/utils/ClientLogger";
 import { Project } from "../../types";
-import { DatabaseService } from "../../lib/services/DatabaseService";
+import { clientDatabaseService } from "../../lib/database/ClientDatabaseService";
 import Button from "../ui/Button";
 import Modal from "../ui/Modal";
 
@@ -26,7 +26,7 @@ export default function RenameProjectModal({
   const [error, setError] = useState<string | null>(null);
   const [isValid, setIsValid] = useState(false);
 
-  const dbService = DatabaseService.getInstance();
+  const dbService = clientDatabaseService;
 
   useEffect(() => {
     if (isOpen && project) {
@@ -82,9 +82,12 @@ export default function RenameProjectModal({
         updatedAt: new Date(),
       };
 
-      await dbService.updateProjectObject(updatedProject);
+      await dbService.updateProject(project.id, {
+        name: trimmedName,
+        updatedAt: new Date(),
+      });
 
-      logger.success(
+      clientLogger.success(
         "Project renamed successfully",
         "user-action",
         {
@@ -101,7 +104,7 @@ export default function RenameProjectModal({
       setError(
         error instanceof Error ? error.message : "Failed to rename project"
       );
-      logger.error(
+      clientLogger.error(
         "Failed to rename project",
         "user-action",
         {

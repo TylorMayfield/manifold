@@ -5,12 +5,13 @@ import {
   TableSchema,
   ColumnSchema,
 } from "../../types";
-import { logger } from "../utils/logger";
+import { clientLogger } from "../utils/ClientLogger";
 
 export interface MockDataConfig {
+  templateId: string;
   recordCount: number;
-  schema: TableSchema;
-  dataTypes: {
+  schema?: TableSchema;
+  dataTypes?: {
     [columnName: string]:
       | "string"
       | "number"
@@ -37,12 +38,12 @@ export class MockDataProvider {
   }
 
   async generateMockData(config: MockDataConfig): Promise<any[]> {
-    logger.info(
+    clientLogger.info(
       "Generating mock data",
       "data-processing",
       {
         recordCount: config.recordCount,
-        columnCount: config.schema.columns.length,
+        columnCount: config.schema?.columns.length || 0,
       },
       "MockDataProvider"
     );
@@ -73,15 +74,15 @@ export class MockDataProvider {
     for (let i = 0; i < config.recordCount; i++) {
       const record: any = {};
 
-      for (const column of config.schema.columns) {
-        const dataType = config.dataTypes[column.name] || column.type;
+      for (const column of config.schema?.columns || []) {
+        const dataType = config.dataTypes?.[column.name] || column.type;
         record[column.name] = generators[dataType]();
       }
 
       data.push(record);
     }
 
-    logger.success(
+    clientLogger.success(
       "Mock data generated successfully",
       "data-processing",
       {
@@ -98,7 +99,7 @@ export class MockDataProvider {
     name: string,
     config: MockDataConfig
   ): Promise<DataSource> {
-    logger.info(
+    clientLogger.info(
       "Creating mock data source",
       "data-processing",
       {
@@ -125,7 +126,7 @@ export class MockDataProvider {
       status: "completed",
     };
 
-    logger.success(
+    clientLogger.success(
       "Mock data source created",
       "data-processing",
       {
@@ -344,6 +345,7 @@ export class MockDataProvider {
   getTemplates(): { [key: string]: MockDataConfig } {
     return {
       customers: {
+        templateId: "customers",
         recordCount: 1000,
         schema: {
           columns: [
@@ -365,6 +367,7 @@ export class MockDataProvider {
         },
       },
       products: {
+        templateId: "products",
         recordCount: 500,
         schema: {
           columns: [
@@ -386,6 +389,7 @@ export class MockDataProvider {
         },
       },
       sales: {
+        templateId: "sales",
         recordCount: 2000,
         schema: {
           columns: [

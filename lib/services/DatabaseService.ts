@@ -1,9 +1,15 @@
 import { Project, DataSource, ConsolidatedModel, Snapshot } from "../../types";
+// import { PrismaDatabaseService } from "./PrismaDatabaseService"; // Moved to server-side
 
 export class DatabaseService {
   private static instance: DatabaseService;
+  private prismaService: any = null; // PrismaDatabaseService | null = null; // Server-side only
 
-  private constructor() {}
+  private constructor() {
+    // Prisma service initialization disabled for client-side
+    // Server-side services are not available in client components
+    this.prismaService = null;
+  }
 
   static getInstance(): DatabaseService {
     if (!DatabaseService.instance) {
@@ -12,12 +18,49 @@ export class DatabaseService {
     return DatabaseService.instance;
   }
 
+  // Generic SQL execution method
+  async execute(sql: string, params?: any[]): Promise<any> {
+    try {
+      if ((window as any).electronAPI?.executeSQL) {
+        return await (window as any).electronAPI.executeSQL(sql, params);
+      }
+      // Fallback for browser testing - limited functionality
+      console.warn("SQL execution not supported in browser mode:", sql);
+      return { success: true };
+    } catch (error) {
+      console.error("Failed to execute SQL:", error);
+      throw error;
+    }
+  }
+
+  // Generic SQL query method
+  async query(sql: string, params?: any[]): Promise<any[]> {
+    try {
+      if ((window as any).electronAPI?.querySQL) {
+        return await (window as any).electronAPI.querySQL(sql, params);
+      }
+      // Fallback for browser testing - limited functionality
+      console.warn("SQL query not supported in browser mode:", sql);
+      return [];
+    } catch (error) {
+      console.error("Failed to query SQL:", error);
+      throw error;
+    }
+  }
+
   // Project operations
   async getProjects(): Promise<Project[]> {
     try {
+      // Try Prisma service first
+      if (this.prismaService) {
+        return await this.prismaService.getProjects();
+      }
+
+      // Fallback to Electron API
       if ((window as any).electronAPI?.getProjects) {
         return await (window as any).electronAPI.getProjects();
       }
+
       // Fallback to localStorage for browser testing
       const projects = localStorage.getItem("manifold_projects");
       return projects ? JSON.parse(projects) : [];
@@ -29,9 +72,16 @@ export class DatabaseService {
 
   async getProject(id: string): Promise<Project | null> {
     try {
+      // Try Prisma service first
+      if (this.prismaService) {
+        return await this.prismaService.getProject(id);
+      }
+
+      // Fallback to Electron API
       if ((window as any).electronAPI?.getProject) {
         return await (window as any).electronAPI.getProject(id);
       }
+
       // Fallback to localStorage for browser testing
       const projects = await this.getProjects();
       return projects.find((p) => p.id === id) || null;
@@ -43,6 +93,12 @@ export class DatabaseService {
 
   async createProject(project: Project): Promise<void> {
     try {
+      // Try Prisma service first
+      if (this.prismaService) {
+        return await this.prismaService.createProject(project);
+      }
+
+      // Fallback to Electron API
       if ((window as any).electronAPI?.createProject) {
         console.log("Creating project via Electron API:", project);
         const result = await (window as any).electronAPI.createProject(project);

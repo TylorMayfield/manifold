@@ -44,15 +44,15 @@ export default function EnhancedErrorDisplay({
   const getSeverityIcon = () => {
     switch (error.severity) {
       case "low":
-        return <Info className="h-5 w-5 text-blue-400" />;
+        return <Info className="h-5 w-5 text-dark_cyan-400" />;
       case "medium":
-        return <AlertTriangle className="h-5 w-5 text-yellow-400" />;
+        return <AlertTriangle className="h-5 w-5 text-tangerine-400" />;
       case "high":
-        return <AlertCircle className="h-5 w-5 text-red-400" />;
+        return <AlertCircle className="h-5 w-5 text-jasper-400" />;
       case "critical":
-        return <AlertCircle className="h-5 w-5 text-red-500" />;
+        return <AlertCircle className="h-5 w-5 text-jasper-500" />;
       default:
-        return <AlertTriangle className="h-5 w-5 text-yellow-400" />;
+        return <AlertTriangle className="h-5 w-5 text-tangerine-400" />;
     }
   };
 
@@ -60,31 +60,31 @@ export default function EnhancedErrorDisplay({
     switch (color) {
       case "blue":
         return {
-          bg: "bg-blue-500/10",
-          border: "border-blue-500/20",
-          text: "text-blue-400",
-          icon: "text-blue-400",
+          bg: "bg-dark_cyan-500/10",
+          border: "border-dark_cyan-500/20",
+          text: "text-dark_cyan-400",
+          icon: "text-dark_cyan-400",
         };
       case "yellow":
         return {
-          bg: "bg-yellow-500/10",
-          border: "border-yellow-500/20",
-          text: "text-yellow-400",
-          icon: "text-yellow-400",
+          bg: "bg-tangerine-500/10",
+          border: "border-tangerine-500/20",
+          text: "text-tangerine-400",
+          icon: "text-tangerine-400",
         };
       case "red":
         return {
-          bg: "bg-red-500/10",
-          border: "border-red-500/20",
-          text: "text-red-400",
-          icon: "text-red-400",
+          bg: "bg-jasper-500/10",
+          border: "border-jasper-500/20",
+          text: "text-jasper-400",
+          icon: "text-jasper-400",
         };
       default:
         return {
-          bg: "bg-yellow-500/10",
-          border: "border-yellow-500/20",
-          text: "text-yellow-400",
-          icon: "text-yellow-400",
+          bg: "bg-tangerine-500/10",
+          border: "border-tangerine-500/20",
+          text: "text-tangerine-400",
+          icon: "text-tangerine-400",
         };
     }
   };

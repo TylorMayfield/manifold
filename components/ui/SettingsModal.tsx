@@ -42,9 +42,9 @@ export default function SettingsModal({
         <div className="space-y-4">
           <div className="flex items-center">
             {soundEnabled ? (
-              <Volume2 className="h-5 w-5 text-white text-opacity-80 mr-3" />
+              <Volume2 className="h-5 w-5 text-dark_cyan-400 mr-3" />
             ) : (
-              <VolumeX className="h-5 w-5 text-white text-opacity-80 mr-3" />
+              <VolumeX className="h-5 w-5 text-dark_cyan-400 mr-3" />
             )}
             <h3 className="text-lg font-semibold text-white">Audio</h3>
           </div>
@@ -54,14 +54,14 @@ export default function SettingsModal({
               <div className="text-sm font-medium text-white">
                 Sound Effects
               </div>
-              <div className="text-xs text-white text-opacity-60">
+              <div className="text-xs text-dark_cyan-400">
                 Play sounds for interactions and notifications
               </div>
             </div>
             <button
               onClick={() => setSoundEnabled(!soundEnabled)}
               className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
-                soundEnabled ? "bg-purple-600" : "bg-white bg-opacity-20"
+                soundEnabled ? "bg-tangerine-500" : "bg-dark_cyan-300"
               }`}
             >
               <span
@@ -81,14 +81,14 @@ export default function SettingsModal({
             <div className="flex items-center justify-between">
               <div>
                 <div className="text-sm font-medium text-white">Auto-save</div>
-                <div className="text-xs text-white text-opacity-60">
+                <div className="text-xs text-dark_cyan-400">
                   Automatically save your work
                 </div>
               </div>
               <button
                 onClick={() => setAutoSave(!autoSave)}
                 className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
-                  autoSave ? "bg-purple-600" : "bg-white bg-opacity-20"
+                  autoSave ? "bg-tangerine-500" : "bg-dark_cyan-300"
                 }`}
               >
                 <span
@@ -104,14 +104,14 @@ export default function SettingsModal({
                 <div className="text-sm font-medium text-white">
                   Notifications
                 </div>
-                <div className="text-xs text-white text-opacity-60">
+                <div className="text-xs text-dark_cyan-400">
                   Show desktop notifications
                 </div>
               </div>
               <button
                 onClick={() => setNotifications(!notifications)}
                 className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
-                  notifications ? "bg-purple-600" : "bg-white bg-opacity-20"
+                  notifications ? "bg-tangerine-500" : "bg-dark_cyan-300"
                 }`}
               >
                 <span
@@ -140,7 +140,7 @@ export default function SettingsModal({
                   <div className="text-sm font-medium text-white">
                     Rename Project
                   </div>
-                  <div className="text-xs text-white text-opacity-60">
+                  <div className="text-xs text-dark_cyan-400">
                     Change the name of "{project.name}"
                   </div>
                 </div>
@@ -161,7 +161,7 @@ export default function SettingsModal({
         {onBackupRestore && (
           <div className="card p-4">
             <div className="flex items-center mb-4">
-              <Cloud className="h-5 w-5 text-white mr-3" />
+              <Cloud className="h-5 w-5 text-dark_cyan-400 mr-3" />
               <h3 className="text-lg font-semibold text-white">
                 Backup & Restore
               </h3>
@@ -173,7 +173,7 @@ export default function SettingsModal({
                   <div className="text-sm font-medium text-white">
                     Data Backup
                   </div>
-                  <div className="text-xs text-white text-opacity-60">
+                  <div className="text-xs text-dark_cyan-400">
                     Backup and restore your projects and data
                   </div>
                 </div>
@@ -191,7 +191,7 @@ export default function SettingsModal({
         )}
 
         {/* Action Buttons */}
-        <div className="flex justify-end space-x-3 pt-4 border-t border-white border-opacity-10">
+        <div className="flex justify-end space-x-3 pt-4 border-t border-dark_cyan-200 border-opacity-20">
           <Button variant="ghost" onClick={onClose}>
             Cancel
           </Button>

@@ -3,8 +3,15 @@
 import React, { useState } from "react";
 import { Upload, Database, FileText, AlertCircle } from "lucide-react";
 import { ImportProgress } from "../../types";
-import { sqlDumpImporter } from "../../lib/services/SqlDumpImporter";
-import { logger } from "../../lib/utils/logger";
+// import { sqlDumpImporter } from "../../lib/services/SqlDumpImporter"; // Moved to server-side
+
+// Mock sqlDumpImporter for client-side
+const sqlDumpImporter = {
+  importSqlDump: () => {},
+  validateSqlDump: () => true,
+  getImportProgress: () => ({ progress: 0, status: "idle" }),
+};
+import { clientLogger } from "../../lib/utils/ClientLogger";
 import Button from "../ui/Button";
 import Input from "../ui/Input";
 import ImportProgressIndicator from "../ui/ImportProgressIndicator";
@@ -45,7 +52,7 @@ const SqlDumpUpload: React.FC<SqlDumpUploadProps> = ({
         setProviderName(nameWithoutExt);
       }
 
-      logger.info(
+      clientLogger.info(
         "SQL dump file selected",
         "file-import",
         {
@@ -151,7 +158,7 @@ const SqlDumpUpload: React.FC<SqlDumpUploadProps> = ({
       //   sqlDialect
       // );
 
-      logger.success(
+      clientLogger.success(
         "SQL dump import completed",
         "file-import",
         {
@@ -178,7 +185,7 @@ const SqlDumpUpload: React.FC<SqlDumpUploadProps> = ({
       setProgress(completeProgress);
       onUploadComplete(completeProgress);
     } catch (error) {
-      logger.error(
+      clientLogger.error(
         "SQL dump import failed",
         "file-import",
         { error, projectId, providerName },

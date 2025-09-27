@@ -39,13 +39,13 @@ export default function DataSourcesPanel({
 }: DataSourcesPanelProps) {
   const getDataSourceIcon = (type: DataSourceType) => {
     switch (type) {
-      case "file":
+      case "csv":
         return <FileText className="h-4 w-4" />;
       case "sql_dump":
         return <Database className="h-4 w-4" />;
-      case "custom_script":
+      case "json":
         return <Code className="h-4 w-4" />;
-      case "api":
+      case "api_script":
         return <Globe className="h-4 w-4" />;
       case "mock":
         return <Database className="h-4 w-4" />;
@@ -58,13 +58,13 @@ export default function DataSourcesPanel({
 
   const getDataSourceTypeLabel = (type: DataSourceType) => {
     switch (type) {
-      case "file":
+      case "csv":
         return "File Upload";
       case "sql_dump":
         return "SQL Dump";
-      case "custom_script":
-        return "Custom Script";
-      case "api":
+      case "json":
+        return "JSON Upload";
+      case "api_script":
         return "API Endpoint";
       case "mock":
         return "Mock Data";

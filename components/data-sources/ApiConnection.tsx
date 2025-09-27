@@ -16,7 +16,7 @@ import {
   Eye,
   EyeOff,
 } from "lucide-react";
-import { logger } from "../../lib/utils/logger";
+import { clientLogger } from "../../lib/utils/ClientLogger";
 import { Project, DataProvider } from "../../types";
 import Button from "../ui/Button";
 import Input from "../ui/Input";
@@ -219,7 +219,7 @@ export default function ApiConnection({
         status: response.status,
       });
 
-      logger.info(
+      clientLogger.info(
         "API connection test completed",
         "data-processing",
         {
@@ -239,7 +239,7 @@ export default function ApiConnection({
         }`,
       });
 
-      logger.error(
+      clientLogger.error(
         "API connection test failed",
         "data-processing",
         { error, url: config.url },
@@ -268,7 +268,7 @@ export default function ApiConnection({
         id: `api_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
         projectId: project.id,
         name: dataSourceName.trim(),
-        type: "api",
+        type: "api_script",
         config: {
           apiUrl: config.url,
           apiMethod: config.method,
@@ -298,7 +298,7 @@ export default function ApiConnection({
         authConfig: {},
       });
 
-      logger.success(
+      clientLogger.success(
         "API data source created successfully",
         "data-processing",
         {
@@ -310,7 +310,7 @@ export default function ApiConnection({
       );
     } catch (error) {
       console.error("Failed to create API data source:", error);
-      logger.error(
+      clientLogger.error(
         "Failed to create API data source",
         "data-processing",
         { error },

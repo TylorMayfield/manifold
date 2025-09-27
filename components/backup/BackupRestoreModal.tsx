@@ -15,15 +15,31 @@ import {
 import Modal from "../ui/Modal";
 import Button from "../ui/Button";
 import { Project, DataSource } from "../../types";
-import {
-  S3BackupService,
-  BackupMetadata,
-  S3Config,
-} from "../../lib/services/S3BackupService";
-import { LocalBackupService } from "../../lib/services/LocalBackupService";
-import { BackupScheduler } from "../../lib/services/BackupScheduler";
-import { DatabaseService } from "../../lib/services/DatabaseService";
-import { logger } from "../../lib/utils/logger";
+import { BackupMetadata, S3Config } from "../../types/backup";
+
+// Mock S3BackupService for client-side
+const S3BackupService = {
+  getInstance: () => ({
+    isConfigured: () => false,
+    getConfig: () => null,
+    listBackups: (projectId: string) => [],
+    backupProject: (
+      project: any,
+      dataSources: any[],
+      description: string
+    ) => ({}),
+    restoreProject: (backupId: string, projectId: string) => ({
+      project: {},
+      dataSources: [],
+      snapshots: [],
+    }),
+    configure: (config: any) => {},
+  }),
+};
+// import { LocalBackupService } from "../../lib/services/LocalBackupService"; // Moved to server-side
+// import { BackupScheduler } from "../../lib/services/BackupScheduler"; // Moved to server-side
+import { clientDatabaseService } from "../../lib/database/ClientDatabaseService";
+import { clientLogger } from "../../lib/utils/ClientLogger";
 
 interface BackupRestoreModalProps {
   isOpen: boolean;
@@ -48,7 +64,7 @@ export default function BackupRestoreModal({
   const [backupDescription, setBackupDescription] = useState("");
 
   const s3Service = S3BackupService.getInstance();
-  const dbService = DatabaseService.getInstance();
+  const dbService = clientDatabaseService;
 
   useEffect(() => {
     if (isOpen && project) {
@@ -73,7 +89,7 @@ export default function BackupRestoreModal({
       const backupList = await s3Service.listBackups(project.id);
       setBackups(backupList);
     } catch (error) {
-      logger.error(
+      clientLogger.error(
         "Failed to load backups",
         "backup",
         { error },
@@ -93,14 +109,14 @@ export default function BackupRestoreModal({
       setBackupDescription("");
       await loadBackups();
 
-      logger.success(
+      clientLogger.success(
         "Project backed up to S3",
         "backup",
         { projectId: project.id },
         "BackupRestoreModal"
       );
     } catch (error) {
-      logger.error(
+      clientLogger.error(
         "S3 backup failed",
         "backup",
         { error },
@@ -126,30 +142,30 @@ export default function BackupRestoreModal({
       await dbService.updateProject(project.id, restoredProject);
 
       // Restore data sources
-      for (const dataSource of restoredDataSources) {
-        await dbService.updateDataSource(dataSource.id, dataSource);
+      for (const dataSource of restoredDataSources as any[]) {
+        await dbService.updateDataSource(project.id, dataSource.id, dataSource);
       }
 
       // Restore snapshots (data) if they exist
       if (snapshots && snapshots.length > 0) {
-        logger.info(
+        clientLogger.info(
           "Restoring snapshots from S3 backup",
           "backup",
           { snapshotCount: snapshots.length, backupId: backup.id },
           "BackupRestoreModal"
         );
 
-        for (const snapshot of snapshots) {
+        for (const snapshot of snapshots as any[]) {
           try {
-            await dbService.createSnapshot(snapshot);
-            logger.info(
+            await dbService.createSnapshot(project.id, snapshot);
+            clientLogger.info(
               "Snapshot restored from S3 backup",
               "backup",
               { snapshotId: snapshot.id, dataSourceId: snapshot.dataSourceId },
               "BackupRestoreModal"
             );
           } catch (snapshotError) {
-            logger.error(
+            clientLogger.error(
               "Failed to restore snapshot from S3 backup",
               "backup",
               { error: snapshotError, snapshotId: snapshot.id },
@@ -159,7 +175,7 @@ export default function BackupRestoreModal({
         }
       }
 
-      logger.success(
+      clientLogger.success(
         "Project restored from S3",
         "backup",
         {
@@ -172,7 +188,7 @@ export default function BackupRestoreModal({
 
       onClose();
     } catch (error) {
-      logger.error(
+      clientLogger.error(
         "S3 restore failed",
         "backup",
         { error },
@@ -212,14 +228,14 @@ export default function BackupRestoreModal({
       a.click();
       URL.revokeObjectURL(url);
 
-      logger.success(
+      clientLogger.success(
         "Project exported to file",
         "backup",
         { projectId: project.id },
         "BackupRestoreModal"
       );
     } catch (error) {
-      logger.error(
+      clientLogger.error(
         "File export failed",
         "backup",
         { error },
@@ -247,7 +263,7 @@ export default function BackupRestoreModal({
         await dbService.updateProject(project.id, importData.project);
 
         // Note: In a real implementation, you'd also import data sources
-        logger.success(
+        clientLogger.success(
           "Project imported from file",
           "backup",
           { projectId: project.id },
@@ -259,7 +275,7 @@ export default function BackupRestoreModal({
         throw new Error("Invalid backup file format");
       }
     } catch (error) {
-      logger.error(
+      clientLogger.error(
         "File import failed",
         "backup",
         { error },
@@ -278,14 +294,14 @@ export default function BackupRestoreModal({
       setS3Config(config);
       await loadBackups();
 
-      logger.success(
+      clientLogger.success(
         "S3 configured successfully",
         "backup",
         {},
         "BackupRestoreModal"
       );
     } catch (error) {
-      logger.error(
+      clientLogger.error(
         "S3 configuration failed",
         "backup",
         { error },
@@ -318,7 +334,7 @@ export default function BackupRestoreModal({
     <Modal isOpen={isOpen} onClose={onClose} title="Backup & Restore" size="lg">
       <div className="space-y-6">
         {/* Tabs */}
-        <div className="flex space-x-1 bg-white bg-opacity-5 rounded-lg p-1">
+        <div className="flex space-x-1 bg-dark_cyan-300 bg-opacity-10 rounded-lg p-1">
           {[
             { id: "backup", label: "Backup", icon: Cloud },
             { id: "restore", label: "Restore", icon: Download },
@@ -329,8 +345,8 @@ export default function BackupRestoreModal({
               onClick={() => setActiveTab(id as TabType)}
               className={`flex-1 flex items-center justify-center px-4 py-2 rounded-md text-sm font-medium transition-colors ${
                 activeTab === id
-                  ? "bg-white bg-opacity-10 text-white"
-                  : "text-white text-opacity-70 hover:text-white hover:bg-white hover:bg-opacity-5"
+                  ? "bg-tangerine-500 text-white shadow-lg"
+                  : "text-dark_cyan-400 hover:text-white hover:bg-dark_cyan-300 hover:bg-opacity-20"
               }`}
             >
               <Icon className="h-4 w-4 mr-2" />
@@ -342,7 +358,7 @@ export default function BackupRestoreModal({
         {/* Backup Tab */}
         {activeTab === "backup" && (
           <div className="space-y-4">
-            <div className="card p-4">
+            <div className="glass-card p-4">
               <h3 className="text-lg font-semibold text-white mb-4">
                 Cloud Backup (S3)
               </h3>
@@ -353,13 +369,13 @@ export default function BackupRestoreModal({
                     <span className="text-sm">S3 configured and ready</span>
                   </div>
                   {s3Config?.endpoint && (
-                    <div className="text-xs text-white text-opacity-60 bg-white bg-opacity-5 rounded px-2 py-1">
+                    <div className="text-xs text-dark_cyan-400 bg-dark_cyan-300 bg-opacity-10 rounded px-2 py-1">
                       Using custom endpoint: {s3Config.endpoint}
                     </div>
                   )}
                   <div className="space-y-3">
                     <div>
-                      <label className="block text-sm font-medium text-white text-opacity-80 mb-2">
+                      <label className="block text-sm font-medium text-white mb-2">
                         Backup Description (Optional)
                       </label>
                       <input
@@ -404,11 +420,11 @@ export default function BackupRestoreModal({
               )}
             </div>
 
-            <div className="card p-4">
+            <div className="glass-card p-4">
               <h3 className="text-lg font-semibold text-white mb-4">
                 File Export
               </h3>
-              <p className="text-white text-opacity-70 mb-4">
+              <p className="text-dark_cyan-400 mb-4">
                 Export your project data to a local file for backup or sharing.
               </p>
               <Button
@@ -433,7 +449,7 @@ export default function BackupRestoreModal({
         {activeTab === "restore" && (
           <div className="space-y-4">
             {s3Configured ? (
-              <div className="card p-4">
+              <div className="glass-card p-4">
                 <h3 className="text-lg font-semibold text-white mb-4">
                   Restore from S3
                 </h3>
@@ -449,7 +465,7 @@ export default function BackupRestoreModal({
                     {backups.map((backup) => (
                       <div
                         key={backup.id}
-                        className="flex items-center justify-between p-3 bg-white bg-opacity-5 rounded-lg"
+                        className="flex items-center justify-between p-3 bg-dark_cyan-300 bg-opacity-10 rounded-lg"
                       >
                         <div className="flex-1">
                           <div className="flex items-center space-x-2">
@@ -458,7 +474,7 @@ export default function BackupRestoreModal({
                               {backup.description || "Backup"}
                             </span>
                           </div>
-                          <div className="text-xs text-white text-opacity-60 mt-1">
+                          <div className="text-xs text-dark_cyan-400 mt-1">
                             {formatDate(backup.timestamp)} •{" "}
                             {formatFileSize(backup.size)} •{" "}
                             {backup.dataSourceCount} data sources
@@ -486,18 +502,16 @@ export default function BackupRestoreModal({
                   </div>
                 ) : (
                   <div className="text-center py-8">
-                    <FileText className="h-12 w-12 text-white text-opacity-40 mx-auto mb-4" />
-                    <p className="text-white text-opacity-70">
-                      No backups found
-                    </p>
+                    <FileText className="h-12 w-12 text-dark_cyan-400 mx-auto mb-4" />
+                    <p className="text-dark_cyan-400">No backups found</p>
                   </div>
                 )}
               </div>
             ) : (
-              <div className="card p-4">
+              <div className="glass-card p-4">
                 <div className="text-center py-8">
                   <AlertCircle className="h-12 w-12 text-yellow-400 mx-auto mb-4" />
-                  <p className="text-white text-opacity-70 mb-4">
+                  <p className="text-dark_cyan-400 mb-4">
                     S3 backup not configured. Configure S3 to restore from cloud
                     backups.
                   </p>
@@ -512,11 +526,11 @@ export default function BackupRestoreModal({
               </div>
             )}
 
-            <div className="card p-4">
+            <div className="glass-card p-4">
               <h3 className="text-lg font-semibold text-white mb-4">
                 Import from File
               </h3>
-              <p className="text-white text-opacity-70 mb-4">
+              <p className="text-dark_cyan-400 mb-4">
                 Import project data from a previously exported file.
               </p>
               <label className="block">
@@ -542,7 +556,7 @@ export default function BackupRestoreModal({
         {/* Settings Tab */}
         {activeTab === "settings" && (
           <div className="space-y-4">
-            <div className="card p-4">
+            <div className="glass-card p-4">
               <h3 className="text-lg font-semibold text-white mb-4">
                 S3 Configuration
               </h3>
@@ -550,7 +564,7 @@ export default function BackupRestoreModal({
                 <h4 className="text-sm font-medium text-blue-400 mb-2">
                   Supported Services
                 </h4>
-                <div className="text-xs text-white text-opacity-80 space-y-1">
+                <div className="text-xs text-dark_cyan-400 space-y-1">
                   <div>
                     • <strong>AWS S3:</strong> Leave endpoint empty
                   </div>
@@ -624,7 +638,7 @@ function S3ConfigForm({
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
       <div>
-        <label className="block text-sm font-medium text-white text-opacity-80 mb-2">
+        <label className="block text-sm font-medium text-white mb-2">
           Access Key ID
         </label>
         <input
@@ -640,7 +654,7 @@ function S3ConfigForm({
       </div>
 
       <div>
-        <label className="block text-sm font-medium text-white text-opacity-80 mb-2">
+        <label className="block text-sm font-medium text-white mb-2">
           Secret Access Key
         </label>
         <input
@@ -656,7 +670,7 @@ function S3ConfigForm({
       </div>
 
       <div>
-        <label className="block text-sm font-medium text-white text-opacity-80 mb-2">
+        <label className="block text-sm font-medium text-white mb-2">
           Region
         </label>
         <input
@@ -670,7 +684,7 @@ function S3ConfigForm({
       </div>
 
       <div>
-        <label className="block text-sm font-medium text-white text-opacity-80 mb-2">
+        <label className="block text-sm font-medium text-white mb-2">
           Bucket Name
         </label>
         <input
@@ -684,7 +698,7 @@ function S3ConfigForm({
       </div>
 
       <div>
-        <label className="block text-sm font-medium text-white text-opacity-80 mb-2">
+        <label className="block text-sm font-medium text-white mb-2">
           Endpoint URL (Optional)
         </label>
         <input
@@ -694,7 +708,7 @@ function S3ConfigForm({
           className="input w-full"
           placeholder="https://your-s3-compatible-endpoint.com"
         />
-        <p className="text-xs text-white text-opacity-60 mt-1">
+        <p className="text-xs text-dark_cyan-400 mt-1">
           Leave empty for AWS S3. Include protocol (https://) for custom
           endpoints.
         </p>

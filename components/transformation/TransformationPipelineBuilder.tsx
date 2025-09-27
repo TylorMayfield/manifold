@@ -27,8 +27,8 @@ import {
   DataTransformationEngine,
   TransformationPipeline,
   TransformationStep,
-} from "../../lib/services/DataTransformationEngine";
-import { logger } from "../../lib/utils/logger";
+} from "../../lib/server/services/DataTransformationEngine";
+import { clientLogger } from "../../lib/utils/ClientLogger";
 
 interface TransformationPipelineBuilderProps {
   onPipelineExecute?: (result: any) => void;
@@ -76,7 +76,7 @@ export const TransformationPipelineBuilder: React.FC<
     setSelectedPipeline(newPipeline);
     setShowCreateModal(false);
 
-    logger.info("Pipeline created", "data-transformation", {
+    clientLogger.info("Pipeline created", "data-transformation", {
       pipelineId: newPipeline.id,
     });
   };
@@ -142,13 +142,13 @@ export const TransformationPipelineBuilder: React.FC<
         onPipelineExecute(result.data);
       }
 
-      logger.info("Pipeline executed", "data-transformation", {
+      clientLogger.info("Pipeline executed", "data-transformation", {
         pipelineId: selectedPipeline.id,
         success: result.success,
         rowCount: result.metadata?.rowCount || 0,
       });
     } catch (error) {
-      logger.error("Pipeline execution failed", "data-transformation", {
+      clientLogger.error("Pipeline execution failed", "data-transformation", {
         error: (error as Error).message,
       });
     } finally {

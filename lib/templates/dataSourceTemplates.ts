@@ -78,7 +78,7 @@ export const DATA_SOURCE_TEMPLATES: DataSourceTemplate[] = [
     name: "REST API",
     description: "Connect to a REST API endpoint",
     category: "api",
-    type: "api",
+    type: "api_script",
     config: {
       apiUrl: "https://api.example.com/data",
       apiMethod: "GET",
@@ -101,7 +101,7 @@ export const DATA_SOURCE_TEMPLATES: DataSourceTemplate[] = [
     name: "GraphQL API",
     description: "Connect to a GraphQL API endpoint",
     category: "api",
-    type: "api",
+    type: "api_script",
     config: {
       apiUrl: "https://api.example.com/graphql",
       apiMethod: "POST",
@@ -123,7 +123,7 @@ export const DATA_SOURCE_TEMPLATES: DataSourceTemplate[] = [
     name: "Webhook",
     description: "Receive data via webhook endpoint",
     category: "api",
-    type: "api",
+    type: "api_script",
     config: {
       apiUrl: "https://your-domain.com/webhook",
       apiMethod: "POST",
@@ -141,7 +141,7 @@ export const DATA_SOURCE_TEMPLATES: DataSourceTemplate[] = [
     name: "CSV File",
     description: "Import data from a CSV file",
     category: "file",
-    type: "file",
+    type: "csv",
     config: {
       filePath: "",
       fileType: "csv",
@@ -155,7 +155,7 @@ export const DATA_SOURCE_TEMPLATES: DataSourceTemplate[] = [
     name: "JSON File",
     description: "Import data from a JSON file",
     category: "file",
-    type: "file",
+    type: "csv",
     config: {
       filePath: "",
       fileType: "json",
@@ -168,7 +168,7 @@ export const DATA_SOURCE_TEMPLATES: DataSourceTemplate[] = [
     name: "Excel File",
     description: "Import data from an Excel file",
     category: "file",
-    type: "file",
+    type: "csv",
     config: {
       filePath: "",
       fileType: "csv", // Will be extended to support Excel
@@ -198,7 +198,7 @@ export const DATA_SOURCE_TEMPLATES: DataSourceTemplate[] = [
     name: "JavaScript Script",
     description: "Create a custom data source using JavaScript",
     category: "api",
-    type: "custom_script",
+    type: "sql_dump",
     config: {
       scriptLanguage: "javascript",
       scriptContent: `// Custom JavaScript data source
@@ -220,7 +220,7 @@ return await fetchData();`,
     name: "Python Script",
     description: "Create a custom data source using Python",
     category: "api",
-    type: "custom_script",
+    type: "sql_dump",
     config: {
       scriptLanguage: "javascript", // Using JavaScript for now since Python isn't supported
       scriptContent: `// Custom Python-style data source (using JavaScript)
@@ -248,6 +248,7 @@ return await fetchData();`,
     type: "mock",
     config: {
       mockConfig: {
+        templateId: "user-data",
         recordCount: 1000,
         schema: {
           columns: [
@@ -276,6 +277,7 @@ return await fetchData();`,
     type: "mock",
     config: {
       mockConfig: {
+        templateId: "product-data",
         recordCount: 5000,
         schema: {
           columns: [

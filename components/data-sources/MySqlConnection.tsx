@@ -11,7 +11,7 @@ import {
   CheckCircle,
 } from "lucide-react";
 import { mySqlProvider } from "../../lib/services/MySqlProvider";
-import { logger } from "../../lib/utils/logger";
+import { clientLogger } from "../../lib/utils/ClientLogger";
 import Button from "../ui/Button";
 import Input from "../ui/Input";
 
@@ -70,7 +70,7 @@ const MySqlConnection: React.FC<MySqlConnectionProps> = ({
       await mySqlProvider.testConnection(config);
 
       setConnectionTested(true);
-      logger.success(
+      clientLogger.success(
         "MySQL connection test successful",
         "database",
         { host: formData.host, database: formData.database },
@@ -82,7 +82,7 @@ const MySqlConnection: React.FC<MySqlConnectionProps> = ({
       setError(errorMessage);
       setConnectionTested(false);
 
-      logger.error(
+      clientLogger.error(
         "MySQL connection test failed",
         "database",
         { error, host: formData.host, database: formData.database },
@@ -126,7 +126,7 @@ const MySqlConnection: React.FC<MySqlConnectionProps> = ({
         config
       );
 
-      logger.success(
+      clientLogger.success(
         "MySQL provider created",
         "database",
         { providerId: provider.id, providerName: formData.providerName },
@@ -143,7 +143,7 @@ const MySqlConnection: React.FC<MySqlConnectionProps> = ({
       setError(errorMessage);
       onConnectionComplete(false, errorMessage);
 
-      logger.error(
+      clientLogger.error(
         "Failed to create MySQL provider",
         "database",
         { error, projectId, providerName: formData.providerName },

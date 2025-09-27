@@ -209,7 +209,7 @@ export class FileImporter {
       id: `ds_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
       projectId,
       name,
-      type: "file",
+      type: "csv",
       config,
       createdAt: new Date(),
       updatedAt: new Date(),

@@ -1,5 +1,5 @@
 import { DataProvider, DataProviderConfig, TableSchema } from "../../types";
-import { logger } from "../utils/logger";
+import { clientLogger } from "../utils/ClientLogger";
 
 // Note: In a real implementation, you would use a MySQL client like mysql2
 // For now, this is a placeholder that shows the structure
@@ -20,7 +20,7 @@ export class MySqlProvider {
     config: DataProviderConfig["mysqlConfig"]
   ): Promise<DataProvider> {
     try {
-      logger.info(
+      clientLogger.info(
         "Creating MySQL provider",
         "database",
         { projectId, providerName, host: config?.host },
@@ -52,12 +52,9 @@ export class MySqlProvider {
       // Note: In a real implementation, this would call a server action
       // await dbService.createDataSource(provider);
 
-      // Start the sync interval if specified
-      if (config.syncInterval && config.syncInterval > 0) {
-        this.startSyncInterval(provider.id, config.syncInterval);
-      }
+      // Note: syncInterval would be handled at a higher level in a real implementation
 
-      logger.success(
+      clientLogger.success(
         "MySQL provider created",
         "database",
         { providerId: provider.id, providerName },
@@ -66,7 +63,7 @@ export class MySqlProvider {
 
       return provider;
     } catch (error) {
-      logger.error(
+      clientLogger.error(
         "Failed to create MySQL provider",
         "database",
         { error, projectId, providerName },
@@ -78,7 +75,7 @@ export class MySqlProvider {
 
   async syncMySqlData(providerId: string): Promise<void> {
     try {
-      logger.info(
+      clientLogger.info(
         "Starting MySQL data sync",
         "database",
         { providerId },
@@ -90,14 +87,14 @@ export class MySqlProvider {
       // 2. Connect to MySQL and sync data to SQLite
       // 3. Update the provider's last sync time
 
-      logger.success(
+      clientLogger.success(
         "MySQL data sync completed",
         "database",
         { providerId },
         "MySqlProvider"
       );
     } catch (error) {
-      logger.error(
+      clientLogger.error(
         "MySQL data sync failed",
         "database",
         { error, providerId },
@@ -121,7 +118,7 @@ export class MySqlProvider {
     }
 
     // Simulate connection test
-    logger.info(
+    clientLogger.info(
       "Testing MySQL connection",
       "database",
       { host: config.host, database: config.database },
@@ -145,14 +142,8 @@ export class MySqlProvider {
     config: DataProviderConfig["mysqlConfig"]
   ): Promise<string[]> {
     // In a real implementation, this would query the MySQL database for table names
-    // For now, return the configured tables or a default set
-    if (config?.tables && config.tables.length > 0) {
-      return config.tables;
-    }
-
-    // In a real implementation, you would query:
     // SHOW TABLES FROM database_name
-    return ["users", "orders", "products"]; // Placeholder
+    return ["users", "orders", "products"]; // Placeholder - would be dynamically queried
   }
 
   // Note: syncTable method removed - would be implemented server-side
@@ -164,7 +155,7 @@ export class MySqlProvider {
       try {
         await this.syncMySqlData(providerId);
       } catch (error) {
-        logger.error(
+        clientLogger.error(
           "Scheduled MySQL sync failed",
           "database",
           { error, providerId },
@@ -175,7 +166,7 @@ export class MySqlProvider {
 
     this.syncIntervals.set(providerId, interval);
 
-    logger.info(
+    clientLogger.info(
       "Started MySQL sync interval",
       "database",
       { providerId, intervalMinutes },
@@ -189,7 +180,7 @@ export class MySqlProvider {
       clearInterval(interval);
       this.syncIntervals.delete(providerId);
 
-      logger.info(
+      clientLogger.info(
         "Stopped MySQL sync interval",
         "database",
         { providerId },

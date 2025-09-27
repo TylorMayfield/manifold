@@ -1,316 +1,323 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { Project } from "../types";
-import AppSidebar from "../components/layout/AppSidebar";
-import TitleBar from "../components/layout/TitleBar";
-import ProjectGrid from "../components/projects/ProjectGrid";
-import EmptyState from "../components/projects/EmptyState";
-import NewProjectModal from "../components/projects/NewProjectModal";
-import SettingsModal from "../components/ui/SettingsModal";
-import BackupRestoreModal from "../components/backup/BackupRestoreModal";
-import SystemTab from "../components/system/SystemTab";
-import JobMonitorPage from "../components/system/JobMonitorPage";
-import Button from "../components/ui/Button";
-import { ArrowLeft, Monitor, Zap } from "lucide-react";
-import { DatabaseService } from "../lib/services/DatabaseService";
-import { RealSystemMonitor } from "../lib/services/RealSystemMonitor";
-import { SampleDataGenerator } from "../lib/services/SampleDataGenerator";
-import { logger } from "../lib/utils/logger";
-import useViewTransition from "../hooks/useViewTransition";
-import useKeyboardShortcuts, {
-  COMMON_SHORTCUTS,
-  createShortcut,
-} from "../hooks/useKeyboardShortcuts";
-import KeyboardShortcutsModal from "../components/ui/KeyboardShortcutsModal";
+import React, { useState } from "react";
+import { useRouter } from "next/navigation";
+import CellButton from "../components/ui/CellButton";
+import CellCard from "../components/ui/CellCard";
+import CellModal from "../components/ui/CellModal";
+import { useDataSources } from "../contexts/DataSourceContext";
+import { Database, FileText, Zap, Settings, Plus, Play } from "lucide-react";
 
-export default function Home() {
-  const [projects, setProjects] = useState<Project[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [showNewProjectModal, setShowNewProjectModal] = useState(false);
-  const [showSettingsModal, setShowSettingsModal] = useState(false);
-  const [showBackupRestoreModal, setShowBackupRestoreModal] = useState(false);
-  const [showSystemMonitor, setShowSystemMonitor] = useState(false);
-  const [showJobMonitor, setShowJobMonitor] = useState(false);
-  const [showKeyboardShortcuts, setShowKeyboardShortcuts] = useState(false);
-  const [systemMonitor] = useState(
-    () => RealSystemMonitor.getInstance() as RealSystemMonitor
-  );
-  const [sampleDataGenerator] = useState(() =>
-    SampleDataGenerator.getInstance()
-  );
-
-  const { navigateWithTransition } = useViewTransition();
-
-  // Keyboard shortcuts configuration
-  const shortcuts = [
-    createShortcut(
-      COMMON_SHORTCUTS.NEW_PROJECT,
-      () => setShowNewProjectModal(true),
-      "Create new project",
-      { ctrlKey: true }
-    ),
-    createShortcut(
-      COMMON_SHORTCUTS.OPEN_SETTINGS,
-      () => setShowSettingsModal(true),
-      "Open settings",
-      { ctrlKey: true }
-    ),
-    createShortcut(
-      COMMON_SHORTCUTS.SYSTEM_MONITOR,
-      () => setShowSystemMonitor(true),
-      "Open system monitor",
-      { ctrlKey: true }
-    ),
-    createShortcut(
-      COMMON_SHORTCUTS.JOB_MONITOR,
-      () => openJobMonitor(),
-      "Open job monitor",
-      { ctrlKey: true }
-    ),
-    createShortcut(
-      COMMON_SHORTCUTS.HELP,
-      () => setShowKeyboardShortcuts(true),
-      "Show keyboard shortcuts"
-    ),
-    createShortcut(
-      COMMON_SHORTCUTS.ESCAPE,
-      () => {
-        setShowNewProjectModal(false);
-        setShowSettingsModal(false);
-        setShowSystemMonitor(false);
-        setShowJobMonitor(false);
-        setShowKeyboardShortcuts(false);
-        setShowBackupRestoreModal(false);
-      },
-      "Close all modals"
-    ),
-  ];
-
-  useKeyboardShortcuts({ shortcuts });
-
-  useEffect(() => {
-    // Initialize sample data and load projects
-    initializeData();
-  }, []);
-
-  const initializeData = async () => {
-    try {
-      // Create sample data if none exists
-      await sampleDataGenerator.createSampleData();
-
-      // Load projects
-      await loadProjects();
-
-      // Refresh jobs from data sources
-      await systemMonitor.refreshJobs();
-
-      logger.success("Data initialization completed", "system");
-    } catch (error) {
-      logger.error("Failed to initialize data", "system", { error });
-      // Still try to load projects even if sample data creation fails
-      await loadProjects();
-    }
-  };
-
-  const openJobMonitor = async () => {
-    try {
-      // Refresh jobs before opening monitor
-      await systemMonitor.refreshJobs();
-      setShowJobMonitor(true);
-    } catch (error) {
-      logger.error("Failed to refresh jobs", "system", { error });
-      // Still open the monitor even if refresh fails
-      setShowJobMonitor(true);
-    }
-  };
-
-  const loadProjects = async () => {
-    try {
-      setLoading(true);
-      logger.info(
-        "Loading projects from database",
-        "database",
-        undefined,
-        "HomePage"
-      );
-
-      const dbService = DatabaseService.getInstance();
-      const loadedProjects = await dbService.getProjects();
-
-      setProjects(loadedProjects);
-      setLoading(false);
-
-      logger.success(
-        "Projects loaded successfully",
-        "database",
-        { count: loadedProjects.length },
-        "HomePage"
-      );
-    } catch (error) {
-      logger.error(
-        "Failed to load projects",
-        "database",
-        { error },
-        "HomePage"
-      );
-      setLoading(false);
-    }
-  };
-
-  const handleCreateProject = async (project: Project) => {
-    try {
-      logger.info(
-        "Creating new project",
-        "user-action",
-        { projectName: project.name },
-        "HomePage"
-      );
-
-      const dbService = DatabaseService.getInstance();
-      await dbService.createProject(project);
-
-      // Reload projects from database
-      await loadProjects();
-
-      setShowNewProjectModal(false);
-      logger.success(
-        "Project created successfully",
-        "user-action",
-        { projectId: project.id, projectName: project.name },
-        "HomePage"
-      );
-    } catch (error) {
-      logger.error(
-        "Failed to create project",
-        "user-action",
-        { error, projectName: project.name },
-        "HomePage"
-      );
-      throw error;
-    }
-  };
-
-  const openProject = (project: Project) => {
-    logger.info(
-      "Opening project",
-      "user-action",
-      { projectId: project.id, projectName: project.name },
-      "HomePage"
-    );
-    // Navigate to project workspace with smooth transition
-    navigateWithTransition(`/project/${project.id}`, {
-      type: "blur",
-      duration: 250,
-      showLoading: true,
-    });
-  };
-
-  if (loading) {
-    return (
-      <div className="min-h-screen gradient-bg flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-2 border-white/30 border-t-white/80 mx-auto mb-4"></div>
-          <p className="text-white/80 text-lg">Loading Manifold...</p>
-        </div>
-      </div>
-    );
-  }
+function HomePageContent() {
+  const router = useRouter();
+  const { dataSources, snapshots, addDataSource, addSnapshot } =
+    useDataSources();
 
   return (
-    <div className="min-h-screen gradient-bg flex">
-      {/* Sidebar */}
-      <AppSidebar
-        onNewProject={() => setShowNewProjectModal(true)}
-        onSettings={() => setShowSettingsModal(true)}
-        onBackupRestore={() => setShowBackupRestoreModal(true)}
-        onSystemMonitor={() => setShowSystemMonitor(true)}
-        onJobMonitor={openJobMonitor}
-      />
+    <div className="min-h-screen bg-white p-6">
+      {/* Header */}
+      <header className="cell-nav mb-8">
+        <div className="flex items-center justify-between p-4">
+          <div className="flex items-center space-x-4">
+            <h1 className="text-heading font-bold">Manifold ETL</h1>
+            <span className="text-caption">Data Pipeline Management</span>
+          </div>
+          <div className="flex items-center space-x-2">
+            <CellButton variant="ghost" size="sm">
+              <Settings className="w-4 h-4" />
+            </CellButton>
+          </div>
+        </div>
+      </header>
 
-      {/* Main Content Area */}
-      <main className="flex-1 flex flex-col">
-        {/* Title Bar */}
-        <TitleBar title="Manifold - Data Integration Platform" />
+      {/* Navigation */}
+      <nav className="cell-nav mb-8">
+        <div className="flex">
+          <button className="cell-nav-item active">
+            <Database className="w-4 h-4 mr-2" />
+            Sources
+          </button>
+          <a href="/pipelines" className="cell-nav-item">
+            <Zap className="w-4 h-4 mr-2" />
+            Pipelines
+          </a>
+          <a href="/jobs" className="cell-nav-item">
+            <Play className="w-4 h-4 mr-2" />
+            Jobs
+          </a>
+          <a href="/snapshots" className="cell-nav-item">
+            <FileText className="w-4 h-4 mr-2" />
+            Snapshots
+          </a>
+          <a href="/logs" className="cell-nav-item">
+            <FileText className="w-4 h-4 mr-2" />
+            Logs
+          </a>
+          <a href="/settings" className="cell-nav-item">
+            <Settings className="w-4 h-4 mr-2" />
+            Settings
+          </a>
+        </div>
+      </nav>
 
-        {/* Content */}
-        <div className="flex-1 p-8">
-          {showJobMonitor ? (
-            <div className="h-full">
-              <JobMonitorPage onBack={() => setShowJobMonitor(false)} />
+      {/* Main Content */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
+        {/* Data Sources */}
+        <CellCard className="p-6">
+          <h2 className="text-subheading mb-4 flex items-center">
+            <Database className="w-5 h-5 mr-2" />
+            Data Sources ({dataSources.length})
+          </h2>
+
+          {dataSources.length === 0 ? (
+            <div className="text-center py-8 text-gray-500">
+              <Database className="w-12 h-12 mx-auto mb-4 text-gray-300" />
+              <p className="font-mono text-sm mb-4">
+                No data sources configured
+              </p>
+              <p className="text-caption mb-6">
+                Add your first data source to get started
+              </p>
             </div>
-          ) : showSystemMonitor ? (
-            <div className="h-full">
-              <div className="mb-6">
-                <div className="flex items-center justify-between mb-4">
-                  <div className="flex items-center space-x-3">
-                    <Button
-                      onClick={() => setShowSystemMonitor(false)}
-                      variant="outline"
-                      icon={<ArrowLeft className="h-4 w-4" />}
+          ) : (
+            <div className="space-y-3 mb-6">
+              {dataSources.slice(0, 3).map((source) => (
+                <div
+                  key={source.id}
+                  className="p-3 border border-gray-200 bg-gray-50"
+                >
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="font-mono text-sm font-bold">
+                        {source.name}
+                      </p>
+                      <p className="text-caption text-gray-600">
+                        {source.type} • {source.status}
+                      </p>
+                    </div>
+                    <span
+                      className={`px-2 py-1 text-xs font-mono ${
+                        source.status === "completed"
+                          ? "bg-green-100 text-green-800"
+                          : source.status === "running"
+                          ? "bg-yellow-100 text-yellow-800"
+                          : source.status === "error"
+                          ? "bg-red-100 text-red-800"
+                          : "bg-gray-100 text-gray-800"
+                      }`}
                     >
-                      Back to Projects
-                    </Button>
+                      {source.status}
+                    </span>
                   </div>
                 </div>
-                <div className="flex items-center space-x-3 mb-4">
-                  <div className="p-2 rounded-lg bg-blue-500/20">
-                    <Monitor className="h-6 w-6 text-blue-400" />
-                  </div>
-                  <div>
-                    <h1 className="text-3xl font-bold text-white">
-                      System Monitor
-                    </h1>
-                    <p className="text-white/60">
-                      Real-time system metrics and task monitoring
+              ))}
+              {dataSources.length > 3 && (
+                <p className="text-caption text-center text-gray-500">
+                  +{dataSources.length - 3} more sources
+                </p>
+              )}
+            </div>
+          )}
+
+          <div className="space-y-2">
+            <CellButton
+              className="w-full"
+              variant="primary"
+              onClick={() => router.push("/add-data-source")}
+            >
+              <Plus className="w-4 h-4 mr-2" />
+              Add Data Source
+            </CellButton>
+          </div>
+        </CellCard>
+
+        {/* Pipelines */}
+        <CellCard className="p-6">
+          <h2 className="text-subheading mb-4 flex items-center">
+            <Zap className="w-5 h-5 mr-2" />
+            Pipelines
+          </h2>
+
+          <div className="text-center py-8 text-gray-500">
+            <Zap className="w-12 h-12 mx-auto mb-4 text-gray-300" />
+            <p className="font-mono text-sm mb-4">No pipelines created</p>
+            <p className="text-caption mb-6">
+              Create data transformation pipelines
+            </p>
+          </div>
+
+          <CellButton className="w-full" variant="ghost" disabled>
+            Build Pipeline
+            <span className="text-caption ml-2">(Add data sources first)</span>
+          </CellButton>
+        </CellCard>
+
+        {/* Jobs */}
+        <CellCard className="p-6">
+          <h2 className="text-subheading mb-4 flex items-center">
+            <Play className="w-5 h-5 mr-2" />
+            Scheduled Jobs
+          </h2>
+
+          <div className="text-center py-8 text-gray-500">
+            <Play className="w-12 h-12 mx-auto mb-4 text-gray-300" />
+            <p className="font-mono text-sm mb-4">No jobs scheduled</p>
+            <p className="text-caption mb-6">Automate your data processing</p>
+          </div>
+
+          <CellButton className="w-full" variant="ghost" disabled>
+            Schedule Job
+            <span className="text-caption ml-2">(Create pipelines first)</span>
+          </CellButton>
+        </CellCard>
+      </div>
+
+      {/* Data Snapshots */}
+      <CellCard className="p-6">
+        <h2 className="text-subheading mb-4 flex items-center">
+          <FileText className="w-5 h-5 mr-2" />
+          Data Snapshots ({snapshots.length})
+        </h2>
+
+        {snapshots.length === 0 ? (
+          <div className="text-center py-12 text-gray-500">
+            <FileText className="w-16 h-16 mx-auto mb-4 text-gray-300" />
+            <p className="font-mono text-lg mb-2">No data imported yet</p>
+            <p className="text-caption mb-8 max-w-md mx-auto">
+              Data snapshots will appear here when you import data from your
+              sources. Each import creates a versioned snapshot that you can
+              compare and rollback.
+            </p>
+          </div>
+        ) : (
+          <div className="space-y-4 mb-8">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {snapshots.slice(0, 6).map((snapshot) => {
+                const dataSource = dataSources.find(
+                  (ds) => ds.id === snapshot.dataSourceId
+                );
+                return (
+                  <div
+                    key={snapshot.id}
+                    className="p-4 border border-gray-200 bg-gray-50"
+                  >
+                    <div className="flex items-start justify-between mb-2">
+                      <div>
+                        <p className="font-mono text-sm font-bold">
+                          {dataSource?.name || "Unknown Source"}
+                        </p>
+                        <p className="text-caption text-gray-600">
+                          v{snapshot.version}
+                        </p>
+                      </div>
+                      <span className="px-2 py-1 text-xs font-mono bg-blue-100 text-blue-800">
+                        {snapshot.recordCount} rows
+                      </span>
+                    </div>
+                    <p className="text-caption text-gray-600">
+                      {new Date(snapshot.createdAt).toLocaleDateString()}
                     </p>
                   </div>
-                </div>
-              </div>
-              <div className="h-[calc(100vh-200px)]">
-                <SystemTab isActive={true} />
-              </div>
+                );
+              })}
             </div>
-          ) : projects.length === 0 ? (
-            <EmptyState onNewProject={() => setShowNewProjectModal(true)} />
-          ) : (
-            <ProjectGrid
-              projects={projects}
-              onProjectClick={openProject}
-              onNewProject={() => setShowNewProjectModal(true)}
-            />
-          )}
+            {snapshots.length > 6 && (
+              <p className="text-caption text-center text-gray-500">
+                +{snapshots.length - 6} more snapshots
+              </p>
+            )}
+          </div>
+        )}
+
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 max-w-2xl mx-auto">
+          <div className="cell-card p-4 text-center">
+            <FileText className="w-8 h-8 mx-auto mb-2 text-gray-400" />
+            <p className="font-mono text-sm font-bold">CSV Files</p>
+            <p className="text-caption">Import structured data</p>
+          </div>
+
+          <div className="cell-card p-4 text-center">
+            <Database className="w-8 h-8 mx-auto mb-2 text-gray-400" />
+            <p className="font-mono text-sm font-bold">Database</p>
+            <p className="text-caption">Connect to live data</p>
+          </div>
+
+          <div className="cell-card p-4 text-center">
+            <Zap className="w-8 h-8 mx-auto mb-2 text-gray-400" />
+            <p className="font-mono text-sm font-bold">Mock Data</p>
+            <p className="text-caption">Generate test datasets</p>
+          </div>
         </div>
-      </main>
+      </CellCard>
 
-      {/* Modals */}
-      <NewProjectModal
-        isOpen={showNewProjectModal}
-        onClose={() => setShowNewProjectModal(false)}
-        onCreateProject={handleCreateProject}
-      />
+      {/* Quick Start Guide */}
+      <div className="mt-8">
+        <CellCard className="p-6">
+          <h2 className="text-subheading mb-4">Getting Started with ETL</h2>
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+            <div className="text-center">
+              <div className="w-12 h-12 mx-auto mb-3 bg-accent text-white border-2 border-black shadow-cell flex items-center justify-center font-bold text-xl">
+                1
+              </div>
+              <h3 className="font-mono font-bold mb-2">Add Data Sources</h3>
+              <p className="text-caption mb-3">
+                Import CSV files, connect to databases, or generate mock data
+              </p>
+              <CellButton
+                size="sm"
+                variant="primary"
+                onClick={() => router.push("/add-data-source")}
+              >
+                <Plus className="w-4 h-4 mr-2" />
+                Add Source
+              </CellButton>
+            </div>
 
-      <SettingsModal
-        isOpen={showSettingsModal}
-        onClose={() => setShowSettingsModal(false)}
-        onBackupRestore={() => {
-          setShowSettingsModal(false);
-          setShowBackupRestoreModal(true);
-        }}
-      />
+            <div className="text-center opacity-50">
+              <div className="w-12 h-12 mx-auto mb-3 bg-gray-300 text-gray-600 border-2 border-black shadow-cell flex items-center justify-center font-bold text-xl">
+                2
+              </div>
+              <h3 className="font-mono font-bold mb-2">Build Pipelines</h3>
+              <p className="text-caption mb-3">
+                Create transformation steps to clean and merge data
+              </p>
+              <CellButton size="sm" variant="ghost" disabled>
+                Build Pipeline
+              </CellButton>
+            </div>
 
-      <BackupRestoreModal
-        isOpen={showBackupRestoreModal}
-        onClose={() => setShowBackupRestoreModal(false)}
-        project={null}
-        dataSources={[]}
-      />
+            <div className="text-center opacity-50">
+              <div className="w-12 h-12 mx-auto mb-3 bg-gray-300 text-gray-600 border-2 border-black shadow-cell flex items-center justify-center font-bold text-xl">
+                3
+              </div>
+              <h3 className="font-mono font-bold mb-2">Schedule Jobs</h3>
+              <p className="text-caption mb-3">
+                Automate your data processing with cron schedules
+              </p>
+              <CellButton size="sm" variant="ghost" disabled>
+                Schedule Job
+              </CellButton>
+            </div>
 
-      <KeyboardShortcutsModal
-        isOpen={showKeyboardShortcuts}
-        onClose={() => setShowKeyboardShortcuts(false)}
-        shortcuts={shortcuts}
-      />
+            <div className="text-center opacity-50">
+              <div className="w-12 h-12 mx-auto mb-3 bg-gray-300 text-gray-600 border-2 border-black shadow-cell flex items-center justify-center font-bold text-xl">
+                4
+              </div>
+              <h3 className="font-mono font-bold mb-2">Export Data</h3>
+              <p className="text-caption mb-3">
+                Send processed data to files, APIs, or databases
+              </p>
+              <CellButton size="sm" variant="ghost" disabled>
+                Export Data
+              </CellButton>
+            </div>
+          </div>
+        </CellCard>
+      </div>
     </div>
   );
+}
+
+export default function HomePage() {
+  return <HomePageContent />;
 }

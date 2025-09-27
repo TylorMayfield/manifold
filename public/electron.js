@@ -1,99 +1,59 @@
 const { app, BrowserWindow, Menu, ipcMain, dialog } = require("electron");
 const path = require("path");
 const { DatabaseManager } = require("./lib/database/index");
+
+// Check if we're in Electron environment
+if (!app) {
+  console.error("Not running in Electron environment");
+  process.exit(1);
+}
+
 const isDev = process.env.NODE_ENV === "development" || !app.isPackaged;
 console.log("Development mode:", isDev);
 console.log("NODE_ENV:", process.env.NODE_ENV);
 console.log("isPackaged:", app.isPackaged);
 
 let mainWindow;
+let dbManager;
+let handlersRegistered = false;
 
-function createWindow() {
-  // Create the browser window
-  mainWindow = new BrowserWindow({
-    width: 1400,
-    height: 900,
-    minWidth: 1200,
-    minHeight: 800,
-    webPreferences: {
-      nodeIntegration: false,
-      contextIsolation: true,
-      enableRemoteModule: false,
-      preload: path.join(__dirname, "preload.js"),
-      webSecurity: true,
-      allowRunningInsecureContent: false,
-    },
-    titleBarStyle: "hidden",
-    frame: false,
-    show: false,
-    vibrancy: "under-window",
-    visualEffectState: "active",
-  });
-
-  // Load the app
-  if (isDev) {
-    // Try port 3000 first, then fallback to 3001
-    const devUrl = "http://localhost:3000";
-    console.log("Loading development app from:", devUrl);
-    mainWindow.loadURL(devUrl);
-    // Open DevTools in development
-    mainWindow.webContents.openDevTools();
-  } else {
-    // In production, try to load from the out directory
-    const indexPath = path.join(__dirname, "../out/index.html");
-    console.log("Loading from:", indexPath);
-    mainWindow.loadFile(indexPath);
+// Register IPC handlers only once
+function registerIpcHandlers() {
+  if (handlersRegistered) {
+    console.log("IPC handlers already registered, skipping...");
+    return;
   }
 
-  // Handle window load errors
-  mainWindow.webContents.on(
-    "did-fail-load",
-    (event, errorCode, errorDescription, validatedURL) => {
-      console.error("Failed to load:", errorDescription, validatedURL);
-      if (isDev) {
-        // Try alternative ports if the first one fails
-        const ports = [3000, 3001, 3002];
-        const currentPort = parseInt(validatedURL.split(":")[2]) || 3000;
-        const nextPort = ports.find((port) => port !== currentPort) || 3001;
-
-        console.log(`Retrying with port ${nextPort}...`);
-        setTimeout(() => {
-          mainWindow.loadURL(`http://localhost:${nextPort}`);
-        }, 2000);
-      }
-    }
-  );
-
-  // Show window when ready
-  mainWindow.once("ready-to-show", () => {
-    console.log("Window ready to show, displaying...");
-    mainWindow.show();
-    mainWindow.focus();
-    mainWindow.moveTop();
-  });
+  console.log("Registering IPC handlers...");
+  handlersRegistered = true;
 
   // Handle window controls
   ipcMain.handle("window-minimize", () => {
     console.log("Minimize window requested");
-    mainWindow.minimize();
+    if (mainWindow) {
+      mainWindow.minimize();
+    }
   });
 
   ipcMain.handle("window-maximize", () => {
     console.log("Maximize window requested");
-    if (mainWindow.isMaximized()) {
-      mainWindow.unmaximize();
-    } else {
-      mainWindow.maximize();
+    if (mainWindow) {
+      if (mainWindow.isMaximized()) {
+        mainWindow.unmaximize();
+      } else {
+        mainWindow.maximize();
+      }
     }
   });
 
   ipcMain.handle("window-close", () => {
     console.log("Close window requested");
-    mainWindow.close();
+    if (mainWindow) {
+      mainWindow.close();
+    }
   });
 
   // Database operations
-  let dbManager;
   try {
     dbManager = DatabaseManager.getInstance();
     console.log("Database manager initialized successfully");
@@ -230,6 +190,86 @@ function createWindow() {
     }
   });
 
+  // File operations
+  ipcMain.handle("show-open-dialog", async (event, options) => {
+    const result = await dialog.showOpenDialog(mainWindow, options);
+    return result;
+  });
+
+  ipcMain.handle("show-save-dialog", async (event, options) => {
+    const result = await dialog.showSaveDialog(mainWindow, options);
+    return result;
+  });
+
+  ipcMain.handle("get-app-path", (event, name) => {
+    return app.getPath(name);
+  });
+}
+
+function createWindow() {
+  // Create the browser window
+  mainWindow = new BrowserWindow({
+    width: 1400,
+    height: 900,
+    minWidth: 1200,
+    minHeight: 800,
+    webPreferences: {
+      nodeIntegration: false,
+      contextIsolation: true,
+      enableRemoteModule: false,
+      preload: path.join(__dirname, "preload.js"),
+      webSecurity: true,
+      allowRunningInsecureContent: false,
+    },
+    titleBarStyle: "hidden",
+    frame: false,
+    show: false,
+    vibrancy: "under-window",
+    visualEffectState: "active",
+  });
+
+  // Load the app
+  if (isDev) {
+    // Try port 3000 first, then fallback to 3001
+    const devUrl = "http://localhost:3000";
+    console.log("Loading development app from:", devUrl);
+    mainWindow.loadURL(devUrl);
+    // Open DevTools in development
+    mainWindow.webContents.openDevTools();
+  } else {
+    // In production, try to load from the out directory
+    const indexPath = path.join(__dirname, "../out/index.html");
+    console.log("Loading from:", indexPath);
+    mainWindow.loadFile(indexPath);
+  }
+
+  // Handle window load errors
+  mainWindow.webContents.on(
+    "did-fail-load",
+    (event, errorCode, errorDescription, validatedURL) => {
+      console.error("Failed to load:", errorDescription, validatedURL);
+      if (isDev) {
+        // Try alternative ports if the first one fails
+        const ports = [3000, 3001, 3002];
+        const currentPort = parseInt(validatedURL.split(":")[2]) || 3000;
+        const nextPort = ports.find((port) => port !== currentPort) || 3001;
+
+        console.log(`Retrying with port ${nextPort}...`);
+        setTimeout(() => {
+          mainWindow.loadURL(`http://localhost:${nextPort}`);
+        }, 2000);
+      }
+    }
+  );
+
+  // Show window when ready
+  mainWindow.once("ready-to-show", () => {
+    console.log("Window ready to show, displaying...");
+    mainWindow.show();
+    mainWindow.focus();
+    mainWindow.moveTop();
+  });
+
   // Debug window events
   mainWindow.on("show", () => {
     console.log("Window shown");
@@ -247,6 +287,10 @@ function createWindow() {
 
 // App event handlers
 app.whenReady().then(() => {
+  // Register IPC handlers first (only once)
+  registerIpcHandlers();
+
+  // Create the main window
   createWindow();
 
   // macOS specific behavior
@@ -271,21 +315,6 @@ app.on("before-quit", () => {
   if (dbManager) {
     dbManager.close();
   }
-});
-
-// IPC handlers for file operations
-ipcMain.handle("show-open-dialog", async (event, options) => {
-  const result = await dialog.showOpenDialog(mainWindow, options);
-  return result;
-});
-
-ipcMain.handle("show-save-dialog", async (event, options) => {
-  const result = await dialog.showSaveDialog(mainWindow, options);
-  return result;
-});
-
-ipcMain.handle("get-app-path", (event, name) => {
-  return app.getPath(name);
 });
 
 // Create application menu

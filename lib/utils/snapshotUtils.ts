@@ -1,9 +1,9 @@
 import { Snapshot, DataSource } from "../../types";
-import { DatabaseService } from "../services/DatabaseService";
-import { logger } from "./logger";
+import { clientDatabaseService } from "../database/ClientDatabaseService";
+import { clientLogger } from "./ClientLogger";
 
 export class SnapshotUtils {
-  private static dbService = DatabaseService.getInstance();
+  private static dbService = clientDatabaseService;
 
   static async createSnapshotFromDataSource(
     dataSource: DataSource,
@@ -32,9 +32,9 @@ export class SnapshotUtils {
         recordCount: Array.isArray(data) ? data.length : 0,
       };
 
-      await this.dbService.createSnapshot(snapshot);
+      await this.dbService.createSnapshot(projectId, snapshot);
 
-      logger.info(
+      clientLogger.info(
         "Snapshot created successfully",
         "data-processing",
         {
@@ -48,7 +48,7 @@ export class SnapshotUtils {
 
       return snapshot;
     } catch (error) {
-      logger.error(
+      clientLogger.error(
         "Failed to create snapshot",
         "data-processing",
         {
@@ -96,7 +96,7 @@ export class SnapshotUtils {
         projectId
       );
     } catch (error) {
-      logger.error(
+      clientLogger.error(
         "Failed to create snapshot from mock data",
         "data-processing",
         {
@@ -165,7 +165,7 @@ export class SnapshotUtils {
     try {
       return await this.dbService.getSnapshots(projectId);
     } catch (error) {
-      logger.error(
+      clientLogger.error(
         "Failed to get import history",
         "data-processing",
         { error, projectId },
@@ -180,9 +180,16 @@ export class SnapshotUtils {
     projectId: string
   ): Promise<Snapshot | null> {
     try {
-      return await this.dbService.getLatestSnapshot(dataSourceId, projectId);
+      const snapshots = await this.dbService.getSnapshots(projectId);
+      const latestSnapshot = snapshots
+        .filter((s: any) => s.dataSourceId === dataSourceId)
+        .sort(
+          (a: any, b: any) =>
+            new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+        )[0];
+      return latestSnapshot || null;
     } catch (error) {
-      logger.error(
+      clientLogger.error(
         "Failed to get latest snapshot",
         "data-processing",
         { error, dataSourceId, projectId },

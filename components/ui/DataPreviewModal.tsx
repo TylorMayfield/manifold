@@ -18,7 +18,7 @@ import {
 import Modal from "./Modal";
 import Button from "./Button";
 import Input from "./Input";
-import { logger } from "../../lib/utils/logger";
+import { clientLogger } from "../../lib/utils/ClientLogger";
 
 export interface DataPreviewRow {
   [key: string]: any;
@@ -114,7 +114,7 @@ export default function DataPreviewModal({
       setPreviewInfo(parsedData);
       setSelectedColumns(parsedData.columns.map((col) => col.name));
 
-      logger.success("File preview generated", "file-import", {
+      clientLogger.success("File preview generated", "file-import", {
         fileName: file.name,
         rows: parsedData.totalRows,
         columns: parsedData.totalColumns,
@@ -123,7 +123,7 @@ export default function DataPreviewModal({
       const errorMessage =
         err instanceof Error ? err.message : "Failed to parse file";
       setError(errorMessage);
-      logger.error("File preview failed", "file-import", {
+      clientLogger.error("File preview failed", "file-import", {
         error: errorMessage,
       });
     } finally {

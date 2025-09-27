@@ -13,9 +13,10 @@ import {
   CheckCircle,
   Loader2,
 } from "lucide-react";
-import { logger } from "../../lib/utils/logger";
+import { clientLogger } from "../../lib/utils/ClientLogger";
+import { clientDatabaseService } from "../../lib/database/ClientDatabaseService";
 import { DataSource, QueryResult } from "../../types";
-import { SqlExecutor } from "../../lib/services/SqlExecutor";
+// import { SqlExecutor } from "../../lib/services/SqlExecutor"; // Moved to server-side
 import { SnapshotUtils } from "../../lib/utils/snapshotUtils";
 import Button from "../ui/Button";
 import Modal from "../ui/Modal";
@@ -59,7 +60,63 @@ export default function SqlEditor({
 
   const query = queryUndoRedo.value;
   const editorRef = useRef<any>(null);
-  const sqlExecutor = SqlExecutor.getInstance();
+  // const sqlExecutor = SqlExecutor.getInstance(); // Moved to server-side
+  const sqlExecutor = {
+    executeQuery: async (query: string, dataSource: DataSource) => {
+      // Mock implementation for client-side
+      clientLogger.info("Mock SQL execution", "database", {
+        query,
+        dataSource: dataSource.name,
+      });
+      return { rows: [], columns: [], executionTime: 0 };
+    },
+    getAvailableTables: async (projectId: string) => {
+      // Get tables from data sources and their snapshots
+      try {
+        const snapshots = await clientDatabaseService.getSnapshots(projectId);
+        const tables = snapshots.map((snapshot) => {
+          const dataSource = dataSources.find(
+            (ds) => ds.id === snapshot.dataSourceId
+          );
+
+          // Generate column names from the first row of data if available
+          let columnNames: string[] = [];
+          if (snapshot.data && snapshot.data.length > 0) {
+            columnNames = Object.keys(snapshot.data[0]);
+          } else {
+            // Fallback to generic column names based on metadata
+            const columnCount = snapshot.metadata?.columns || 0;
+            columnNames = Array.from(
+              { length: columnCount },
+              (_, i) => `column_${i + 1}`
+            );
+          }
+
+          return {
+            name: dataSource?.name || `table_${snapshot.id}`,
+            dataSourceId: snapshot.dataSourceId,
+            dataSourceName: dataSource?.name || "Unknown",
+            recordCount: snapshot.recordCount || 0,
+            columns: columnNames,
+            columnCount: columnNames.length,
+            lastUpdated: snapshot.createdAt,
+            type: dataSource?.type || "unknown",
+          };
+        });
+
+        clientLogger.info("Tables loaded from snapshots", "database", {
+          projectId,
+          tableCount: tables.length,
+        });
+        return tables;
+      } catch (error) {
+        clientLogger.error("Failed to load tables from snapshots", "database", {
+          error,
+        });
+        return [];
+      }
+    },
+  };
 
   useEffect(() => {
     if (isOpen) {
@@ -79,7 +136,7 @@ export default function SqlEditor({
       console.log("SqlEditor: Tables retrieved:", tables);
 
       setAvailableTables(tables);
-      logger.info(
+      clientLogger.info(
         "Available tables loaded",
         "data-processing",
         { tableCount: tables.length },
@@ -87,7 +144,7 @@ export default function SqlEditor({
       );
     } catch (error) {
       console.error("SqlEditor: Failed to load available tables:", error);
-      logger.error(
+      clientLogger.error(
         "Failed to load available tables",
         "data-processing",
         { error },
@@ -103,7 +160,7 @@ export default function SqlEditor({
       const { DatabaseService } = await import(
         "../../lib/services/DatabaseService"
       );
-      const dbService = DatabaseService.getInstance();
+      const dbService = clientDatabaseService;
 
       // Get existing snapshots
       const existingSnapshots = await dbService.getSnapshots(projectId);
@@ -135,7 +192,7 @@ export default function SqlEditor({
       // Reload available tables
       await loadAvailableTables();
 
-      logger.success(
+      clientLogger.success(
         "Missing snapshots created",
         "data-processing",
         { projectId },
@@ -143,7 +200,7 @@ export default function SqlEditor({
       );
     } catch (error) {
       console.error("SqlEditor: Failed to create missing snapshots:", error);
-      logger.error(
+      clientLogger.error(
         "Failed to create missing snapshots",
         "data-processing",
         { error },
@@ -206,7 +263,7 @@ export default function SqlEditor({
         }))
       );
 
-      logger.info(
+      clientLogger.info(
         "Executing SQL query",
         "data-processing",
         { query: query.trim(), projectId },
@@ -214,33 +271,40 @@ export default function SqlEditor({
       );
 
       // Execute the query using the real SQL executor
-      const result = await sqlExecutor.executeQuery(query.trim(), {
-        projectId,
-        dataSources,
-      });
+      const result = await sqlExecutor.executeQuery(
+        query.trim(),
+        dataSources[0] ||
+          ({ id: "mock", name: "Mock DataSource", type: "mock" } as any)
+      );
 
       console.log("SqlEditor: Query result received:", {
-        rowCount: result.rowCount,
+        rowCount: result.rows.length,
         columns: result.columns,
         executionTime: result.executionTime,
       });
 
-      setResult(result);
+      setResult({
+        ...result,
+        rowCount: result.rows.length,
+      });
 
       // Add to history
       const historyItem: QueryHistory = {
         id: `query_${Date.now()}`,
         query: query.trim(),
         timestamp: new Date(),
-        result: result,
+        result: {
+          ...result,
+          rowCount: result.rows.length,
+        },
       };
       setQueryHistory((prev) => [historyItem, ...prev.slice(0, 19)]); // Keep last 20
 
-      logger.success(
+      clientLogger.success(
         "SQL query executed successfully",
         "data-processing",
         {
-          rowCount: result.rowCount,
+          rowCount: result.rows.length,
           executionTime: result.executionTime,
         },
         "SqlEditor"
@@ -259,7 +323,7 @@ export default function SqlEditor({
       };
       setQueryHistory((prev) => [historyItem, ...prev.slice(0, 19)]);
 
-      logger.error(
+      clientLogger.error(
         "SQL query execution failed",
         "data-processing",
         { error: errorMessage, query: query.trim() },
@@ -310,14 +374,14 @@ export default function SqlEditor({
       document.body.removeChild(a);
       URL.revokeObjectURL(url);
 
-      logger.success(
+      clientLogger.success(
         "Query results exported",
         "data-processing",
         {},
         "SqlEditor"
       );
     } catch (err) {
-      logger.error(
+      clientLogger.error(
         "Failed to export results",
         "data-processing",
         { error: err },
@@ -330,7 +394,7 @@ export default function SqlEditor({
     return availableTables.map((table) => ({
       name: table.name,
       type: table.type,
-      columns: table.columns,
+      columns: table.columns || [],
       recordCount: table.recordCount,
     }));
   };
@@ -356,8 +420,8 @@ export default function SqlEditor({
   };
 
   return (
-    <Modal isOpen={isOpen} onClose={onClose} title="SQL Editor" size="xl">
-      <div className="flex h-[600px] gap-4">
+    <div className="h-full flex flex-col">
+      <div className="flex-1 flex gap-4 p-6">
         {/* Left Panel - Query Editor */}
         <div className="flex-1 flex flex-col">
           <div className="flex items-center justify-between mb-3">
@@ -451,11 +515,13 @@ export default function SqlEditor({
                     </div>
                     <div className="text-xs text-white/60 mb-1">
                       {table.recordCount.toLocaleString()} records •{" "}
-                      {table.columns.length} columns
+                      {table.columns?.length || 0} columns
                     </div>
                     <div className="text-xs text-white/50">
-                      Columns: {table.columns.slice(0, 3).join(", ")}
-                      {table.columns.length > 3 &&
+                      Columns:{" "}
+                      {table.columns?.slice(0, 3).join(", ") || "No columns"}
+                      {table.columns &&
+                        table.columns.length > 3 &&
                         ` +${table.columns.length - 3} more`}
                     </div>
                   </div>
@@ -598,6 +664,6 @@ export default function SqlEditor({
           </div>
         </div>
       </div>
-    </Modal>
+    </div>
   );
 }

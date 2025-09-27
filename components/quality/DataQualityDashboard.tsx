@@ -27,8 +27,8 @@ import {
   QualityRule,
   DataQualityReport,
   QualityAlert,
-} from "../../lib/services/DataQualityMonitor";
-import { logger } from "../../lib/utils/logger";
+} from "../../lib/server/services/DataQualityMonitor";
+import { clientLogger } from "../../lib/utils/ClientLogger";
 
 interface DataQualityDashboardProps {
   dataset?: string;
@@ -115,7 +115,7 @@ export const DataQualityDashboard: React.FC<DataQualityDashboardProps> = ({
         onQualityCheck(report);
       }
     } catch (error) {
-      logger.error("Initial quality check failed", "data-quality", {
+      clientLogger.error("Initial quality check failed", "data-quality", {
         error: (error as Error).message,
       });
     }
@@ -128,7 +128,7 @@ export const DataQualityDashboard: React.FC<DataQualityDashboardProps> = ({
       setLatestReport(report);
       loadAlerts();
 
-      logger.info("Quality check completed", "data-quality", {
+      clientLogger.info("Quality check completed", "data-quality", {
         dataset,
         overallScore: report.overallScore,
       });
@@ -137,7 +137,7 @@ export const DataQualityDashboard: React.FC<DataQualityDashboardProps> = ({
         onQualityCheck(report);
       }
     } catch (error) {
-      logger.error("Quality check failed", "data-quality", {
+      clientLogger.error("Quality check failed", "data-quality", {
         error: (error as Error).message,
       });
     } finally {
@@ -150,7 +150,7 @@ export const DataQualityDashboard: React.FC<DataQualityDashboardProps> = ({
     loadRules();
     setShowCreateRule(false);
 
-    logger.info("Quality rule created", "data-quality", {
+    clientLogger.info("Quality rule created", "data-quality", {
       ruleId: newRule.id,
       ruleName: newRule.name,
     });
@@ -180,44 +180,44 @@ export const DataQualityDashboard: React.FC<DataQualityDashboardProps> = ({
   };
 
   const getScoreColor = (score: number): string => {
-    if (score >= 90) return "text-green-400";
-    if (score >= 70) return "text-yellow-400";
-    if (score >= 50) return "text-orange-400";
-    return "text-red-400";
+    if (score >= 90) return "text-apricot-400";
+    if (score >= 70) return "text-tangerine-400";
+    if (score >= 50) return "text-tangerine-500";
+    return "text-jasper-400";
   };
 
   const getScoreBgColor = (score: number): string => {
-    if (score >= 90) return "bg-green-500";
-    if (score >= 70) return "bg-yellow-500";
-    if (score >= 50) return "bg-orange-500";
-    return "bg-red-500";
+    if (score >= 90) return "bg-apricot-500";
+    if (score >= 70) return "bg-tangerine-500";
+    if (score >= 50) return "bg-tangerine-600";
+    return "bg-jasper-500";
   };
 
   const getSeverityColor = (severity: string): string => {
     switch (severity) {
       case "critical":
-        return "text-red-400 bg-red-500/20";
+        return "text-jasper-400 bg-jasper-500/20";
       case "high":
-        return "text-orange-400 bg-orange-500/20";
+        return "text-jasper-500 bg-jasper-600/20";
       case "medium":
-        return "text-yellow-400 bg-yellow-500/20";
+        return "text-tangerine-400 bg-tangerine-500/20";
       case "low":
-        return "text-blue-400 bg-blue-500/20";
+        return "text-dark_cyan-400 bg-dark_cyan-500/20";
       default:
-        return "text-gray-400 bg-gray-500/20";
+        return "text-dark_cyan-300 bg-dark_cyan-400/20";
     }
   };
 
   const getStatusIcon = (status: string) => {
     switch (status) {
       case "passed":
-        return <CheckCircle className="w-4 h-4 text-green-400" />;
+        return <CheckCircle className="w-4 h-4 text-apricot-400" />;
       case "failed":
-        return <XCircle className="w-4 h-4 text-red-400" />;
+        return <XCircle className="w-4 h-4 text-jasper-400" />;
       case "warning":
-        return <AlertTriangle className="w-4 h-4 text-yellow-400" />;
+        return <AlertTriangle className="w-4 h-4 text-tangerine-400" />;
       default:
-        return <Clock className="w-4 h-4 text-gray-400" />;
+        return <Clock className="w-4 h-4 text-dark_cyan-400" />;
     }
   };
 

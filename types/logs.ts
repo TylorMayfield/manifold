@@ -13,7 +13,8 @@ export type LogCategory =
   | "realtime-sync"
   | "data-transformation"
   | "data-quality"
-  | "websocket";
+  | "websocket"
+  | "job-management";
 
 export interface LogEntry {
   id: string;

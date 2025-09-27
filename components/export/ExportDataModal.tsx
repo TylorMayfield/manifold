@@ -15,7 +15,7 @@ import {
   Users,
   BarChart3,
 } from "lucide-react";
-import { logger } from "../../lib/utils/logger";
+import { clientLogger } from "../../lib/utils/ClientLogger";
 import { DataSource } from "../../types";
 import Button from "../ui/Button";
 import Modal from "../ui/Modal";
@@ -139,7 +139,7 @@ export default function ExportDataModal({
 
   const handleExport = async () => {
     if (exportOptions.selectedDataSources.length === 0) {
-      logger.warn(
+      clientLogger.warn(
         "No data sources selected for export",
         "data-processing",
         {},
@@ -162,7 +162,7 @@ export default function ExportDataModal({
         exportOptions.selectedDataSources.includes(ds.id)
       );
 
-      logger.info(
+      clientLogger.info(
         "Starting data export",
         "data-processing",
         {
@@ -205,7 +205,7 @@ export default function ExportDataModal({
       setDownloadLinks(mockLinks);
       setExportComplete(true);
 
-      logger.success(
+      clientLogger.success(
         "Data export completed",
         "data-processing",
         {
@@ -215,7 +215,7 @@ export default function ExportDataModal({
         "ExportDataModal"
       );
     } catch (error) {
-      logger.error(
+      clientLogger.error(
         "Data export failed",
         "data-processing",
         { error },
@@ -233,7 +233,7 @@ export default function ExportDataModal({
 
   const downloadFile = (filename: string) => {
     // In a real implementation, this would download the actual file
-    logger.info(
+    clientLogger.info(
       "File download initiated",
       "data-processing",
       { filename },

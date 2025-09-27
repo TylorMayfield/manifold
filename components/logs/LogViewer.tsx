@@ -156,7 +156,7 @@ const LogViewer: React.FC = () => {
         <div className="card rounded-xl p-3 flex items-center space-x-3">
           <div className="flex items-center space-x-2">
             <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse-subtle"></div>
-            <span className="text-sm text-white/80">
+            <span className="text-sm text-gray-700">
               {filteredLogs.length} logs
             </span>
           </div>
@@ -178,7 +178,7 @@ const LogViewer: React.FC = () => {
         {/* Header */}
         <div className="px-4 py-3 border-b border-white/10 flex items-center justify-between">
           <div className="flex items-center space-x-2">
-            <h3 className="text-subheading text-white">Log Viewer</h3>
+            <h3 className="text-subheading text-gray-900">Log Viewer</h3>
             <div className="flex items-center space-x-1">
               <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse-subtle"></div>
               <span className="text-caption">{filteredLogs.length}</span>
@@ -227,7 +227,7 @@ const LogViewer: React.FC = () => {
             />
 
             <div>
-              <label className="text-xs font-medium text-white/70 mb-2 block">
+              <label className="text-xs font-medium text-gray-600 mb-2 block">
                 Log Levels
               </label>
               <div className="flex flex-wrap gap-1">
@@ -240,7 +240,7 @@ const LogViewer: React.FC = () => {
                     className={`px-2 py-1 rounded text-xs transition-all duration-200 ${
                       filters.levels.includes(level)
                         ? getLogLevelColor(level)
-                        : "bg-white/5 text-white/50 hover:bg-white/10"
+                        : "bg-white/5 text-gray-400 hover:bg-white/10"
                     }`}
                   >
                     {level}
@@ -250,7 +250,7 @@ const LogViewer: React.FC = () => {
             </div>
 
             <div>
-              <label className="text-xs font-medium text-white/70 mb-2 block">
+              <label className="text-xs font-medium text-gray-600 mb-2 block">
                 Categories
               </label>
               <div className="flex flex-wrap gap-1">
@@ -272,7 +272,7 @@ const LogViewer: React.FC = () => {
                     className={`px-2 py-1 rounded text-xs transition-all duration-200 ${
                       filters.categories.includes(category)
                         ? getCategoryColor(category)
-                        : "bg-white/5 text-white/50 hover:bg-white/10"
+                        : "bg-white/5 text-gray-400 hover:bg-white/10"
                     }`}
                   >
                     {category}
@@ -286,7 +286,7 @@ const LogViewer: React.FC = () => {
                 <Trash2 className="h-3 w-3 mr-1" />
                 Clear
               </Button>
-              <span className="text-xs text-white/60">
+              <span className="text-xs text-gray-500">
                 Max: {maxEntries} entries
               </span>
             </div>
@@ -297,7 +297,7 @@ const LogViewer: React.FC = () => {
         <div className="flex-1 overflow-y-auto p-2 space-y-1">
           {filteredLogs.length === 0 ? (
             <div className="text-center py-8">
-              <p className="text-white/60 text-sm">No logs to display</p>
+              <p className="text-gray-500 text-sm">No logs to display</p>
             </div>
           ) : (
             filteredLogs.map((log) => (
@@ -313,7 +313,7 @@ const LogViewer: React.FC = () => {
                       >
                         {log.level.toUpperCase()}
                       </span>
-                      <span className="text-white/50">
+                      <span className="text-gray-400">
                         {formatTimestamp(log.timestamp)}
                       </span>
                     </div>
@@ -327,15 +327,15 @@ const LogViewer: React.FC = () => {
                         {log.category}
                       </span>
                       {log.source && (
-                        <span className="text-white/60">from {log.source}</span>
+                        <span className="text-gray-500">from {log.source}</span>
                       )}
                     </div>
 
-                    <p className="text-white/90 mb-1">{log.message}</p>
+                    <p className="text-gray-800 mb-1">{log.message}</p>
 
                     {log.details && (
-                      <details className="text-white/60">
-                        <summary className="cursor-pointer hover:text-white/80 transition-colors duration-200">
+                      <details className="text-gray-500">
+                        <summary className="cursor-pointer hover:text-gray-700 transition-colors duration-200">
                           Details
                         </summary>
                         <pre className="mt-1 text-xs bg-white/5 p-2 rounded overflow-x-auto">

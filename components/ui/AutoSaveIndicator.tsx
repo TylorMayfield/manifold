@@ -86,7 +86,7 @@ export default function AutoSaveIndicator({
       )}
 
       {error && status === "error" && (
-        <span className="text-xs text-red-400" title={error}>
+        <span className="text-xs text-jasper-400" title={error}>
           {error}
         </span>
       )}

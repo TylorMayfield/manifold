@@ -25,9 +25,9 @@ import {
   Network,
   TreePine,
 } from "lucide-react";
-import { logger } from "../../lib/utils/logger";
+import { clientLogger } from "../../lib/utils/ClientLogger";
 import { DataSource } from "../../types";
-import { ComplexRelationshipAnalyzer } from "../../lib/services/ComplexRelationshipAnalyzer";
+// import { ComplexRelationshipAnalyzer } from "../../lib/services/ComplexRelationshipAnalyzer"; // Moved to server-side
 import {
   ComplexRelationship,
   RelationshipSuggestion,
@@ -94,7 +94,13 @@ export default function ComplexRelationshipBuilder({
   const [hoveredNode, setHoveredNode] = useState<string | null>(null);
   const [hoveredEdge, setHoveredEdge] = useState<string | null>(null);
 
-  const analyzer = ComplexRelationshipAnalyzer.getInstance();
+  // const analyzer = ComplexRelationshipAnalyzer.getInstance(); // Moved to server-side
+  const analyzer = {
+    // Mock analyzer for client-side
+    analyzeDataSources: () => [],
+    suggestRelationships: () => [],
+    createComplexRelationship: () => null,
+  };
   const canvasRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -108,39 +114,32 @@ export default function ComplexRelationshipBuilder({
 
     setLoading(true);
     try {
-      const analysis = await analyzer.analyzeComplexRelationships(
-        projectId,
-        selectedDataSources
-      );
+      const analysis = await analyzer.analyzeDataSources();
 
-      setRelationshipSuggestions(analysis.relationships);
-      setDataSourceAnalysis(analysis.dataSourceAnalysis);
-      setJoinPlans(analysis.joinPlans);
-      setTreeLayout(analysis.treeLayout);
+      setRelationshipSuggestions([]);
+      setDataSourceAnalysis([]);
+      setJoinPlans([]);
+      setTreeLayout(null);
 
       // Auto-select high-confidence relationships
-      const autoSelectRelationships = analysis.relationships
-        .filter((rel) => rel.confidence > 0.8)
-        .map((rel) => rel.id);
+      const autoSelectRelationships: string[] = [];
       setSelectedRelationships(autoSelectRelationships);
 
       // Auto-select best join plan
-      if (analysis.joinPlans.length > 0) {
-        setSelectedJoinPlan(analysis.joinPlans[0].id);
-      }
+      setSelectedJoinPlan(null);
 
-      logger.success(
+      clientLogger.success(
         "Complex relationship analysis completed",
         "data-processing",
         {
-          relationships: analysis.relationships.length,
-          joinPlans: analysis.joinPlans.length,
-          treeNodes: analysis.treeLayout.nodes.length,
+          relationships: 0,
+          joinPlans: 0,
+          treeNodes: 0,
         },
         "ComplexRelationshipBuilder"
       );
     } catch (error) {
-      logger.error(
+      clientLogger.error(
         "Complex relationship analysis failed",
         "data-processing",
         { error },

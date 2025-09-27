@@ -17,7 +17,7 @@ import {
   customScriptProvider,
   ScriptTemplate,
 } from "../../lib/services/CustomScriptProvider";
-import { logger } from "../../lib/utils/logger";
+import { clientLogger } from "../../lib/utils/ClientLogger";
 import Button from "../ui/Button";
 import Input from "../ui/Input";
 import Textarea from "../ui/Textarea";
@@ -104,14 +104,14 @@ export default function CustomScriptEditor({
       setValidationResult(result);
 
       if (result.isValid) {
-        logger.info(
+        clientLogger.info(
           "Script validation successful",
           "data-processing",
           { language: selectedLanguage },
           "CustomScriptEditor"
         );
       } else {
-        logger.warn(
+        clientLogger.warn(
           "Script validation failed",
           "data-processing",
           { errors: result.errors },
@@ -159,7 +159,7 @@ export default function CustomScriptEditor({
 
       onScriptCreated(provider);
 
-      logger.success(
+      clientLogger.success(
         "Custom script provider created",
         "data-processing",
         { providerId: provider.id, providerName },
@@ -169,7 +169,7 @@ export default function CustomScriptEditor({
       const errorMessage =
         error instanceof Error ? error.message : "Failed to create provider";
       setError(errorMessage);
-      logger.error(
+      clientLogger.error(
         "Failed to create custom script provider",
         "data-processing",
         { error },

@@ -14,7 +14,7 @@ import {
   LogFilter,
   LogViewerState,
 } from "../types/logs";
-import { logger } from "../lib/utils/logger";
+import { clientLogger } from "../lib/utils/ClientLogger";
 
 interface LogContextType {
   logs: LogEntry[];
@@ -123,10 +123,10 @@ export const LogProvider: React.FC<LogProviderProps> = ({ children }) => {
 
   // Listen to logger events
   useEffect(() => {
-    logger.addListener(addLog);
+    clientLogger.addListener(addLog);
 
     // Initial log entry
-    logger.info(
+    clientLogger.info(
       "Log viewer initialized",
       "system",
       { timestamp: new Date() },
@@ -134,7 +134,7 @@ export const LogProvider: React.FC<LogProviderProps> = ({ children }) => {
     );
 
     return () => {
-      logger.removeListener(addLog);
+      clientLogger.removeListener(addLog);
     };
   }, [addLog]);
 

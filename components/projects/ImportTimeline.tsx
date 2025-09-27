@@ -2,8 +2,8 @@
 
 import React, { useState, useEffect } from "react";
 import { Clock, RefreshCw, Database } from "lucide-react";
-import { logger } from "../../lib/utils/logger";
-import { DatabaseService } from "../../lib/services/DatabaseService";
+import { clientLogger } from "../../lib/utils/ClientLogger";
+import { clientDatabaseService } from "../../lib/database/ClientDatabaseService";
 import { SnapshotUtils } from "../../lib/utils/snapshotUtils";
 import Button from "../ui/Button";
 import {
@@ -37,7 +37,7 @@ export default function ImportTimeline({
     rightItem: ImportHistoryItem;
   } | null>(null);
 
-  const dbService = DatabaseService.getInstance();
+  const dbService = clientDatabaseService;
 
   // Handle item selection for comparison
   const handleItemSelect = (item: ImportHistoryItem) => {
@@ -164,7 +164,7 @@ export default function ImportTimeline({
 
       setImportHistory(historyItems);
 
-      logger.info(
+      clientLogger.info(
         "Import history loaded",
         "data-processing",
         {
@@ -175,7 +175,7 @@ export default function ImportTimeline({
         "ImportTimeline"
       );
     } catch (error) {
-      logger.error(
+      clientLogger.error(
         "Failed to load import history",
         "data-processing",
         { error, projectId },
@@ -297,7 +297,7 @@ export default function ImportTimeline({
       }
     } catch (error) {
       console.error("Failed to load diff data:", error);
-      logger.error(
+      clientLogger.error(
         "Failed to load diff data",
         "data-processing",
         { error, itemId: item.id },
