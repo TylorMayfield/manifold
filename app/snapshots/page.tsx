@@ -3,6 +3,7 @@
 import React, { useState } from "react";
 import { useRouter } from "next/navigation";
 import { useDataSources } from "../../contexts/DataSourceContext";
+import PageLayout from "../../components/layout/PageLayout";
 import CellButton from "../../components/ui/CellButton";
 import CellCard from "../../components/ui/CellCard";
 import CellModal from "../../components/ui/CellModal";
@@ -130,43 +131,31 @@ export default function SnapshotsPage() {
   };
 
   return (
-    <div className="min-h-screen bg-white p-6">
-      {/* Header */}
-      <header className="cell-nav mb-8">
-        <div className="flex items-center justify-between p-4">
-          <div className="flex items-center space-x-4">
-            <CellButton
-              variant="ghost"
-              size="sm"
-              onClick={() => router.push("/")}
-              title="Back to Dashboard"
-            >
-              <ArrowLeft className="w-4 h-4" />
+    <PageLayout
+      title="Data Snapshots"
+      subtitle="Version history and data backups"
+      icon={FileText}
+      showNavigation={true}
+      showBackButton={true}
+      backButtonText="Back to Home"
+      backButtonHref="/"
+      headerActions={
+        <div className="flex items-center space-x-2">
+          {selectedSnapshots.length === 2 && (
+            <CellButton variant="primary" onClick={handleCompareSnapshots}>
+              <GitBranch className="w-4 h-4 mr-2" />
+              Compare Selected
             </CellButton>
-            <h1 className="text-heading font-bold flex items-center">
-              <FileText className="w-6 h-6 mr-3" />
-              Data Snapshots
-            </h1>
-            <span className="text-caption">
-              Version history and data backups
-            </span>
-          </div>
-          <div className="flex items-center space-x-2">
-            {selectedSnapshots.length === 2 && (
-              <CellButton variant="accent" onClick={handleCompareSnapshots}>
-                <GitBranch className="w-4 h-4 mr-2" />
-                Compare Selected
-              </CellButton>
-            )}
-            <CellButton variant="ghost" size="sm">
-              <RefreshCw className="w-4 h-4" />
-            </CellButton>
-            <CellButton variant="ghost" size="sm">
-              <Settings className="w-4 h-4" />
-            </CellButton>
-          </div>
+          )}
+          <CellButton variant="ghost" size="sm">
+            <RefreshCw className="w-4 h-4" />
+          </CellButton>
+          <CellButton variant="ghost" size="sm">
+            <Settings className="w-4 h-4" />
+          </CellButton>
         </div>
-      </header>
+      }
+    >
 
       {/* Stats Bar */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
@@ -599,6 +588,6 @@ export default function SnapshotsPage() {
           </div>
         )}
       </CellModal>
-    </div>
+    </PageLayout>
   );
 }

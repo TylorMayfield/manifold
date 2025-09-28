@@ -14,6 +14,7 @@ import {
   Eye,
   Calendar,
 } from "lucide-react";
+import PageLayout from "../../components/layout/PageLayout";
 import CellButton from "../../components/ui/CellButton";
 import CellCard from "../../components/ui/CellCard";
 import CellInput from "../../components/ui/CellInput";
@@ -93,34 +94,29 @@ export default function DataSourcesPage() {
   };
 
   return (
-    <div className="min-h-screen bg-white p-6">
-      {/* Header */}
-      <header className="cell-nav mb-8">
-        <div className="flex items-center justify-between p-4">
-          <div className="flex items-center space-x-4">
-            <CellButton variant="ghost" size="sm">
-              <ArrowLeft className="w-4 h-4" />
-            </CellButton>
-            <h1 className="text-heading font-bold">Data Sources</h1>
-            <span className="text-caption">Connect and import your data</span>
-          </div>
-          <div className="flex items-center space-x-2">
-            <CellButton
-              variant="accent"
-              size="sm"
-              onClick={() => setShowCreateModal(true)}
-            >
-              <Plus className="w-4 h-4 mr-2" />
-              Add Source
-            </CellButton>
-          </div>
-        </div>
-      </header>
+    <PageLayout
+      title="Data Sources"
+      subtitle="Connect and import your data"
+      icon={Database}
+      showNavigation={true}
+      showBackButton={true}
+      backButtonText="Back to Home"
+      backButtonHref="/"
+      headerActions={
+        <CellButton
+          variant="primary"
+          size="sm"
+          onClick={() => setShowCreateModal(true)}
+        >
+          <Plus className="w-4 h-4 mr-2" />
+          Add Source
+        </CellButton>
+      }
+    >
 
       {sources.length === 0 ? (
         // Empty State
-        <div className="max-w-4xl mx-auto">
-          <CellCard className="p-12 text-center">
+        <CellCard className="p-12 text-center">
             <Database className="w-20 h-20 mx-auto mb-6 text-gray-300" />
             <h2 className="text-heading mb-4">No Data Sources Connected</h2>
             <p className="text-body text-gray-600 mb-8 max-w-2xl mx-auto">
@@ -189,7 +185,6 @@ export default function DataSourcesPage() {
               Add Your First Data Source
             </CellButton>
           </CellCard>
-        </div>
       ) : (
         // Sources List
         <div>
@@ -340,7 +335,7 @@ export default function DataSourcesPage() {
       >
         <ApiScriptBuilder onSave={handleCreateSource} />
       </CellModal>
-    </div>
+    </PageLayout>
   );
 }
 

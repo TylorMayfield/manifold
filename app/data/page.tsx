@@ -1,8 +1,7 @@
 "use client";
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
-  ArrowLeft, 
   Search, 
   Filter, 
   Download, 
@@ -11,58 +10,90 @@ import {
   ChevronRight,
   FileText,
   Database,
-  RefreshCw
+  RefreshCw,
+  AlertTriangle
 } from 'lucide-react';
+import PageLayout from '../../components/layout/PageLayout';
 import CellButton from '../../components/ui/CellButton';
 import CellCard from '../../components/ui/CellCard';
 import CellInput from '../../components/ui/CellInput';
-import { DataBrowserQuery, DataBrowserResult } from '../../types';
+import LoadingSpinner from '../../components/ui/LoadingSpinner';
+import { useApi } from '../../hooks/useApi';
+import { DataProvider } from '../../types';
 
-interface MockData {
+interface DataSourceWithData {
   id: string;
-  sourceId: string;
-  sourceName: string;
-  tableName: string;
+  name: string;
+  type: string;
+  status: string;
   data: any[];
   totalCount: number;
+  error?: string;
 }
 
-const mockDataSources: MockData[] = [
-  {
-    id: '1',
-    sourceId: 'mock_customers',
-    sourceName: 'Mock Customer Data',
-    tableName: 'customers',
-    data: [
-      { id: 1, first_name: 'John', last_name: 'Smith', email: 'john@example.com', city: 'New York', country: 'USA' },
-      { id: 2, first_name: 'Sarah', last_name: 'Johnson', email: 'sarah@example.com', city: 'London', country: 'UK' },
-      { id: 3, first_name: 'Mike', last_name: 'Davis', email: 'mike@example.com', city: 'Toronto', country: 'Canada' },
-      { id: 4, first_name: 'Emma', last_name: 'Wilson', email: 'emma@example.com', city: 'Sydney', country: 'Australia' },
-      { id: 5, first_name: 'James', last_name: 'Brown', email: 'james@example.com', city: 'Berlin', country: 'Germany' },
-    ],
-    totalCount: 1000
-  },
-  {
-    id: '2',
-    sourceId: 'mock_orders',
-    sourceName: 'Mock Order Data',
-    tableName: 'orders',
-    data: [
-      { order_id: 'ORD001', customer_id: 1, product_name: 'Laptop', quantity: 1, price: 999.99, order_date: '2024-01-15', status: 'completed' },
-      { order_id: 'ORD002', customer_id: 2, product_name: 'Mouse', quantity: 2, price: 29.99, order_date: '2024-01-16', status: 'pending' },
-      { order_id: 'ORD003', customer_id: 1, product_name: 'Keyboard', quantity: 1, price: 79.99, order_date: '2024-01-17', status: 'completed' },
-      { order_id: 'ORD004', customer_id: 3, product_name: 'Monitor', quantity: 1, price: 299.99, order_date: '2024-01-18', status: 'shipped' },
-      { order_id: 'ORD005', customer_id: 4, product_name: 'Webcam', quantity: 1, price: 89.99, order_date: '2024-01-19', status: 'completed' },
-    ],
-    totalCount: 2500
-  }
-];
-
 export default function DataBrowserPage() {
-  const [selectedSource, setSelectedSource] = useState<MockData | null>(null);
+  const [dataSources, setDataSources] = useState<DataSourceWithData[]>([]);
+  const [selectedSource, setSelectedSource] = useState<DataSourceWithData | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize] = useState(10);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  
+  const { get } = useApi();
+  
+  useEffect(() => {
+    loadDataSources();
+  }, []);
+  
+  const loadDataSources = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      
+      // Fetch data sources
+      const response = await get('/api/data-sources?projectId=default');
+      if (response && Array.isArray(response)) {
+        const sourcesWithData = await Promise.all(
+          response.map(async (source: DataProvider) => {
+            try {
+              // Try to fetch sample data for each source
+              const dataResponse = await get(`/api/data-sources/${source.id}/data?limit=50`);
+              return {
+                id: source.id,
+                name: source.name,
+                type: source.type,
+                status: source.status,
+                data: dataResponse?.data || [],
+                totalCount: dataResponse?.totalCount || 0,
+                error: dataResponse?.error
+              };
+            } catch (error) {
+              console.error(`Failed to load data for source ${source.name}:`, error);
+              return {
+                id: source.id,
+                name: source.name,
+                type: source.type,
+                status: source.status,
+                data: [],
+                totalCount: 0,
+                error: 'Failed to load data'
+              };
+            }
+          })
+        );
+        setDataSources(sourcesWithData);
+      } else {
+        setDataSources([]);
+      }
+    } catch (error) {
+      console.error('Failed to load data sources:', error);
+      setError('Failed to load data sources');
+      setDataSources([]);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const filteredData = selectedSource?.data.filter(row => 
     Object.values(row).some(value => 
@@ -80,87 +111,127 @@ export default function DataBrowserPage() {
   };
 
   return (
-    <div className="min-h-screen bg-white p-6">
-      {/* Header */}
-      <header className="cell-nav mb-8">
-        <div className="flex items-center justify-between p-4">
-          <div className="flex items-center space-x-4">
-            <CellButton variant="ghost" size="sm">
-              <ArrowLeft className="w-4 h-4" />
+    <PageLayout
+      title="Data Browser"
+      subtitle="Explore your imported data"
+      icon={Database}
+      showBackButton={true}
+      headerActions={
+        <div className="flex items-center space-x-2">
+          {selectedSource && (
+            <CellButton variant="secondary" size="sm">
+              <Download className="w-4 h-4 mr-2" />
+              Export
             </CellButton>
-            <h1 className="text-heading font-bold">Data Browser</h1>
-            <span className="text-caption">Explore your imported data</span>
-          </div>
-          <div className="flex items-center space-x-2">
-            {selectedSource && (
-              <CellButton variant="secondary" size="sm">
-                <Download className="w-4 h-4 mr-2" />
-                Export
-              </CellButton>
-            )}
-            <CellButton variant="accent" size="sm">
-              <RefreshCw className="w-4 h-4 mr-2" />
-              Refresh
-            </CellButton>
-          </div>
+          )}
+          <CellButton 
+            variant="ghost" 
+            size="sm"
+            onClick={loadDataSources}
+            disabled={loading}
+          >
+            <RefreshCw className={`w-4 h-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
+            Refresh
+          </CellButton>
         </div>
-      </header>
+      }
+    >
 
-      <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
-        {/* Data Sources Sidebar */}
-        <div className="lg:col-span-1">
-          <CellCard className="p-4">
-            <h2 className="text-subheading mb-4">Data Sources</h2>
-            
-            {mockDataSources.length === 0 ? (
-              <div className="text-center py-8">
-                <Database className="w-12 h-12 mx-auto mb-4 text-gray-300" />
-                <p className="text-caption text-gray-600">No data imported yet</p>
-              </div>
-            ) : (
-              <div className="space-y-2">
-                {mockDataSources.map((source) => (
-                  <div
-                    key={source.id}
-                    className={`p-3 border-2 border-black cursor-pointer transition-colors ${
-                      selectedSource?.id === source.id ? 'bg-accent text-white' : 'bg-white hover:bg-gray-50'
-                    }`}
-                    onClick={() => setSelectedSource(source)}
-                  >
-                    <div className="flex items-center space-x-2 mb-1">
-                      <FileText className="w-4 h-4" />
-                      <span className="font-mono font-bold text-sm">{source.sourceName}</span>
-                    </div>
-                    <div className="text-xs opacity-75">
-                      {source.data.length} / {source.totalCount} records loaded
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
-          </CellCard>
-        </div>
-
-        {/* Data Viewer */}
-        <div className="lg:col-span-3">
-          {!selectedSource ? (
-            <CellCard className="p-12 text-center">
-              <Eye className="w-16 h-16 mx-auto mb-4 text-gray-300" />
-              <h2 className="text-heading mb-4">Select a Data Source</h2>
-              <p className="text-body text-gray-600">
-                Choose a data source from the sidebar to browse its data.
-              </p>
-            </CellCard>
-          ) : (
-            <CellCard className="p-6">
-              {/* Table Header */}
-              <div className="flex items-center justify-between mb-6">
-                <div>
-                  <h2 className="text-subheading font-bold">{selectedSource.sourceName}</h2>
-                  <p className="text-caption text-gray-600">
-                    Table: {selectedSource.tableName} • {selectedSource.totalCount} total records
-                  </p>
+      {loading ? (
+        <LoadingSpinner />
+      ) : error ? (
+        <CellCard className="p-12 text-center">
+          <AlertTriangle className="w-16 h-16 mx-auto mb-4 text-red-400" />
+          <h2 className="text-heading mb-4">Error Loading Data</h2>
+          <p className="text-body text-gray-600 mb-6">{error}</p>
+          <CellButton onClick={loadDataSources}>
+            <RefreshCw className="w-4 h-4 mr-2" />
+            Try Again
+          </CellButton>
+        </CellCard>
+      ) : (
+        <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
+          {/* Data Sources Sidebar */}
+          <div className="lg:col-span-1">
+            <CellCard className="p-4">
+              <h2 className="text-subheading mb-4">Data Sources</h2>
+              
+              {dataSources.length === 0 ? (
+                <div className="text-center py-8">
+                  <Database className="w-12 h-12 mx-auto mb-4 text-gray-300" />
+                  <p className="text-caption text-gray-600">No data sources found</p>
+                  <p className="text-caption text-gray-500 mt-2">Add data sources to explore your data</p>
                 </div>
+              ) : (
+                <div className="space-y-2">
+                  {dataSources.map((source) => {
+                    const getTypeIcon = (type: string) => {
+                      switch (type) {
+                        case 'csv': return <FileText className="w-4 h-4" />;
+                        case 'mysql': return <Database className="w-4 h-4" />;
+                        case 'json': return <FileText className="w-4 h-4" />;
+                        case 'api_script': return <Database className="w-4 h-4" />;
+                        default: return <Database className="w-4 h-4" />;
+                      }
+                    };
+                    
+                    return (
+                      <div
+                        key={source.id}
+                        className={`p-3 border border-gray-300 rounded-md cursor-pointer transition-colors ${
+                          selectedSource?.id === source.id 
+                            ? 'bg-dark_cyan-600 text-white border-dark_cyan-600' 
+                            : 'bg-white hover:bg-gray-50'
+                        }`}
+                        onClick={() => setSelectedSource(source)}
+                      >
+                        <div className="flex items-center space-x-2 mb-1">
+                          {getTypeIcon(source.type)}
+                          <span className="font-bold text-sm">{source.name}</span>
+                        </div>
+                        <div className="text-xs opacity-75">
+                          <div>{source.type.toUpperCase()}</div>
+                          <div>
+                            {source.error ? (
+                              <span className="text-red-400">Error loading</span>
+                            ) : (
+                              `${source.data.length} / ${source.totalCount} records`
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </CellCard>
+          </div>
+
+          {/* Data Viewer */}
+          <div className="lg:col-span-3">
+            {!selectedSource ? (
+              <CellCard className="p-12 text-center">
+                <Eye className="w-16 h-16 mx-auto mb-4 text-gray-300" />
+                <h2 className="text-heading mb-4">Select a Data Source</h2>
+                <p className="text-body text-gray-600">
+                  Choose a data source from the sidebar to browse its data.
+                </p>
+              </CellCard>
+            ) : (
+              <CellCard className="p-6">
+                {/* Table Header */}
+                <div className="flex items-center justify-between mb-6">
+                  <div>
+                    <h2 className="text-subheading font-bold">{selectedSource.name}</h2>
+                    <p className="text-caption text-gray-600">
+                      Type: {selectedSource.type.toUpperCase()} • {selectedSource.totalCount} total records
+                    </p>
+                    {selectedSource.error && (
+                      <p className="text-caption text-red-600 mt-1">
+                        ⚠️ {selectedSource.error}
+                      </p>
+                    )}
+                  </div>
                 
                 <div className="flex items-center space-x-4">
                   <CellInput
@@ -178,14 +249,24 @@ export default function DataBrowserPage() {
                 </div>
               </div>
 
-              {/* Data Table */}
-              {filteredData.length === 0 ? (
-                <div className="text-center py-12">
-                  <Search className="w-12 h-12 mx-auto mb-4 text-gray-300" />
-                  <p className="text-body text-gray-600">
-                    {searchTerm ? 'No results found for your search.' : 'No data available.'}
-                  </p>
-                </div>
+                {/* Data Table */}
+                {selectedSource.error ? (
+                  <div className="text-center py-12">
+                    <AlertTriangle className="w-12 h-12 mx-auto mb-4 text-red-400" />
+                    <p className="text-body text-red-600">
+                      Unable to load data from this source.
+                    </p>
+                    <p className="text-caption text-gray-600 mt-2">
+                      {selectedSource.error}
+                    </p>
+                  </div>
+                ) : filteredData.length === 0 ? (
+                  <div className="text-center py-12">
+                    <Search className="w-12 h-12 mx-auto mb-4 text-gray-300" />
+                    <p className="text-body text-gray-600">
+                      {searchTerm ? 'No results found for your search.' : 'No data available.'}
+                    </p>
+                  </div>
               ) : (
                 <div>
                   <div className="overflow-x-auto mb-6">
@@ -230,7 +311,7 @@ export default function DataBrowserPage() {
                           <ChevronLeft className="w-4 h-4" />
                         </CellButton>
                         
-                        <span className="font-mono text-sm px-3 py-1 border-2 border-black bg-white">
+                        <span className="font-mono text-sm px-3 py-1 border border-gray-300 bg-white rounded">
                           {currentPage} / {totalPages}
                         </span>
                         
@@ -248,9 +329,10 @@ export default function DataBrowserPage() {
                 </div>
               )}
             </CellCard>
-          )}
+            )}
+          </div>
         </div>
-      </div>
-    </div>
+      )}
+    </PageLayout>
   );
 }

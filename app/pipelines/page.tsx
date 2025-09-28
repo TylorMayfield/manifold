@@ -14,6 +14,7 @@ import {
   Shuffle,
   Loader2,
 } from "lucide-react";
+import PageLayout from "../../components/layout/PageLayout";
 import Button from "../../components/ui/Button";
 import CellButton from "../../components/ui/CellButton";
 import CellCard from "../../components/ui/CellCard";
@@ -56,47 +57,28 @@ function PipelinesPageContent() {
   };
 
   return (
-    <div className="min-h-screen gradient-bg p-6">
-      {/* Header */}
-      <div className="mb-8">
-        <div className="flex items-center justify-between p-4">
-          <div className="flex items-center space-x-4">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => router.push("/")}
-              icon={<ArrowLeft className="h-4 w-4" />}
-            >
-              Back to Home
-            </Button>
-            <div>
-              <h1 className="text-2xl font-bold text-white flex items-center">
-                <Zap className="w-6 h-6 mr-3" />
-                Data Pipelines
-              </h1>
-              <span className="text-dark_cyan-400">
-                Transform and process your data
-              </span>
-            </div>
-          </div>
-          <div className="flex items-center space-x-2">
-            <CellButton
-              variant="accent"
-              size="sm"
-              onClick={() => setShowCreateModal(true)}
-            >
-              <Plus className="w-4 h-4 mr-2" />
-              New Pipeline
-            </CellButton>
-          </div>
-        </div>
-      </div>
-
-      {/* Content */}
-      <div className="bg-white rounded-lg shadow-lg p-8">
+    <PageLayout
+      title="Data Pipelines"
+      subtitle="Transform and process your data"
+      icon={Zap}
+      showNavigation={true}
+      showBackButton={true}
+      backButtonText="Back to Home"
+      backButtonHref="/"
+      headerActions={
+        <CellButton
+          variant="primary"
+          size="sm"
+          onClick={() => setShowCreateModal(true)}
+        >
+          <Plus className="w-4 h-4 mr-2" />
+          New Pipeline
+        </CellButton>
+      }
+    >
         {error && (
           <div className="mb-6">
-            <CellCard className="p-4 bg-red-50 border-red-200">
+            <CellCard className="p-4 border-l-4 border-l-red-500 bg-red-50">
               <p className="text-red-800">Error: {error}</p>
               <CellButton
                 variant="secondary"
@@ -111,16 +93,13 @@ function PipelinesPageContent() {
         )}
 
         {loading ? (
-          <div className="max-w-4xl mx-auto">
-            <CellCard className="p-12 text-center">
-              <Loader2 className="w-8 h-8 mx-auto mb-4 animate-spin text-gray-400" />
-              <p className="text-body text-gray-600">Loading pipelines...</p>
-            </CellCard>
-          </div>
+          <CellCard className="p-12 text-center">
+            <Loader2 className="w-8 h-8 mx-auto mb-4 animate-spin text-gray-400" />
+            <p className="text-body text-gray-600">Loading pipelines...</p>
+          </CellCard>
         ) : pipelines.length === 0 ? (
           // Empty State
-          <div className="max-w-4xl mx-auto">
-            <CellCard className="p-12 text-center">
+          <CellCard className="p-12 text-center">
               <Zap className="w-20 h-20 mx-auto mb-6 text-gray-300" />
               <h2 className="text-heading mb-4">No Pipelines Created</h2>
               <p className="text-body text-gray-600 mb-8 max-w-2xl mx-auto">
@@ -168,7 +147,6 @@ function PipelinesPageContent() {
                 Create Your First Pipeline
               </CellButton>
             </CellCard>
-          </div>
         ) : (
           // Pipeline List
           <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
@@ -289,8 +267,7 @@ function PipelinesPageContent() {
             </div>
           </div>
         </CellModal>
-      </div>
-    </div>
+    </PageLayout>
   );
 }
 

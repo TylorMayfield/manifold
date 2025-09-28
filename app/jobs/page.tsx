@@ -3,6 +3,7 @@
 import React, { useState } from "react";
 import { useRouter } from "next/navigation";
 import { useDataSources } from "../../contexts/DataSourceContext";
+import PageLayout from "../../components/layout/PageLayout";
 import Button from "../../components/ui/Button";
 import CellButton from "../../components/ui/CellButton";
 import CellCard from "../../components/ui/CellCard";
@@ -133,43 +134,29 @@ export default function JobsPage() {
   };
 
   return (
-    <div className="min-h-screen gradient-bg p-6">
-      {/* Header */}
-      <div className="mb-8">
-        <div className="flex items-center justify-between p-4">
-          <div className="flex items-center space-x-4">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => router.push("/")}
-              icon={<ArrowLeft className="h-4 w-4" />}
-            >
-              Back to Home
-            </Button>
-            <div>
-              <h1 className="text-2xl font-bold text-white flex items-center">
-                <Play className="w-6 h-6 mr-3" />
-                Scheduled Jobs
-              </h1>
-              <span className="text-dark_cyan-400">
-                Automate your data processing
-              </span>
-            </div>
-          </div>
-          <div className="flex items-center space-x-2">
-            <CellButton
-              variant="primary"
-              onClick={() => setShowCreateModal(true)}
-            >
-              <Plus className="w-4 h-4 mr-2" />
-              Schedule Job
-            </CellButton>
-            <CellButton variant="ghost" size="sm">
-              <Settings className="w-4 h-4" />
-            </CellButton>
-          </div>
+    <PageLayout
+      title="Scheduled Jobs"
+      subtitle="Automate your data processing"
+      icon={Play}
+      showNavigation={true}
+      showBackButton={true}
+      backButtonText="Back to Home"
+      backButtonHref="/"
+      headerActions={
+        <div className="flex items-center space-x-2">
+          <CellButton
+            variant="primary"
+            onClick={() => setShowCreateModal(true)}
+          >
+            <Plus className="w-4 h-4 mr-2" />
+            Schedule Job
+          </CellButton>
+          <CellButton variant="ghost" size="sm">
+            <Settings className="w-4 h-4" />
+          </CellButton>
         </div>
-      </div>
+      }
+    >
 
       {/* Stats Bar */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
@@ -571,7 +558,7 @@ export default function JobsPage() {
             </div>
           </div>
         )}
-      </CellModal>
-    </div>
+        </CellModal>
+      )}
+    </PageLayout>
   );
-}

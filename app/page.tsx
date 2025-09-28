@@ -2,11 +2,12 @@
 
 import React, { useState } from "react";
 import { useRouter } from "next/navigation";
+import PageLayout from "../components/layout/PageLayout";
 import CellButton from "../components/ui/CellButton";
 import CellCard from "../components/ui/CellCard";
 import CellModal from "../components/ui/CellModal";
 import { useDataSources } from "../contexts/DataSourceContext";
-import { Database, FileText, Zap, Settings, Plus, Play } from "lucide-react";
+import { Database, FileText, Zap, Settings, Plus, Play, Home } from "lucide-react";
 
 function HomePageContent() {
   const router = useRouter();
@@ -14,53 +15,14 @@ function HomePageContent() {
     useDataSources();
 
   return (
-    <div className="min-h-screen bg-white p-6">
-      {/* Header */}
-      <header className="cell-nav mb-8">
-        <div className="flex items-center justify-between p-4">
-          <div className="flex items-center space-x-4">
-            <h1 className="text-heading font-bold">Manifold ETL</h1>
-            <span className="text-caption">Data Pipeline Management</span>
-          </div>
-          <div className="flex items-center space-x-2">
-            <CellButton variant="ghost" size="sm">
-              <Settings className="w-4 h-4" />
-            </CellButton>
-          </div>
-        </div>
-      </header>
+    <PageLayout
+      title="Manifold ETL"
+      subtitle="Data Pipeline Management"
+      icon={Home}
+      showNavigation={true}
+    >
 
-      {/* Navigation */}
-      <nav className="cell-nav mb-8">
-        <div className="flex">
-          <button className="cell-nav-item active">
-            <Database className="w-4 h-4 mr-2" />
-            Sources
-          </button>
-          <a href="/pipelines" className="cell-nav-item">
-            <Zap className="w-4 h-4 mr-2" />
-            Pipelines
-          </a>
-          <a href="/jobs" className="cell-nav-item">
-            <Play className="w-4 h-4 mr-2" />
-            Jobs
-          </a>
-          <a href="/snapshots" className="cell-nav-item">
-            <FileText className="w-4 h-4 mr-2" />
-            Snapshots
-          </a>
-          <a href="/logs" className="cell-nav-item">
-            <FileText className="w-4 h-4 mr-2" />
-            Logs
-          </a>
-          <a href="/settings" className="cell-nav-item">
-            <Settings className="w-4 h-4 mr-2" />
-            Settings
-          </a>
-        </div>
-      </nav>
-
-      {/* Main Content */}
+      {/* Dashboard Content */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
         {/* Data Sources */}
         <CellCard className="p-6">
@@ -314,7 +276,7 @@ function HomePageContent() {
           </div>
         </CellCard>
       </div>
-    </div>
+    </PageLayout>
   );
 }
 

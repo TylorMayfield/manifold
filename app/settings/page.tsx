@@ -2,7 +2,8 @@
 
 import React, { useState } from "react";
 import { useRouter } from "next/navigation";
-import Button from "../../components/ui/Button";
+import PageLayout from "../../components/layout/PageLayout";
+import CellButton from "../../components/ui/CellButton";
 import { useSettings } from "../../contexts/SettingsContext";
 import {
   Settings,
@@ -416,10 +417,10 @@ export default function SettingsPage() {
                   )}
                 </button>
               </div>
-              <Button size="sm" variant="outline">
+              <CellButton size="sm" variant="secondary">
                 <RefreshCw className="w-4 h-4 mr-1" />
                 Regenerate
-              </Button>
+              </CellButton>
             </div>
           </div>
         )}
@@ -511,24 +512,24 @@ export default function SettingsPage() {
         )}
       </div>
 
-      <div className="p-4 bg-dark_cyan-900 bg-opacity-50 border border-gray-300 border-opacity-20 rounded-lg">
-        <h4 className="font-bold text-gray-900 mb-2">Storage Usage</h4>
+      <div className="cell-card p-4">
+        <h4 className="font-bold text-black mb-2">Storage Usage</h4>
         <div className="space-y-2">
           <div className="flex justify-between text-sm">
-            <span className="text-gray-900">Database:</span>
-            <span className="text-dark_cyan-400">156 MB</span>
+            <span className="text-black">Database:</span>
+            <span className="font-mono text-accent">156 MB</span>
           </div>
           <div className="flex justify-between text-sm">
-            <span className="text-gray-900">Snapshots:</span>
-            <span className="text-dark_cyan-400">2.3 GB</span>
+            <span className="text-black">Snapshots:</span>
+            <span className="font-mono text-accent">2.3 GB</span>
           </div>
           <div className="flex justify-between text-sm">
-            <span className="text-gray-900">Backups:</span>
-            <span className="text-dark_cyan-400">890 MB</span>
+            <span className="text-black">Backups:</span>
+            <span className="font-mono text-accent">890 MB</span>
           </div>
-          <div className="flex justify-between text-sm font-bold pt-2 border-t border-gray-300 border-opacity-20">
-            <span className="text-gray-900">Total:</span>
-            <span className="text-dark_cyan-400">3.35 GB</span>
+          <div className="flex justify-between text-sm font-bold pt-2 border-t-2 border-black">
+            <span className="text-black">Total:</span>
+            <span className="font-mono text-accent">3.35 GB</span>
           </div>
         </div>
       </div>
@@ -627,72 +628,57 @@ export default function SettingsPage() {
   };
 
   return (
-    <div className="min-h-screen gradient-bg p-6">
-      {/* Header */}
-      <div className="mb-8">
-        <div className="flex items-center justify-between p-4">
-          <div className="flex items-center space-x-4">
-            <Button
-              onClick={() => router.push("/")}
-              variant="outline"
-              size="sm"
-              icon={<ArrowLeft className="h-4 w-4" />}
-            >
-              Back to Home
-            </Button>
-            <div>
-              <h1 className="text-2xl font-bold text-white flex items-center">
-                <Settings className="w-6 h-6 mr-3" />
-                Settings
-              </h1>
-              <span className="text-dark_cyan-400">
-                Configure your ETL environment
-              </span>
+    <PageLayout
+      title="Settings"
+      subtitle="Configure your ETL environment"
+      icon={Settings}
+      showBackButton={true}
+      headerActions={
+        <div className="flex items-center space-x-2">
+          {error && (
+            <div className="text-red-600 text-sm mr-2">Error: {error}</div>
+          )}
+          {hasUnsavedChanges && (
+            <div className="text-amber-600 text-sm mr-2 flex items-center">
+              <AlertTriangle className="w-4 h-4 mr-1" />
+              Unsaved changes
             </div>
-          </div>
-          <div className="flex items-center space-x-2">
-            {error && (
-              <div className="text-red-600 text-sm mr-2">Error: {error}</div>
+          )}
+          <CellButton
+            variant="secondary"
+            onClick={handleExportSettings}
+            disabled={loading}
+            size="sm"
+          >
+            <Download className="w-4 h-4 mr-2" />
+            Export
+          </CellButton>
+          <CellButton
+            variant="primary"
+            onClick={handleSaveSettings}
+            disabled={!hasUnsavedChanges || isSaving}
+            size="sm"
+          >
+            {isSaving ? (
+              <>
+                <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
+                Saving...
+              </>
+            ) : (
+              <>
+                <Save className="w-4 h-4 mr-2" />
+                Save Changes
+              </>
             )}
-            {hasUnsavedChanges && (
-              <div className="text-amber-600 text-sm mr-2 flex items-center">
-                <AlertTriangle className="w-4 h-4 mr-1" />
-                Unsaved changes
-              </div>
-            )}
-            <Button
-              variant="outline"
-              onClick={handleExportSettings}
-              disabled={loading}
-            >
-              <Download className="w-4 h-4 mr-2" />
-              Export
-            </Button>
-            <Button
-              variant="primary"
-              onClick={handleSaveSettings}
-              disabled={!hasUnsavedChanges || isSaving}
-            >
-              {isSaving ? (
-                <>
-                  <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
-                  Saving...
-                </>
-              ) : (
-                <>
-                  <Save className="w-4 h-4 mr-2" />
-                  Save Changes
-                </>
-              )}
-            </Button>
-          </div>
+          </CellButton>
         </div>
-      </div>
+      }
+    >
 
       <div className="flex gap-6">
         {/* Settings Sidebar */}
         <div className="w-64 flex-shrink-0">
-          <div className="bg-dark_cyan-100 bg-opacity-20 border border-gray-300 border-opacity-10 rounded-lg p-4">
+          <div className="cell-card p-4">
             <nav className="space-y-2">
               {sections.map((section) => {
                 const Icon = section.icon;
@@ -700,10 +686,10 @@ export default function SettingsPage() {
                   <button
                     key={section.id}
                     onClick={() => setActiveSection(section.id)}
-                    className={`w-full text-left p-3 border border-gray-300 border-opacity-20 rounded-lg transition-colors ${
+                    className={`w-full text-left p-3 border-2 border-black transition-colors ${
                       activeSection === section.id
-                        ? "bg-tangerine-500 bg-opacity-20 border-tangerine-400 border-opacity-30 text-gray-900"
-                        : "bg-dark_cyan-100 bg-opacity-10 hover:bg-dark_cyan-100 hover:bg-opacity-20 text-gray-900"
+                        ? "bg-accent text-white"
+                        : "bg-white hover:bg-gray-50 text-black"
                     }`}
                   >
                     <div className="flex items-center space-x-3">
@@ -712,7 +698,9 @@ export default function SettingsPage() {
                         <div className="font-mono font-bold text-sm">
                           {section.title}
                         </div>
-                        <div className="text-xs text-dark_cyan-400">
+                        <div className={`text-xs ${
+                          activeSection === section.id ? "text-white opacity-80" : "text-gray-600"
+                        }`}>
                           {section.description}
                         </div>
                       </div>
@@ -726,12 +714,12 @@ export default function SettingsPage() {
 
         {/* Settings Content */}
         <div className="flex-1">
-          <div className="bg-dark_cyan-100 bg-opacity-20 border border-gray-300 border-opacity-10 rounded-lg p-6">
+          <div className="cell-card p-6">
             <div className="mb-6">
-              <h2 className="text-xl font-bold text-gray-900 mb-2">
+              <h2 className="text-subheading font-bold mb-2">
                 {sections.find((s) => s.id === activeSection)?.title}
               </h2>
-              <p className="text-dark_cyan-400">
+              <p className="text-caption text-gray-600">
                 {sections.find((s) => s.id === activeSection)?.description}
               </p>
             </div>
@@ -740,6 +728,6 @@ export default function SettingsPage() {
           </div>
         </div>
       </div>
-    </div>
+    </PageLayout>
   );
 }

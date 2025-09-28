@@ -14,6 +14,7 @@ import CustomScriptEditor from "../../../../components/data-sources/CustomScript
 import ApiConnection from "../../../../components/data-sources/ApiConnection";
 import MockDataProviderComponent from "../../../../components/providers/MockDataProvider";
 import { SnapshotUtils } from "../../../../lib/utils/snapshotUtils";
+import PageLayout from "../../../../components/layout/PageLayout";
 import {
   ArrowLeft,
   Database,
@@ -166,24 +167,17 @@ export default function AddDataSourcePage() {
   ];
 
   return (
-    <div className="max-w-7xl mx-auto p-8">
-      {/* Page Header */}
-      <div className="flex items-center gap-4 mb-8">
-        <Button
-          onClick={() => router.push(`/project/${projectId}/data-sources`)}
-          variant="outline"
-          size="sm"
-          icon={<ArrowLeft className="h-4 w-4" />}
-        >
-          Back to Data Sources
-        </Button>
-        <div>
-          <h1 className="text-2xl font-bold text-white">Add Data Source</h1>
-          <p className="text-dark_cyan-400">
-            Choose a data source type to get started
-          </p>
-        </div>
-      </div>
+    <PageLayout
+      title="Add Data Source"
+      subtitle="Choose a data source type to get started"
+      icon={Database}
+      showNavigation={true}
+      showBackButton={true}
+      backButtonText="Back to Data Sources"
+      backButtonHref={`/project/${projectId}/data-sources`}
+    >
+      <div className="max-w-7xl mx-auto">
+        {/* Remove the custom header since PageLayout handles it */}
 
       {/* Data Source Type Selection */}
       <div className="mb-8">
@@ -290,6 +284,6 @@ export default function AddDataSourcePage() {
           />
         )}
       </div>
-    </div>
+    </PageLayout>
   );
 }

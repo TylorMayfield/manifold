@@ -2,6 +2,8 @@
 
 import React from "react";
 import { useRouter } from "next/navigation";
+import { Database } from "lucide-react";
+import PageLayout from "../../components/layout/PageLayout";
 import UnifiedDataSourceWorkflow from "../../components/data-sources/UnifiedDataSourceWorkflow";
 
 export default function AddDataSourcePage() {
@@ -17,10 +19,20 @@ export default function AddDataSourcePage() {
   };
 
   return (
-    <UnifiedDataSourceWorkflow
-      projectId="default"
-      onComplete={handleComplete}
-      onCancel={handleCancel}
-    />
+    <PageLayout
+      title="Add Data Source"
+      subtitle="Create a new data source"
+      icon={Database}
+      showNavigation={true}
+      showBackButton={true}
+      backButtonText="Back to Dashboard"
+      backButtonHref="/"
+    >
+      <UnifiedDataSourceWorkflow
+        projectId="default"
+        onComplete={handleComplete}
+        onCancel={handleCancel}
+      />
+    </PageLayout>
   );
 }

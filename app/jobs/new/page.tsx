@@ -2,10 +2,11 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { ArrowLeft, Clock, Play, Save, X } from "lucide-react";
-import Button from "../../../components/ui/Button";
-import Input from "../../../components/ui/Input";
-import Textarea from "../../../components/ui/Textarea";
+import { Clock, Play, Save } from "lucide-react";
+import PageLayout from "../../../components/layout/PageLayout";
+import CellButton from "../../../components/ui/CellButton";
+import CellInput from "../../../components/ui/CellInput";
+import CellCard from "../../../components/ui/CellCard";
 import { clientLogger } from "../../../lib/utils/ClientLogger";
 
 // Mock types for client-side
@@ -89,32 +90,13 @@ export default function CreateJobPage() {
   };
 
   return (
-    <div className="h-full flex flex-col">
-      {/* Header */}
-      <div className="flex items-center justify-between p-6 border-b border-dark_cyan-200 border-opacity-10">
-        <div className="flex items-center gap-4">
-          <Button
-            onClick={handleCancel}
-            variant="outline"
-            size="sm"
-            icon={<ArrowLeft className="h-4 w-4" />}
-          >
-            Back to Jobs
-          </Button>
-
-          <div className="flex items-center gap-3">
-            <div className="p-2 rounded-lg bg-tangerine-500/20">
-              <Clock className="h-5 w-5 text-tangerine-400" />
-            </div>
-            <div>
-              <h1 className="text-2xl font-bold text-white">Create New Job</h1>
-              <p className="text-dark_cyan-400">
-                Set up a new scheduled job for your project
-              </p>
-            </div>
-          </div>
-        </div>
-
+    <PageLayout
+      title="Create New Job"
+      subtitle="Set up a new scheduled job for your project"
+      icon={Clock}
+      showBackButton={true}
+      backButtonHref="/jobs"
+      headerActions={
         <div className="flex items-center gap-3">
           {loading && (
             <div className="flex items-center gap-2 text-yellow-400">
@@ -122,294 +104,277 @@ export default function CreateJobPage() {
               <span className="text-sm">Creating...</span>
             </div>
           )}
-
-          <Button
+          <CellButton
+            variant="ghost"
             onClick={handleCancel}
-            variant="outline"
-            icon={<X className="h-4 w-4" />}
           >
             Cancel
-          </Button>
-
-          <Button
+          </CellButton>
+          <CellButton
             onClick={handleSubmit}
             disabled={loading || !formData.name.trim()}
-            icon={<Save className="h-4 w-4" />}
+            variant="primary"
           >
+            <Save className="w-4 h-4 mr-2" />
             Create Job
-          </Button>
+          </CellButton>
         </div>
-      </div>
+      }
+    >
+      <div className="max-w-4xl mx-auto">
+        <form onSubmit={handleSubmit} className="space-y-8">
+          {/* Basic Information */}
+          <CellCard className="p-6">
+            <h2 className="text-subheading font-bold mb-6 flex items-center gap-2">
+              <Clock className="h-5 w-5 text-gray-600" />
+              Basic Information
+            </h2>
 
-      {/* Main Content */}
-      <div className="flex-1 overflow-y-auto p-6">
-        <div className="max-w-4xl mx-auto">
-          <form onSubmit={handleSubmit} className="space-y-8">
-            {/* Basic Information */}
-            <div className="glass-card p-6">
-              <h2 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
-                <Clock className="h-5 w-5 text-tangerine-400" />
-                Basic Information
-              </h2>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="md:col-span-2">
+                <CellInput
+                  label="Job Name"
+                  value={formData.name}
+                  onChange={(e) =>
+                    setFormData({ ...formData, name: e.target.value })
+                  }
+                  placeholder="Enter a descriptive name for your job"
+                  required
+                />
+              </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div className="md:col-span-2">
-                  <Input
-                    label="Job Name"
-                    value={formData.name}
-                    onChange={(e) =>
-                      setFormData({ ...formData, name: e.target.value })
-                    }
-                    placeholder="Enter a descriptive name for your job"
-                    required
-                  />
+              <div className="md:col-span-2">
+                <CellInput
+                  label="Description"
+                  value={formData.description}
+                  onChange={(e) =>
+                    setFormData({ ...formData, description: e.target.value })
+                  }
+                  placeholder="Describe what this job does..."
+                  multiline
+                  rows={3}
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-bold text-gray-900 mb-2">
+                  Job Type
+                </label>
+                <select
+                  value={formData.type}
+                  onChange={(e) =>
+                    setFormData({ ...formData, type: e.target.value })
+                  }
+                  className="w-full px-3 py-2 bg-white border border-gray-300 rounded-md text-gray-900 focus:ring-2 focus:ring-dark_cyan-500 focus:border-dark_cyan-500"
+                >
+                  <option value="data_sync">Data Sync</option>
+                  <option value="backup">Backup</option>
+                  <option value="cleanup">Cleanup</option>
+                  <option value="custom_script">Custom Script</option>
+                  <option value="api_poll">API Poll</option>
+                  <option value="workflow">Workflow</option>
+                </select>
+              </div>
+
+              <div className="flex items-center gap-3">
+                <input
+                  type="checkbox"
+                  id="enabled"
+                  checked={formData.enabled}
+                  onChange={(e) =>
+                    setFormData({ ...formData, enabled: e.target.checked })
+                  }
+                  className="rounded border-gray-300 text-dark_cyan-600 focus:ring-dark_cyan-500"
+                />
+                <label htmlFor="enabled" className="text-sm font-bold text-gray-900">
+                  Enable job immediately after creation
+                </label>
+              </div>
+            </div>
+          </CellCard>
+
+          {/* Schedule Configuration */}
+          <CellCard className="p-6">
+            <h2 className="text-subheading font-bold mb-6 flex items-center gap-2">
+              <Play className="h-5 w-5 text-gray-600" />
+              Schedule Configuration
+            </h2>
+
+            <div className="space-y-4">
+              <div>
+                <CellInput
+                  label="Cron Expression"
+                  value={formData.schedule}
+                  onChange={(e) =>
+                    setFormData({ ...formData, schedule: e.target.value })
+                  }
+                  placeholder="0 0 * * *"
+                  required
+                />
+                <p className="text-caption text-gray-600 mt-1">
+                  Use standard cron syntax. Example: "0 0 * * *" for daily at midnight
+                </p>
+              </div>
+
+              <div className="p-4 rounded-lg bg-blue-50 border border-blue-200">
+                <h4 className="text-sm font-bold text-blue-800 mb-2">
+                  Common Cron Patterns
+                </h4>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-2 text-caption text-blue-700">
+                  <div>• <strong>0 0 * * *</strong> - Daily at midnight</div>
+                  <div>• <strong>0 */6 * * *</strong> - Every 6 hours</div>
+                  <div>• <strong>0 9 * * 1</strong> - Every Monday at 9 AM</div>
+                  <div>• <strong>*/15 * * * *</strong> - Every 15 minutes</div>
+                  <div>• <strong>0 0 1 * *</strong> - First day of every month</div>
+                  <div>• <strong>0 0 * * 0</strong> - Every Sunday at midnight</div>
                 </div>
+              </div>
+            </div>
+          </CellCard>
 
-                <div className="md:col-span-2">
-                  <Textarea
-                    label="Description"
-                    value={formData.description}
+          {/* Advanced Configuration */}
+          <CellCard className="p-6">
+            <h2 className="text-subheading font-bold mb-6 flex items-center gap-2">
+              <Clock className="h-5 w-5 text-gray-600" />
+              Advanced Configuration
+            </h2>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div>
+                <label className="block text-sm font-bold text-gray-900 mb-2">
+                  Timeout (seconds)
+                </label>
+                <input
+                  type="number"
+                  value={formData.config.timeout}
+                  onChange={(e) =>
+                    setFormData({
+                      ...formData,
+                      config: {
+                        ...formData.config,
+                        timeout: parseInt(e.target.value) || 300,
+                      },
+                    })
+                  }
+                  className="w-full px-3 py-2 bg-white border border-gray-300 rounded-md text-gray-900 focus:ring-2 focus:ring-dark_cyan-500 focus:border-dark_cyan-500"
+                  min="1"
+                  max="3600"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-bold text-gray-900 mb-2">
+                  Retry Attempts
+                </label>
+                <input
+                  type="number"
+                  value={formData.config.retries}
+                  onChange={(e) =>
+                    setFormData({
+                      ...formData,
+                      config: {
+                        ...formData.config,
+                        retries: parseInt(e.target.value) || 3,
+                      },
+                    })
+                  }
+                  className="w-full px-3 py-2 bg-white border border-gray-300 rounded-md text-gray-900 focus:ring-2 focus:ring-dark_cyan-500 focus:border-dark_cyan-500"
+                  min="0"
+                  max="10"
+                />
+              </div>
+            </div>
+
+            <div className="mt-6">
+              <h4 className="text-sm font-bold text-gray-900 mb-3">
+                Notifications
+              </h4>
+              <div className="space-y-3">
+                <div className="flex items-center gap-3">
+                  <input
+                    type="checkbox"
+                    id="notify-success"
+                    checked={formData.config.notifications.onSuccess}
                     onChange={(e) =>
-                      setFormData({ ...formData, description: e.target.value })
+                      setFormData({
+                        ...formData,
+                        config: {
+                          ...formData.config,
+                          notifications: {
+                            ...formData.config.notifications,
+                            onSuccess: e.target.checked,
+                          },
+                        },
+                      })
                     }
-                    placeholder="Describe what this job does..."
-                    rows={3}
+                    className="rounded border-gray-300 text-dark_cyan-600 focus:ring-dark_cyan-500"
                   />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-white mb-2">
-                    Job Type
-                  </label>
-                  <select
-                    value={formData.type}
-                    onChange={(e) =>
-                      setFormData({ ...formData, type: e.target.value })
-                    }
-                    className="w-full p-3 rounded-lg bg-white/5 border border-white/10 text-white focus:outline-none focus:ring-2 focus:ring-tangerine-500"
+                  <label
+                    htmlFor="notify-success"
+                    className="text-sm font-bold text-gray-900"
                   >
-                    <option value="data_sync">Data Sync</option>
-                    <option value="backup">Backup</option>
-                    <option value="cleanup">Cleanup</option>
-                    <option value="custom_script">Custom Script</option>
-                    <option value="api_poll">API Poll</option>
-                    <option value="workflow">Workflow</option>
-                  </select>
+                    Notify on successful execution
+                  </label>
                 </div>
 
                 <div className="flex items-center gap-3">
                   <input
                     type="checkbox"
-                    id="enabled"
-                    checked={formData.enabled}
-                    onChange={(e) =>
-                      setFormData({ ...formData, enabled: e.target.checked })
-                    }
-                    className="rounded border-white/20 bg-white/10 text-tangerine-500 focus:ring-tangerine-500"
-                  />
-                  <label htmlFor="enabled" className="text-sm text-white">
-                    Enable job immediately after creation
-                  </label>
-                </div>
-              </div>
-            </div>
-
-            {/* Schedule Configuration */}
-            <div className="glass-card p-6">
-              <h2 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
-                <Play className="h-5 w-5 text-blue-400" />
-                Schedule Configuration
-              </h2>
-
-              <div className="space-y-4">
-                <div>
-                  <Input
-                    label="Cron Expression"
-                    value={formData.schedule}
-                    onChange={(e) =>
-                      setFormData({ ...formData, schedule: e.target.value })
-                    }
-                    placeholder="0 0 * * *"
-                    required
-                  />
-                  <p className="text-xs text-dark_cyan-400 mt-1">
-                    Use standard cron syntax. Example: "0 0 * * *" for daily at
-                    midnight
-                  </p>
-                </div>
-
-                <div className="p-4 rounded-lg bg-blue-500/10 border border-blue-400/20">
-                  <h4 className="text-sm font-medium text-blue-400 mb-2">
-                    Common Cron Patterns
-                  </h4>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-2 text-xs text-dark_cyan-400">
-                    <div>
-                      • <strong>0 0 * * *</strong> - Daily at midnight
-                    </div>
-                    <div>
-                      • <strong>0 */6 * * *</strong> - Every 6 hours
-                    </div>
-                    <div>
-                      • <strong>0 9 * * 1</strong> - Every Monday at 9 AM
-                    </div>
-                    <div>
-                      • <strong>*/15 * * * *</strong> - Every 15 minutes
-                    </div>
-                    <div>
-                      • <strong>0 0 1 * *</strong> - First day of every month
-                    </div>
-                    <div>
-                      • <strong>0 0 * * 0</strong> - Every Sunday at midnight
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            {/* Advanced Configuration */}
-            <div className="glass-card p-6">
-              <h2 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
-                <Clock className="h-5 w-5 text-purple-400" />
-                Advanced Configuration
-              </h2>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div>
-                  <label className="block text-sm font-medium text-white mb-2">
-                    Timeout (seconds)
-                  </label>
-                  <input
-                    type="number"
-                    value={formData.config.timeout}
+                    id="notify-failure"
+                    checked={formData.config.notifications.onFailure}
                     onChange={(e) =>
                       setFormData({
                         ...formData,
                         config: {
                           ...formData.config,
-                          timeout: parseInt(e.target.value) || 300,
+                          notifications: {
+                            ...formData.config.notifications,
+                            onFailure: e.target.checked,
+                          },
                         },
                       })
                     }
-                    className="w-full p-3 rounded-lg bg-white/5 border border-white/10 text-white focus:outline-none focus:ring-2 focus:ring-tangerine-500"
-                    min="1"
-                    max="3600"
+                    className="rounded border-gray-300 text-dark_cyan-600 focus:ring-dark_cyan-500"
                   />
+                  <label
+                    htmlFor="notify-failure"
+                    className="text-sm font-bold text-gray-900"
+                  >
+                    Notify on execution failure
+                  </label>
                 </div>
 
-                <div>
-                  <label className="block text-sm font-medium text-white mb-2">
-                    Retry Attempts
-                  </label>
+                <div className="flex items-center gap-3">
                   <input
-                    type="number"
-                    value={formData.config.retries}
+                    type="checkbox"
+                    id="notify-start"
+                    checked={formData.config.notifications.onStart}
                     onChange={(e) =>
                       setFormData({
                         ...formData,
                         config: {
                           ...formData.config,
-                          retries: parseInt(e.target.value) || 3,
+                          notifications: {
+                            ...formData.config.notifications,
+                            onStart: e.target.checked,
+                          },
                         },
                       })
                     }
-                    className="w-full p-3 rounded-lg bg-white/5 border border-white/10 text-white focus:outline-none focus:ring-2 focus:ring-tangerine-500"
-                    min="0"
-                    max="10"
+                    className="rounded border-gray-300 text-dark_cyan-600 focus:ring-dark_cyan-500"
                   />
-                </div>
-              </div>
-
-              <div className="mt-6">
-                <h4 className="text-sm font-medium text-white mb-3">
-                  Notifications
-                </h4>
-                <div className="space-y-3">
-                  <div className="flex items-center gap-3">
-                    <input
-                      type="checkbox"
-                      id="notify-success"
-                      checked={formData.config.notifications.onSuccess}
-                      onChange={(e) =>
-                        setFormData({
-                          ...formData,
-                          config: {
-                            ...formData.config,
-                            notifications: {
-                              ...formData.config.notifications,
-                              onSuccess: e.target.checked,
-                            },
-                          },
-                        })
-                      }
-                      className="rounded border-white/20 bg-white/10 text-tangerine-500 focus:ring-tangerine-500"
-                    />
-                    <label
-                      htmlFor="notify-success"
-                      className="text-sm text-white"
-                    >
-                      Notify on successful execution
-                    </label>
-                  </div>
-
-                  <div className="flex items-center gap-3">
-                    <input
-                      type="checkbox"
-                      id="notify-failure"
-                      checked={formData.config.notifications.onFailure}
-                      onChange={(e) =>
-                        setFormData({
-                          ...formData,
-                          config: {
-                            ...formData.config,
-                            notifications: {
-                              ...formData.config.notifications,
-                              onFailure: e.target.checked,
-                            },
-                          },
-                        })
-                      }
-                      className="rounded border-white/20 bg-white/10 text-tangerine-500 focus:ring-tangerine-500"
-                    />
-                    <label
-                      htmlFor="notify-failure"
-                      className="text-sm text-white"
-                    >
-                      Notify on execution failure
-                    </label>
-                  </div>
-
-                  <div className="flex items-center gap-3">
-                    <input
-                      type="checkbox"
-                      id="notify-start"
-                      checked={formData.config.notifications.onStart}
-                      onChange={(e) =>
-                        setFormData({
-                          ...formData,
-                          config: {
-                            ...formData.config,
-                            notifications: {
-                              ...formData.config.notifications,
-                              onStart: e.target.checked,
-                            },
-                          },
-                        })
-                      }
-                      className="rounded border-white/20 bg-white/10 text-tangerine-500 focus:ring-tangerine-500"
-                    />
-                    <label
-                      htmlFor="notify-start"
-                      className="text-sm text-white"
-                    >
-                      Notify when job starts
-                    </label>
-                  </div>
+                  <label
+                    htmlFor="notify-start"
+                    className="text-sm font-bold text-gray-900"
+                  >
+                    Notify when job starts
+                  </label>
                 </div>
               </div>
             </div>
-          </form>
-        </div>
+          </CellCard>
+        </form>
       </div>
-    </div>
+    </PageLayout>
   );
 }
