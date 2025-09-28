@@ -24,8 +24,7 @@ export default function ProjectHeader({
             onClick={onBack}
             className="mr-4 button-interactive"
           >
-            <ArrowLeft className="h-4 w-4 mr-2" />
-            Back
+            <ArrowLeft className="h-4 w-4" />
           </Button>
           <div>
             <h1 className="text-2xl font-bold text-white">{project.name}</h1>

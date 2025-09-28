@@ -9,6 +9,7 @@ import CellButton from "../../components/ui/CellButton";
 import CellCard from "../../components/ui/CellCard";
 import CellModal from "../../components/ui/CellModal";
 import CellInput from "../../components/ui/CellInput";
+import DefaultJobsManager from "../../components/jobs/DefaultJobsManager";
 import {
   Play,
   Plus,
@@ -140,7 +141,6 @@ export default function JobsPage() {
       icon={Play}
       showNavigation={true}
       showBackButton={true}
-      backButtonText="Back to Home"
       backButtonHref="/"
       headerActions={
         <div className="flex items-center space-x-2">
@@ -200,6 +200,11 @@ export default function JobsPage() {
             <RefreshCw className="w-8 h-8 text-blue-400" />
           </div>
         </CellCard>
+      </div>
+
+      {/* System Jobs */}
+      <div className="mb-6">
+        <DefaultJobsManager />
       </div>
 
       {/* Filters */}
@@ -558,7 +563,6 @@ export default function JobsPage() {
             </div>
           </div>
         )}
-        </CellModal>
-      )}
+      </CellModal>
     </PageLayout>
   );

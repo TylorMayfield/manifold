@@ -68,8 +68,7 @@ export default function PageLayout({
                 size="sm"
                 onClick={handleBack}
               >
-                <ArrowLeft className="w-4 h-4 mr-2" />
-                {backButtonText}
+                <ArrowLeft className="w-4 h-4" />
               </CellButton>
             )}
             

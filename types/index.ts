@@ -29,7 +29,8 @@ export type DataProviderType =
   | "mock"
   | "mysql"
   | "postgres"
-  | "sqlite";
+  | "sqlite"
+  | "javascript";
 
 // Keep DataSource as alias for backward compatibility
 export type DataSource = DataProvider;
@@ -107,6 +108,18 @@ export interface DataProviderConfig {
     code: string;
     variables?: Record<string, string>;
     schedule?: string; // Cron-like schedule
+  };
+
+  // JavaScript script config
+  javascriptConfig?: {
+    script: string;
+    interval?: number; // Minutes between executions
+    schedule?: string; // Cron expression
+    timeout?: number; // Script execution timeout in seconds
+    variables?: Record<string, any>; // Environment variables for the script
+    enableDiff?: boolean; // Enable data diffing between runs
+    diffKey?: string; // Field to use for diffing (default: 'id')
+    outputFormat?: "array" | "object"; // Expected output format
   };
 }
 

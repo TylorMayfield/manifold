@@ -157,3 +157,12 @@ export class DatabaseManager {
     );
   }
 }
+
+// Export new separated database architecture
+export { CoreDatabase } from "./CoreDatabase";
+export { ProjectDatabase } from "./ProjectDatabase";
+export { SimpleSQLiteDB } from "./SimpleSQLiteDB";
+export { DataSourceDatabase } from "./DataSourceDatabase";
+export { SeparatedDatabaseManager } from "./SeparatedDatabaseManager";
+export type { DataVersion, DataSourceStats } from "./DataSourceDatabase";
+export type { DataSourceConfig, ImportResult } from "./SeparatedDatabaseManager";

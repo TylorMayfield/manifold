@@ -17,7 +17,8 @@ import {
   Plus,
   Settings,
 } from "lucide-react";
-import Button from "../ui/Button";
+import CellButton from "../ui/CellButton";
+import CellCard from "../ui/CellCard";
 import { DataProvider, DataProviderType } from "../../types";
 import { useDataSources } from "../../contexts/DataSourceContext";
 import ImportMethodConfigs from "./ImportMethodConfigs";
@@ -197,6 +198,27 @@ export default function UnifiedDataSourceWorkflow({
         },
       ],
     },
+    {
+      id: "javascript",
+      name: "JavaScript Script",
+      description: "Execute custom JavaScript code to fetch and process data",
+      icon: <Code className="h-6 w-6" />,
+      color: "bg-yellow-500",
+      importMethods: [
+        {
+          id: "custom-script",
+          name: "Custom Script",
+          description: "Write JavaScript code to fetch and transform data",
+          icon: <Code className="h-5 w-5" />,
+        },
+        {
+          id: "scheduled-script",
+          name: "Scheduled Script",
+          description: "Run JavaScript code at specified intervals",
+          icon: <Settings className="h-5 w-5" />,
+        },
+      ],
+    },
   ];
 
   // Step navigation handlers
@@ -321,54 +343,54 @@ export default function UnifiedDataSourceWorkflow({
     return (
       <div className="space-y-6">
         <div className="text-center">
-          <h2 className="text-2xl font-bold text-gray-900 mb-2">
+          <h2 className="text-heading font-bold mb-2">
             Choose Data Source Type
           </h2>
-          <p className="text-gray-600">
+          <p className="text-body text-gray-600">
             Select the type of data source you want to connect
           </p>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {dataSourceTypes.map((type) => (
-            <div
+            <CellCard
               key={type.id}
+              className="p-6 cursor-pointer hover:bg-gray-50 transition-all duration-200 group"
               onClick={() => handleTypeSelection(type.id)}
-              className="p-6 border-2 border-gray-200 rounded-lg cursor-pointer hover:border-blue-300 hover:shadow-md transition-all duration-200 group"
             >
               <div className="flex items-center mb-4">
                 <div
-                  className={`p-3 rounded-lg ${type.color} text-white mr-4 group-hover:scale-110 transition-transform duration-200`}
+                  className={`p-3 border-2 border-black shadow-cell text-white mr-4 group-hover:shadow-cell-sm group-hover:translate-x-[1px] group-hover:translate-y-[1px] transition-all duration-100 ${type.color}`}
                 >
                   {type.icon}
                 </div>
                 <div>
-                  <h3 className="text-lg font-semibold text-gray-900">
+                  <h3 className="text-subheading font-bold">
                     {type.name}
                   </h3>
-                  <p className="text-sm text-gray-600">
+                  <p className="text-caption text-gray-600">
                     {type.importMethods.length} import method
                     {type.importMethods.length !== 1 ? "s" : ""} available
                   </p>
                 </div>
               </div>
-              <p className="text-gray-600 text-sm mb-4">{type.description}</p>
+              <p className="text-body text-gray-600 mb-4">{type.description}</p>
               <div className="flex flex-wrap gap-1">
                 {type.importMethods.slice(0, 2).map((method) => (
                   <span
                     key={method.id}
-                    className="px-2 py-1 bg-gray-100 text-gray-600 text-xs rounded-full"
+                    className="px-2 py-1 border border-black bg-gray-100 text-gray-600 text-caption font-mono"
                   >
                     {method.name}
                   </span>
                 ))}
                 {type.importMethods.length > 2 && (
-                  <span className="px-2 py-1 bg-gray-100 text-gray-600 text-xs rounded-full">
+                  <span className="px-2 py-1 border border-black bg-gray-100 text-gray-600 text-caption font-mono">
                     +{type.importMethods.length - 2} more
                   </span>
                 )}
               </div>
-            </div>
+            </CellCard>
           ))}
         </div>
       </div>
@@ -386,38 +408,38 @@ export default function UnifiedDataSourceWorkflow({
         <div className="text-center">
           <div className="flex items-center justify-center mb-4">
             <div
-              className={`p-3 rounded-lg ${selectedTypeOption.color} text-white mr-4`}
+              className={`p-3 border-2 border-black shadow-cell text-white mr-4 ${selectedTypeOption.color}`}
             >
               {selectedTypeOption.icon}
             </div>
             <div>
-              <h2 className="text-2xl font-bold text-gray-900">
+              <h2 className="text-heading font-bold">
                 {selectedTypeOption.name}
               </h2>
-              <p className="text-gray-600">Choose how to import your data</p>
+              <p className="text-body text-gray-600">Choose how to import your data</p>
             </div>
           </div>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {selectedTypeOption.importMethods.map((method) => (
-            <div
+            <CellCard
               key={method.id}
+              className="p-6 cursor-pointer hover:bg-gray-50 transition-all duration-200"
               onClick={() => handleImportMethodSelection(method)}
-              className="p-6 border-2 border-gray-200 rounded-lg cursor-pointer hover:border-blue-300 hover:shadow-md transition-all duration-200"
             >
               <div className="flex items-center mb-4">
-                <div className="p-2 bg-gray-100 rounded-lg mr-4">
+                <div className="p-2 border border-black bg-gray-100 mr-4">
                   {method.icon}
                 </div>
                 <div>
-                  <h3 className="text-lg font-semibold text-gray-900">
+                  <h3 className="text-subheading font-bold">
                     {method.name}
                   </h3>
                 </div>
               </div>
-              <p className="text-gray-600 text-sm">{method.description}</p>
-            </div>
+              <p className="text-body text-gray-600">{method.description}</p>
+            </CellCard>
           ))}
         </div>
       </div>
@@ -430,26 +452,26 @@ export default function UnifiedDataSourceWorkflow({
     return (
       <div className="space-y-6">
         <div className="text-center">
-          <h2 className="text-2xl font-bold text-gray-900 mb-2">
+          <h2 className="text-heading font-bold mb-2">
             Configure {selectedType} Import
           </h2>
-          <p className="text-gray-600">
+          <p className="text-body text-gray-600">
             Set up your {selectedImportMethod.name.toLowerCase()} configuration
           </p>
         </div>
 
         <div className="max-w-2xl mx-auto">
-          <div className="bg-gray-50 p-6 rounded-lg">
+          <CellCard className="p-6">
             <div className="space-y-4 mb-6">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label className="block text-body font-bold text-gray-700 mb-2">
                   Data Source Name
                 </label>
                 <input
                   type="text"
                   value={dataSourceName}
                   onChange={(e) => setDataSourceName(e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="cell-input px-3 py-2"
                   placeholder="Enter a name for your data source"
                 />
               </div>
@@ -463,7 +485,7 @@ export default function UnifiedDataSourceWorkflow({
               onNext={handleConfigurationComplete}
               onBack={() => setCurrentStep("import-method")}
             />
-          </div>
+          </CellCard>
         </div>
       </div>
     );
@@ -477,47 +499,47 @@ export default function UnifiedDataSourceWorkflow({
     return (
       <div className="space-y-6">
         <div className="text-center">
-          <h2 className="text-2xl font-bold text-gray-900 mb-2">
+          <h2 className="text-heading font-bold mb-2">
             Review Your Data Source
           </h2>
-          <p className="text-gray-600">
+          <p className="text-body text-gray-600">
             Confirm your settings before creating the data source
           </p>
         </div>
 
         <div className="max-w-2xl mx-auto">
-          <div className="bg-white border border-gray-200 rounded-lg p-6">
+          <CellCard className="p-6">
             <div className="flex items-center mb-6">
               <div
-                className={`p-3 rounded-lg ${selectedTypeOption?.color} text-white mr-4`}
+                className={`p-3 border-2 border-black shadow-cell text-white mr-4 ${selectedTypeOption?.color}`}
               >
                 {selectedTypeOption?.icon}
               </div>
               <div>
-                <h3 className="text-xl font-semibold text-gray-900">
+                <h3 className="text-subheading font-bold">
                   {dataSourceName || "Unnamed Data Source"}
                 </h3>
-                <p className="text-gray-600">{selectedTypeOption?.name}</p>
+                <p className="text-body text-gray-600">{selectedTypeOption?.name}</p>
               </div>
             </div>
 
             <div className="space-y-4">
-              <div className="flex justify-between py-2 border-b border-gray-100">
-                <span className="text-gray-600">Type:</span>
-                <span className="font-medium">{selectedTypeOption?.name}</span>
+              <div className="flex justify-between py-2 border-b-2 border-black">
+                <span className="text-body text-gray-600">Type:</span>
+                <span className="text-body font-bold font-mono">{selectedTypeOption?.name}</span>
               </div>
-              <div className="flex justify-between py-2 border-b border-gray-100">
-                <span className="text-gray-600">Import Method:</span>
-                <span className="font-medium">
+              <div className="flex justify-between py-2 border-b-2 border-black">
+                <span className="text-body text-gray-600">Import Method:</span>
+                <span className="text-body font-bold font-mono">
                   {selectedImportMethod?.name}
                 </span>
               </div>
               <div className="flex justify-between py-2">
-                <span className="text-gray-600">Project:</span>
-                <span className="font-medium">{projectId}</span>
+                <span className="text-body text-gray-600">Project:</span>
+                <span className="text-body font-bold font-mono">{projectId}</span>
               </div>
             </div>
-          </div>
+          </CellCard>
         </div>
       </div>
     );
@@ -539,74 +561,58 @@ export default function UnifiedDataSourceWorkflow({
   };
 
   return (
-    <div className="min-h-screen gradient-bg p-6">
-      <div className="max-w-4xl mx-auto">
-        {/* Header */}
-        <div className="mb-8">
-          <div className="flex items-center justify-between p-4">
-            <div className="flex items-center space-x-4">
-              <Button
-                onClick={onCancel || (() => router.back())}
-                variant="outline"
-                size="sm"
-                icon={<ArrowLeft className="h-4 w-4" />}
-              >
-                Back
-              </Button>
-              <div>
-                <h1 className="text-2xl font-bold text-white flex items-center">
-                  <Plus className="w-6 h-6 mr-3" />
-                  Add Data Source
-                </h1>
-                <span className="text-dark_cyan-400">
-                  Create a new data source with unified workflow
-                </span>
-              </div>
-            </div>
-          </div>
-        </div>
+    <div className="max-w-4xl mx-auto">
 
         {/* Step Indicator */}
         {renderStepIndicator()}
 
         {/* Content */}
-        <div className="bg-white rounded-lg shadow-lg p-8">
+        <CellCard className="p-8">
           {renderCurrentStep()}
 
           {/* Navigation Buttons */}
-          <div className="flex justify-between mt-8 pt-6 border-t border-gray-200">
-            <Button
+          <div className="flex justify-between mt-8 pt-6 border-t-2 border-black">
+            <CellButton
               onClick={handleBack}
-              variant="outline"
+              variant="ghost"
               disabled={currentStep === "type-selection"}
-              icon={<ArrowLeft className="h-4 w-4" />}
             >
+              <ArrowLeft className="h-4 w-4" />
               Back
-            </Button>
+            </CellButton>
 
             <div className="flex space-x-3">
               {currentStep === "summary" ? (
-                <Button
+                <CellButton
                   onClick={handleCreateDataSource}
                   variant="primary"
-                  loading={loading}
-                  icon={<Check className="h-4 w-4" />}
+                  disabled={loading}
                 >
-                  Create Data Source
-                </Button>
+                  {loading ? (
+                    <>
+                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-black mr-2"></div>
+                      Creating...
+                    </>
+                  ) : (
+                    <>
+                      <Check className="h-4 w-4 mr-2" />
+                      Create Data Source
+                    </>
+                  )}
+                </CellButton>
               ) : currentStep === "configuration" ? (
-                <Button
+                <CellButton
                   onClick={handleConfigurationComplete}
                   variant="primary"
                   disabled={!dataSourceName.trim()}
-                  icon={<ArrowRight className="h-4 w-4" />}
                 >
+                  <ArrowRight className="h-4 w-4 mr-2" />
                   Review
-                </Button>
+                </CellButton>
               ) : null}
             </div>
           </div>
-        </div>
+        </CellCard>
       </div>
     </div>
   );

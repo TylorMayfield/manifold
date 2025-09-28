@@ -25,7 +25,6 @@ export default function AddDataSourcePage() {
       icon={Database}
       showNavigation={true}
       showBackButton={true}
-      backButtonText="Back to Dashboard"
       backButtonHref="/"
     >
       <UnifiedDataSourceWorkflow

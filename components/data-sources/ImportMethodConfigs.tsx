@@ -9,8 +9,12 @@ import {
   Globe,
   Settings,
   Code,
+  Clock,
+  Play,
 } from "lucide-react";
 import Button from "../ui/Button";
+import CellButton from "../ui/CellButton";
+import CellCard from "../ui/CellCard";
 import { DataProviderType } from "../../types";
 
 interface ImportMethodConfigProps {
@@ -535,6 +539,625 @@ function MockDataConfig({
   );
 }
 
+// Example scripts for JavaScript data source
+const EXAMPLE_SCRIPTS = {
+  "api-fetch": {
+    name: "API Data Fetch",
+    description: "Fetch data from a REST API endpoint",
+    script: `// Fetch data from an API endpoint
+async function fetchApiData() {
+  try {
+    const response = await fetch('https://jsonplaceholder.typicode.com/posts');
+    const data = await response.json();
+    
+    // Transform the data if needed
+    return data.map(item => ({
+      id: item.id,
+      title: item.title,
+      body: item.body,
+      userId: item.userId,
+      createdAt: new Date().toISOString()
+    }));
+  } catch (error) {
+    console.error('Error fetching data:', error);
+    throw error;
+  }
+}
+
+return await fetchApiData();`
+  },
+  "web-scraping": {
+    name: "Web Scraping",
+    description: "Extract data from HTML pages (simplified example)",
+    script: `// Example web scraping script (simplified)
+async function scrapeData() {
+  // Note: In a real implementation, you'd need a headless browser
+  // This is a simplified example showing the structure
+  
+  const mockData = [
+    { id: 1, title: "Article 1", content: "Content 1", url: "https://example.com/1" },
+    { id: 2, title: "Article 2", content: "Content 2", url: "https://example.com/2" },
+    { id: 3, title: "Article 3", content: "Content 3", url: "https://example.com/3" }
+  ];
+  
+  return mockData;
+}
+
+return await scrapeData();`
+  },
+  "data-transformation": {
+    name: "Data Transformation",
+    description: "Transform and clean existing data",
+    script: `// Transform and clean data
+function transformData() {
+  // Example: Clean and normalize user data
+  const rawData = [
+    { id: 1, name: "John Doe", email: "JOHN@EXAMPLE.COM", age: "25" },
+    { id: 2, name: "Jane Smith", email: "jane@example.com", age: 30 },
+    { id: 3, name: "Bob Johnson", email: "BOB@EXAMPLE.COM", age: "35" }
+  ];
+  
+  return rawData.map(user => ({
+    id: user.id,
+    name: user.name.trim(),
+    email: user.email.toLowerCase().trim(),
+    age: parseInt(user.age),
+    isValid: user.email.includes('@') && user.age > 0
+  }));
+}
+
+return transformData();`
+  },
+  "database-query": {
+    name: "Database Query Simulation",
+    description: "Simulate database queries and joins",
+    script: `// Simulate complex database operations
+function simulateDatabaseQuery() {
+  // Mock users data
+  const users = [
+    { id: 1, name: "Alice", departmentId: 1, salary: 50000 },
+    { id: 2, name: "Bob", departmentId: 2, salary: 60000 },
+    { id: 3, name: "Charlie", departmentId: 1, salary: 55000 }
+  ];
+  
+  // Mock departments data
+  const departments = [
+    { id: 1, name: "Engineering", budget: 200000 },
+    { id: 2, name: "Marketing", budget: 150000 }
+  ];
+  
+  // Perform a join operation
+  return users.map(user => {
+    const dept = departments.find(d => d.id === user.departmentId);
+    return {
+      userId: user.id,
+      userName: user.name,
+      department: dept?.name || 'Unknown',
+      salary: user.salary,
+      budget: dept?.budget || 0
+    };
+  });
+}
+
+return simulateDatabaseQuery();`
+  },
+  "external-service": {
+    name: "External Service Integration",
+    description: "Integrate with external services (GitHub, Slack, etc.)",
+    script: `// Example: Fetch GitHub repository data
+async function fetchGitHubData() {
+  try {
+    // Note: You would need to set up authentication for real GitHub API
+    // This is a mock example
+    const mockRepos = [
+      {
+        id: 1,
+        name: "my-project",
+        description: "A sample project",
+        stars: 42,
+        language: "JavaScript",
+        updatedAt: new Date().toISOString()
+      },
+      {
+        id: 2,
+        name: "another-project", 
+        description: "Another sample project",
+        stars: 15,
+        language: "Python",
+        updatedAt: new Date().toISOString()
+      }
+    ];
+    
+    return mockRepos.map(repo => ({
+      id: repo.id,
+      name: repo.name,
+      description: repo.description,
+      stars: repo.stars,
+      language: repo.language,
+      lastUpdated: repo.updatedAt,
+      popularity: repo.stars > 20 ? 'high' : 'low'
+    }));
+  } catch (error) {
+    console.error('Error fetching GitHub data:', error);
+    throw error;
+  }
+}
+
+return await fetchGitHubData();`
+  },
+  "real-time-data": {
+    name: "Real-time Data Aggregation",
+    description: "Aggregate real-time data from multiple sources",
+    script: `// Aggregate real-time data from multiple sources
+async function aggregateRealTimeData() {
+  // Simulate fetching from multiple data sources
+  const sources = [
+    { name: 'source1', url: 'https://api1.example.com/data' },
+    { name: 'source2', url: 'https://api2.example.com/data' },
+    { name: 'source3', url: 'https://api3.example.com/data' }
+  ];
+  
+  const results = [];
+  
+  for (const source of sources) {
+    try {
+      // Mock API call - replace with actual fetch
+      const mockData = {
+        source: source.name,
+        timestamp: new Date().toISOString(),
+        value: Math.random() * 100,
+        status: 'active'
+      };
+      
+      results.push(mockData);
+    } catch (error) {
+      console.error(\`Error fetching from \${source.name}:\`, error);
+      results.push({
+        source: source.name,
+        timestamp: new Date().toISOString(),
+        value: 0,
+        status: 'error',
+        error: error.message
+      });
+    }
+  }
+  
+  // Calculate aggregated metrics
+  const totalValue = results.reduce((sum, item) => sum + item.value, 0);
+  const averageValue = totalValue / results.length;
+  const activeSources = results.filter(item => item.status === 'active').length;
+  
+  return {
+    timestamp: new Date().toISOString(),
+    sources: results,
+    metrics: {
+      totalValue,
+      averageValue,
+      activeSources,
+      totalSources: sources.length
+    }
+  };
+}
+
+return await aggregateRealTimeData();`
+  }
+};
+
+// JavaScript Custom Script Configuration
+function JavaScriptCustomScriptConfig({
+  config,
+  onConfigChange,
+  onNext,
+}: ImportMethodConfigProps) {
+  const [script, setScript] = useState(config.javascriptConfig?.script || "");
+  const [selectedExample, setSelectedExample] = useState<string>("");
+  const [variables, setVariables] = useState<Record<string, any>>(
+    config.javascriptConfig?.variables || {}
+  );
+  const [outputFormat, setOutputFormat] = useState<"array" | "object">(
+    config.javascriptConfig?.outputFormat || "array"
+  );
+
+  const handleScriptChange = (value: string) => {
+    setScript(value);
+    onConfigChange({
+      ...config,
+      javascriptConfig: {
+        ...config.javascriptConfig,
+        script: value,
+      },
+    });
+  };
+
+  const handleExampleSelect = (exampleKey: string) => {
+    const example = EXAMPLE_SCRIPTS[exampleKey as keyof typeof EXAMPLE_SCRIPTS];
+    if (example) {
+      setScript(example.script);
+      setSelectedExample(exampleKey);
+      onConfigChange({
+        ...config,
+        javascriptConfig: {
+          ...config.javascriptConfig,
+          script: example.script,
+        },
+      });
+    }
+  };
+
+  const handleVariablesChange = (key: string, value: string) => {
+    const newVariables = { ...variables, [key]: value };
+    setVariables(newVariables);
+    onConfigChange({
+      ...config,
+      javascriptConfig: {
+        ...config.javascriptConfig,
+        variables: newVariables,
+      },
+    });
+  };
+
+  const addVariable = () => {
+    const newKey = `variable_${Object.keys(variables).length + 1}`;
+    handleVariablesChange(newKey, "");
+  };
+
+  const removeVariable = (key: string) => {
+    const newVariables = { ...variables };
+    delete newVariables[key];
+    setVariables(newVariables);
+    onConfigChange({
+      ...config,
+      javascriptConfig: {
+        ...config.javascriptConfig,
+        variables: newVariables,
+      },
+    });
+  };
+
+  const handleNext = () => {
+    onConfigChange({
+      ...config,
+      javascriptConfig: {
+        ...config.javascriptConfig,
+        script,
+        variables,
+        outputFormat,
+        enableDiff: true,
+        diffKey: "id",
+      },
+    });
+    onNext();
+  };
+
+  return (
+    <div className="space-y-6">
+      {/* Example Scripts Selection */}
+      <div>
+        <label className="block text-body font-bold text-gray-700 mb-2">
+          Choose Example Script
+        </label>
+        <p className="text-caption text-gray-600 mb-4">
+          Select a template to get started, or write your own custom script below.
+        </p>
+        
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 mb-4">
+          {Object.entries(EXAMPLE_SCRIPTS).map(([key, example]) => (
+            <CellCard
+              key={key}
+              className={`p-3 cursor-pointer hover:bg-gray-50 transition-all duration-200 ${
+                selectedExample === key ? 'ring-2 ring-blue-500 bg-blue-50' : ''
+              }`}
+              onClick={() => handleExampleSelect(key)}
+            >
+              <h4 className="text-body font-bold mb-1">{example.name}</h4>
+              <p className="text-caption text-gray-600">{example.description}</p>
+            </CellCard>
+          ))}
+        </div>
+      </div>
+
+      <div>
+        <label className="block text-body font-bold text-gray-700 mb-2">
+          JavaScript Code
+        </label>
+        <p className="text-caption text-gray-600 mb-4">
+          Write JavaScript code that returns data. The script should return an array of objects or a single object.
+        </p>
+        <textarea
+          value={script}
+          onChange={(e) => handleScriptChange(e.target.value)}
+          className="cell-input w-full h-64 font-mono text-sm"
+          placeholder={`// Example JavaScript code
+async function fetchData() {
+  // Your data fetching logic here
+  const response = await fetch('https://api.example.com/data');
+  const data = await response.json();
+  return data;
+}
+
+// Return the data
+return await fetchData();`}
+        />
+      </div>
+
+      <div>
+        <label className="block text-body font-bold text-gray-700 mb-2">
+          Environment Variables
+        </label>
+        <p className="text-caption text-gray-600 mb-4">
+          Define variables that will be available in your script context.
+        </p>
+        
+        <div className="space-y-2">
+          {Object.entries(variables).map(([key, value]) => (
+            <div key={key} className="flex gap-2">
+              <input
+                type="text"
+                value={key}
+                onChange={(e) => {
+                  const newVariables = { ...variables };
+                  delete newVariables[key];
+                  newVariables[e.target.value] = value;
+                  setVariables(newVariables);
+                }}
+                className="cell-input flex-1 px-3 py-2"
+                placeholder="Variable name"
+              />
+              <input
+                type="text"
+                value={value}
+                onChange={(e) => handleVariablesChange(key, e.target.value)}
+                className="cell-input flex-2 px-3 py-2"
+                placeholder="Variable value"
+              />
+              <CellButton
+                variant="danger"
+                size="sm"
+                onClick={() => removeVariable(key)}
+              >
+                Remove
+              </CellButton>
+            </div>
+          ))}
+        </div>
+        
+        <CellButton
+          variant="ghost"
+          size="sm"
+          onClick={addVariable}
+          className="mt-2"
+        >
+          Add Variable
+        </CellButton>
+      </div>
+
+      <div>
+        <label className="block text-body font-bold text-gray-700 mb-2">
+          Output Format
+        </label>
+        <div className="flex gap-4">
+          <label className="flex items-center">
+            <input
+              type="radio"
+              value="array"
+              checked={outputFormat === "array"}
+              onChange={(e) => setOutputFormat(e.target.value as "array" | "object")}
+              className="mr-2"
+            />
+            Array of Objects
+          </label>
+          <label className="flex items-center">
+            <input
+              type="radio"
+              value="object"
+              checked={outputFormat === "object"}
+              onChange={(e) => setOutputFormat(e.target.value as "array" | "object")}
+              className="mr-2"
+            />
+            Single Object
+          </label>
+        </div>
+      </div>
+
+      <div className="flex justify-end">
+        <CellButton onClick={handleNext} variant="primary">
+          <Play className="w-4 h-4 mr-2" />
+          Test & Continue
+        </CellButton>
+      </div>
+    </div>
+  );
+}
+
+// JavaScript Scheduled Script Configuration
+function JavaScriptScheduledScriptConfig({
+  config,
+  onConfigChange,
+  onNext,
+}: ImportMethodConfigProps) {
+  const [script, setScript] = useState(config.javascriptConfig?.script || "");
+  const [selectedExample, setSelectedExample] = useState<string>("");
+  const [interval, setInterval] = useState(config.javascriptConfig?.interval || 60);
+  const [schedule, setSchedule] = useState(config.javascriptConfig?.schedule || "");
+  const [timeout, setTimeout] = useState(config.javascriptConfig?.timeout || 300);
+  const [enableDiff, setEnableDiff] = useState(config.javascriptConfig?.enableDiff || true);
+  const [diffKey, setDiffKey] = useState(config.javascriptConfig?.diffKey || "id");
+
+  const handleExampleSelect = (exampleKey: string) => {
+    const example = EXAMPLE_SCRIPTS[exampleKey as keyof typeof EXAMPLE_SCRIPTS];
+    if (example) {
+      setScript(example.script);
+      setSelectedExample(exampleKey);
+      onConfigChange({
+        ...config,
+        javascriptConfig: {
+          ...config.javascriptConfig,
+          script: example.script,
+        },
+      });
+    }
+  };
+
+  const handleNext = () => {
+    onConfigChange({
+      ...config,
+      javascriptConfig: {
+        script,
+        interval,
+        schedule,
+        timeout,
+        enableDiff,
+        diffKey,
+        outputFormat: "array" as const,
+      },
+    });
+    onNext();
+  };
+
+  return (
+    <div className="space-y-6">
+      {/* Example Scripts Selection */}
+      <div>
+        <label className="block text-body font-bold text-gray-700 mb-2">
+          Choose Example Script
+        </label>
+        <p className="text-caption text-gray-600 mb-4">
+          Select a template for your scheduled script, or write your own custom script below.
+        </p>
+        
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 mb-4">
+          {Object.entries(EXAMPLE_SCRIPTS).map(([key, example]) => (
+            <CellCard
+              key={key}
+              className={`p-3 cursor-pointer hover:bg-gray-50 transition-all duration-200 ${
+                selectedExample === key ? 'ring-2 ring-blue-500 bg-blue-50' : ''
+              }`}
+              onClick={() => handleExampleSelect(key)}
+            >
+              <h4 className="text-body font-bold mb-1">{example.name}</h4>
+              <p className="text-caption text-gray-600">{example.description}</p>
+            </CellCard>
+          ))}
+        </div>
+      </div>
+
+      <div>
+        <label className="block text-body font-bold text-gray-700 mb-2">
+          JavaScript Code
+        </label>
+        <p className="text-caption text-gray-600 mb-4">
+          Write JavaScript code that will be executed on a schedule. The script should return data for diffing.
+        </p>
+        <textarea
+          value={script}
+          onChange={(e) => setScript(e.target.value)}
+          className="cell-input w-full h-64 font-mono text-sm"
+          placeholder={`// Scheduled JavaScript code
+async function fetchData() {
+  // Your data fetching logic here
+  const response = await fetch('https://api.example.com/data');
+  const data = await response.json();
+  return data;
+}
+
+// Return the data
+return await fetchData();`}
+        />
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div>
+          <label className="block text-body font-bold text-gray-700 mb-2">
+            Execution Interval (minutes)
+          </label>
+          <input
+            type="number"
+            value={interval}
+            onChange={(e) => setInterval(parseInt(e.target.value))}
+            className="cell-input w-full px-3 py-2"
+            min="1"
+            max="1440"
+          />
+        </div>
+
+        <div>
+          <label className="block text-body font-bold text-gray-700 mb-2">
+            Script Timeout (seconds)
+          </label>
+          <input
+            type="number"
+            value={timeout}
+            onChange={(e) => setTimeout(parseInt(e.target.value))}
+            className="cell-input w-full px-3 py-2"
+            min="10"
+            max="3600"
+          />
+        </div>
+      </div>
+
+      <div>
+        <label className="block text-body font-bold text-gray-700 mb-2">
+          Advanced Schedule (Cron Expression)
+        </label>
+        <p className="text-caption text-gray-600 mb-2">
+          Optional: Use cron expression for complex scheduling (overrides interval)
+        </p>
+        <input
+          type="text"
+          value={schedule}
+          onChange={(e) => setSchedule(e.target.value)}
+          className="cell-input w-full px-3 py-2"
+          placeholder="0 */6 * * * (every 6 hours)"
+        />
+      </div>
+
+      <CellCard className="p-4">
+        <h3 className="text-subheading font-bold mb-4 flex items-center">
+          <Settings className="w-5 h-5 mr-2" />
+          Diff Configuration
+        </h3>
+        
+        <div className="space-y-4">
+          <label className="flex items-center">
+            <input
+              type="checkbox"
+              checked={enableDiff}
+              onChange={(e) => setEnableDiff(e.target.checked)}
+              className="mr-2"
+            />
+            Enable data diffing between runs
+          </label>
+
+          {enableDiff && (
+            <div>
+              <label className="block text-body font-bold text-gray-700 mb-2">
+                Diff Key Field
+              </label>
+              <input
+                type="text"
+                value={diffKey}
+                onChange={(e) => setDiffKey(e.target.value)}
+                className="cell-input w-full px-3 py-2"
+                placeholder="id"
+              />
+              <p className="text-caption text-gray-600 mt-1">
+                Field name to use for identifying unique records (default: "id")
+              </p>
+            </div>
+          )}
+        </div>
+      </CellCard>
+
+      <div className="flex justify-end">
+        <CellButton onClick={handleNext} variant="primary">
+          <Clock className="w-4 h-4 mr-2" />
+          Configure Schedule
+        </CellButton>
+      </div>
+    </div>
+  );
+}
+
 // Main configuration component
 export default function ImportMethodConfigs(props: ImportMethodConfigProps) {
   const { dataSourceType, importMethod } = props;
@@ -550,6 +1173,10 @@ export default function ImportMethodConfigs(props: ImportMethodConfigProps) {
       return <RestApiConfig {...props} />;
     case "template-based":
       return <MockDataConfig {...props} />;
+    case "custom-script":
+      return <JavaScriptCustomScriptConfig {...props} />;
+    case "scheduled-script":
+      return <JavaScriptScheduledScriptConfig {...props} />;
     default:
       return (
         <div className="text-center py-8">

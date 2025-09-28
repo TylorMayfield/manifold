@@ -32,36 +32,25 @@ model DataSource {
   id          String   @id @default(cuid())
   projectId   String
   name        String
-  type        String   // file, api, database, etc.
-  config      String   // JSON configuration
-  status      String   @default("pending") // pending, active, error
+  type        String   // file, api, database, javascript, etc.
+  config      String   // JSON configuration (includes dataPath)
+  status      String   @default("idle") // idle, running, completed, error
+  enabled     Boolean  @default(true)
+  syncInterval Int?    // Minutes between syncs
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
   lastSyncAt  DateTime?
   
   // Relations
   project     Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
-  snapshots   Snapshot[]
   relationships Relationship[] @relation("DataSourceRelationships")
   targetRelationships Relationship[] @relation("TargetRelationships")
   
   @@map("data_sources")
 }
 
-model Snapshot {
-  id           String   @id @default(cuid())
-  dataSourceId String
-  projectId    String
-  data         String   // JSON data
-  metadata     String?  // JSON metadata
-  recordCount  Int      @default(0)
-  createdAt    DateTime @default(now())
-  
-  // Relations
-  dataSource   DataSource @relation(fields: [dataSourceId], references: [id], onDelete: Cascade)
-  
-  @@map("snapshots")
-}
+// Removed Snapshot model - data is now stored in separate SQLite databases
+// Each data source has its own database file for versioned data storage
 
 model Relationship {
   id               String   @id @default(cuid())
