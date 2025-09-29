@@ -1158,6 +1158,325 @@ return await fetchData();`}
   );
 }
 
+// SQL File Configuration
+function SQLFileConfig({
+  config,
+  onConfigChange,
+  onNext,
+}: ImportMethodConfigProps) {
+  const [dragActive, setDragActive] = useState(false);
+
+  const handleFileUpload = (file: File) => {
+    if (file && (file.type === 'text/plain' || file.name.endsWith('.sql'))) {
+      onConfigChange({
+        ...config,
+        sqlConfig: {
+          ...config.sqlConfig,
+          filePath: file.name,
+          sqlContent: undefined // Will be read from file
+        }
+      });
+    }
+  };
+
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    setDragActive(false);
+    
+    const files = Array.from(e.dataTransfer.files);
+    if (files.length > 0) {
+      handleFileUpload(files[0]);
+    }
+  };
+
+  const handleFileInput = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (files && files.length > 0) {
+      handleFileUpload(files[0]);
+    }
+  };
+
+  const handleNext = () => {
+    onNext();
+  };
+
+  return (
+    <div className="space-y-6">
+      <div>
+        <h3 className="text-subheading font-bold mb-4 flex items-center">
+          <Database className="w-5 h-5 mr-2" />
+          SQL Import Configuration
+        </h3>
+        <p className="text-caption text-gray-600 mb-6">
+          Import data from SQL dump files or paste SQL statements directly
+        </p>
+      </div>
+
+      <div>
+        <label className="block text-sm font-bold text-gray-900 mb-2">
+          SQL File Upload
+        </label>
+        <div
+          className={`border-2 border-dashed rounded-lg p-6 text-center transition-colors ${
+            dragActive ? 'border-blue-500 bg-blue-50' : 'border-gray-300'
+          }`}
+          onDragEnter={(e) => {
+            e.preventDefault();
+            setDragActive(true);
+          }}
+          onDragLeave={(e) => {
+            e.preventDefault();
+            setDragActive(false);
+          }}
+          onDragOver={(e) => e.preventDefault()}
+          onDrop={handleDrop}
+        >
+          <Database className="w-8 h-8 mx-auto mb-2 text-gray-400" />
+          <p className="text-sm text-gray-600 mb-2">
+            Drag and drop your SQL file here, or click to browse
+          </p>
+          <input
+            type="file"
+            accept=".sql,.txt"
+            onChange={handleFileInput}
+            className="hidden"
+            id="sql-file-input"
+          />
+          <CellButton
+            variant="secondary"
+            onClick={() => document.getElementById('sql-file-input')?.click()}
+          >
+            <Upload className="w-4 h-4 mr-2" />
+            Choose File
+          </CellButton>
+          {config.sqlConfig?.filePath && (
+            <p className="text-sm text-green-600 mt-2">
+              Selected: {config.sqlConfig.filePath}
+            </p>
+          )}
+        </div>
+      </div>
+
+      <div>
+        <label className="block text-sm font-bold text-gray-900 mb-2">
+          Or Paste SQL Content
+        </label>
+        <textarea
+          value={config.sqlConfig?.sqlContent || ""}
+          onChange={(e) =>
+            onConfigChange({
+              ...config,
+              sqlConfig: {
+                ...config.sqlConfig,
+                sqlContent: e.target.value,
+                filePath: undefined
+              }
+            })
+          }
+          className="cell-input w-full h-48 font-mono text-sm"
+          placeholder="Paste your SQL statements here..."
+        />
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div>
+          <label className="block text-sm font-bold text-gray-900 mb-2">
+            SQL Dialect
+          </label>
+          <select
+            value={config.sqlConfig?.dialect || "generic"}
+            onChange={(e) =>
+              onConfigChange({
+                ...config,
+                sqlConfig: {
+                  ...config.sqlConfig,
+                  dialect: e.target.value as any
+                }
+              })
+            }
+            className="cell-input w-full"
+          >
+            <option value="generic">Generic SQL</option>
+            <option value="mysql">MySQL</option>
+            <option value="postgresql">PostgreSQL</option>
+            <option value="sqlite">SQLite</option>
+          </select>
+        </div>
+
+        <div>
+          <label className="block text-sm font-bold text-gray-900 mb-2">
+            File Encoding
+          </label>
+          <select
+            value={config.sqlConfig?.encoding || "utf8"}
+            onChange={(e) =>
+              onConfigChange({
+                ...config,
+                sqlConfig: {
+                  ...config.sqlConfig,
+                  encoding: e.target.value as any
+                }
+              })
+            }
+            className="cell-input w-full"
+          >
+            <option value="utf8">UTF-8</option>
+            <option value="utf16">UTF-16</option>
+            <option value="latin1">Latin-1</option>
+          </select>
+        </div>
+      </div>
+
+      <CellCard className="p-4">
+        <h3 className="text-subheading font-bold mb-4 flex items-center">
+          <Settings className="w-5 h-5 mr-2" />
+          Processing Options
+        </h3>
+        
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="space-y-2">
+            <div className="flex items-center space-x-2">
+              <input
+                type="checkbox"
+                id="createTables"
+                checked={config.sqlConfig?.createTables !== false}
+                onChange={(e) =>
+                  onConfigChange({
+                    ...config,
+                    sqlConfig: {
+                      ...config.sqlConfig,
+                      createTables: e.target.checked
+                    }
+                  })
+                }
+                className="w-4 h-4"
+              />
+              <label htmlFor="createTables" className="text-gray-900">
+                Create Tables (DDL)
+              </label>
+            </div>
+
+            <div className="flex items-center space-x-2">
+              <input
+                type="checkbox"
+                id="insertData"
+                checked={config.sqlConfig?.insertData !== false}
+                onChange={(e) =>
+                  onConfigChange({
+                    ...config,
+                    sqlConfig: {
+                      ...config.sqlConfig,
+                      insertData: e.target.checked
+                    }
+                  })
+                }
+                className="w-4 h-4"
+              />
+              <label htmlFor="insertData" className="text-gray-900">
+                Insert Data (DML)
+              </label>
+            </div>
+
+            <div className="flex items-center space-x-2">
+              <input
+                type="checkbox"
+                id="indexes"
+                checked={config.sqlConfig?.indexes !== false}
+                onChange={(e) =>
+                  onConfigChange({
+                    ...config,
+                    sqlConfig: {
+                      ...config.sqlConfig,
+                      indexes: e.target.checked
+                    }
+                  })
+                }
+                className="w-4 h-4"
+              />
+              <label htmlFor="indexes" className="text-gray-900">
+                Create Indexes
+              </label>
+            </div>
+          </div>
+
+          <div className="space-y-2">
+            <div className="flex items-center space-x-2">
+              <input
+                type="checkbox"
+                id="constraints"
+                checked={config.sqlConfig?.constraints !== false}
+                onChange={(e) =>
+                  onConfigChange({
+                    ...config,
+                    sqlConfig: {
+                      ...config.sqlConfig,
+                      constraints: e.target.checked
+                    }
+                  })
+                }
+                className="w-4 h-4"
+              />
+              <label htmlFor="constraints" className="text-gray-900">
+                Create Constraints
+              </label>
+            </div>
+
+            <div className="flex items-center space-x-2">
+              <input
+                type="checkbox"
+                id="skipErrors"
+                checked={config.sqlConfig?.skipErrors || false}
+                onChange={(e) =>
+                  onConfigChange({
+                    ...config,
+                    sqlConfig: {
+                      ...config.sqlConfig,
+                      skipErrors: e.target.checked
+                    }
+                  })
+                }
+                className="w-4 h-4"
+              />
+              <label htmlFor="skipErrors" className="text-gray-900">
+                Skip Errors
+              </label>
+            </div>
+
+            <div className="flex items-center space-x-2">
+              <input
+                type="checkbox"
+                id="dataOnly"
+                checked={config.sqlConfig?.dataOnly || false}
+                onChange={(e) =>
+                  onConfigChange({
+                    ...config,
+                    sqlConfig: {
+                      ...config.sqlConfig,
+                      dataOnly: e.target.checked,
+                      schemaOnly: false
+                    }
+                  })
+                }
+                className="w-4 h-4"
+              />
+              <label htmlFor="dataOnly" className="text-gray-900">
+                Data Only
+              </label>
+            </div>
+          </div>
+        </div>
+      </CellCard>
+
+      <div className="flex justify-end">
+        <CellButton onClick={handleNext} variant="primary">
+          <Database className="w-4 h-4 mr-2" />
+          Import SQL Data
+        </CellButton>
+      </div>
+    </div>
+  );
+}
+
 // Main configuration component
 export default function ImportMethodConfigs(props: ImportMethodConfigProps) {
   const { dataSourceType, importMethod } = props;
@@ -1177,6 +1496,8 @@ export default function ImportMethodConfigs(props: ImportMethodConfigProps) {
       return <JavaScriptCustomScriptConfig {...props} />;
     case "scheduled-script":
       return <JavaScriptScheduledScriptConfig {...props} />;
+    case "sql-import":
+      return <SQLFileConfig {...props} />;
     default:
       return (
         <div className="text-center py-8">

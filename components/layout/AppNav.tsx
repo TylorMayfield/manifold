@@ -10,7 +10,9 @@ import {
   Settings, 
   Play, 
   Home,
-  Webhook
+  Webhook,
+  Layers,
+  Puzzle
 } from 'lucide-react';
 
 export interface NavItem {
@@ -39,6 +41,18 @@ const defaultNavItems: NavItem[] = [
     label: 'Data Sources',
     icon: Database,
     description: 'Manage data connections'
+  },
+  {
+    href: '/data-lakes',
+    label: 'Data Lakes',
+    icon: Layers,
+    description: 'Unified data lake management'
+  },
+  {
+    href: '/plugins',
+    label: 'Plugins',
+    icon: Puzzle,
+    description: 'Manage and configure plugins'
   },
   {
     href: '/pipelines',

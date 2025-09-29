@@ -219,6 +219,21 @@ export default function UnifiedDataSourceWorkflow({
         },
       ],
     },
+    {
+      id: "sql",
+      name: "SQL Import",
+      description: "Import data from SQL dump files or raw SQL statements",
+      icon: <Database className="h-6 w-6" />,
+      color: "bg-purple-500",
+      importMethods: [
+        {
+          id: "sql-import",
+          name: "SQL File Import",
+          description: "Import from SQL dump files or paste SQL statements",
+          icon: <Upload className="h-5 w-5" />,
+        },
+      ],
+    },
   ];
 
   // Step navigation handlers
@@ -613,7 +628,6 @@ export default function UnifiedDataSourceWorkflow({
             </div>
           </div>
         </CellCard>
-      </div>
     </div>
   );
 }

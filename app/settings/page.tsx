@@ -1,9 +1,10 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import PageLayout from "../../components/layout/PageLayout";
 import CellButton from "../../components/ui/CellButton";
+import CellCard from "../../components/ui/CellCard";
 import { useSettings } from "../../contexts/SettingsContext";
 import {
   Settings,
@@ -24,7 +25,11 @@ import {
   Eye,
   EyeOff,
   ArrowLeft,
+  Info,
+  RotateCcw,
+  CheckCircle,
 } from "lucide-react";
+import { logger } from "../../lib/utils/logger";
 
 interface SettingSection {
   id: string;

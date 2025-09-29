@@ -24,6 +24,7 @@ export interface DataProvider {
 export type DataProviderType =
   | "csv"
   | "json"
+  | "sql"
   | "sql_dump"
   | "api_script"
   | "mock"
@@ -61,6 +62,25 @@ export interface DataProviderConfig {
   // SQL dump config
   sqlPath?: string;
   sqlDialect?: "mysql" | "postgresql" | "sqlite";
+
+  // Raw SQL config
+  sqlConfig?: {
+    filePath?: string;
+    sqlContent?: string;
+    dialect: "mysql" | "postgresql" | "sqlite" | "generic";
+    encoding?: "utf8" | "utf16" | "latin1";
+    batchSize?: number; // Number of statements to process at once
+    skipErrors?: boolean; // Continue processing if individual statements fail
+    createTables?: boolean; // Whether to create tables from DDL statements
+    insertData?: boolean; // Whether to process INSERT statements
+    indexes?: boolean; // Whether to create indexes
+    constraints?: boolean; // Whether to create foreign keys and constraints
+    customDelimiter?: string; // Custom statement delimiter (default: ';')
+    tableFilter?: string[]; // Only process specific tables
+    excludeTables?: string[]; // Exclude specific tables
+    dataOnly?: boolean; // Only process data (no DDL)
+    schemaOnly?: boolean; // Only process schema (no data)
+  };
 
   // API config
   apiConfig?: {
@@ -328,3 +348,6 @@ export interface DataBrowserResult {
   totalCount: number;
   hasMore: boolean;
 }
+
+// Re-export data lake types
+export * from './dataLake'
