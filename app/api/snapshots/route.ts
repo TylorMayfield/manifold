@@ -1,15 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { SimpleSQLiteDB } from '../../../lib/server/database/SimpleSQLiteDB';
+import { SeparatedDatabaseManager } from '../../../lib/database/SeparatedDatabaseManager';
 
-let db: SimpleSQLiteDB;
-
-async function ensureDb() {
-  if (!db) {
-    db = SimpleSQLiteDB.getInstance();
-    await db.initialize();
-  }
-  return db;
-}
+export const dynamic = 'force-dynamic';
 
 export async function GET(request: NextRequest) {
   try {
@@ -17,8 +9,46 @@ export async function GET(request: NextRequest) {
     const projectId = searchParams.get('projectId') || 'default';
     const dataSourceId = searchParams.get('dataSourceId');
     
-    const database = await ensureDb();
-    const snapshots = database.getSnapshots(projectId, dataSourceId || undefined);
+    const separatedDb = SeparatedDatabaseManager.getInstance();
+    
+    // Get all data sources for the project
+    const dataSources = await separatedDb.getDataSources(projectId);
+    
+    // Filter to specific data source if requested
+    const sourcesToCheck = dataSourceId 
+      ? dataSources.filter(ds => ds.id === dataSourceId)
+      : dataSources;
+    
+    // Fetch versions for each data source and format as snapshots
+    const snapshots = [];
+    
+    for (const ds of sourcesToCheck) {
+      try {
+        const versions = await separatedDb.getDataVersions(projectId, ds.id || ds.name);
+        
+        // Convert each version to snapshot format
+        for (const version of versions) {
+          const versionData = version as any; // Type assertion for flexibility
+          snapshots.push({
+            id: versionData.id || versionData.version_id,
+            dataSourceId: ds.id || ds.name,
+            version: versionData.version || 1,
+            recordCount: versionData.recordCount || versionData.record_count || 0,
+            schema: versionData.schema ? (typeof versionData.schema === 'string' ? JSON.parse(versionData.schema) : versionData.schema) : null,
+            createdAt: versionData.createdAt || versionData.created_at || new Date(),
+            metadata: {
+              importType: versionData.importType || versionData.import_type || 'manual',
+              status: versionData.status || 'completed',
+            }
+          });
+        }
+      } catch (error) {
+        console.warn(`Failed to load versions for data source ${ds.id || ds.name}:`, error);
+      }
+    }
+    
+    // Sort by creation date (newest first)
+    snapshots.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
     
     return NextResponse.json(snapshots);
   } catch (error) {
@@ -33,14 +63,25 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { projectId = 'default', ...snapshotData } = body;
+    const { projectId = 'default', dataSourceId, data, schema } = body;
     
-    const database = await ensureDb();
+    const separatedDb = SeparatedDatabaseManager.getInstance();
     
-    // Create snapshot
-    const snapshot = database.createSnapshot(projectId, snapshotData);
+    // Import data creates a new version/snapshot
+    const result = await separatedDb.importData(projectId, dataSourceId, data, schema);
     
-    return NextResponse.json(snapshot, { status: 201 });
+    if (result.success) {
+      return NextResponse.json({ 
+        id: result.versionId,
+        message: result.message,
+        recordsImported: result.recordsImported
+      }, { status: 201 });
+    } else {
+      return NextResponse.json(
+        { error: result.message },
+        { status: 500 }
+      );
+    }
   } catch (error) {
     console.error('Error creating snapshot:', error);
     return NextResponse.json(
@@ -54,18 +95,24 @@ export async function DELETE(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
     const snapshotId = searchParams.get('snapshotId');
+    const projectId = searchParams.get('projectId') || 'default';
+    const dataSourceId = searchParams.get('dataSourceId');
     
-    if (!snapshotId) {
+    if (!snapshotId || !dataSourceId) {
       return NextResponse.json(
-        { error: 'snapshotId is required' },
+        { error: 'snapshotId and dataSourceId are required' },
         { status: 400 }
       );
     }
     
-    const database = await ensureDb();
-    const success = database.deleteSnapshot(snapshotId);
+    const separatedDb = SeparatedDatabaseManager.getInstance();
     
-    return NextResponse.json({ success });
+    // Delete the specific version
+    const db = await separatedDb.getDataSourceDb(projectId, dataSourceId);
+    const deleteStmt = db.prepare('DELETE FROM data_versions WHERE id = ?');
+    const result = deleteStmt.run(snapshotId);
+    
+    return NextResponse.json({ success: result.changes > 0 });
   } catch (error) {
     console.error('Error deleting snapshot:', error);
     return NextResponse.json(
