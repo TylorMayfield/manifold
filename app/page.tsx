@@ -6,8 +6,9 @@ import PageLayout from "../components/layout/PageLayout";
 import CellButton from "../components/ui/CellButton";
 import CellCard from "../components/ui/CellCard";
 import CellModal from "../components/ui/CellModal";
+import StatusBadge from "../components/ui/StatusBadge";
 import { useDataSources } from "../contexts/DataSourceContext";
-import { Database, FileText, Zap, Settings, Plus, Play, Home } from "lucide-react";
+import { Database, FileText, Zap, Settings, Plus, Play, Home, ArrowRight } from "lucide-react";
 
 function HomePageContent() {
   const router = useRouter();
@@ -46,37 +47,47 @@ function HomePageContent() {
               {dataSources.slice(0, 3).map((source) => (
                 <div
                   key={source.id}
-                  className="p-3 border border-gray-200 bg-gray-50"
+                  className="p-3 border border-gray-200 bg-gray-50 cursor-pointer hover:bg-gray-100 hover:border-gray-300 transition-all group"
+                  onClick={() => router.push(`/data?source=${source.id}`)}
+                  role="button"
+                  tabIndex={0}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' || e.key === ' ') {
+                      e.preventDefault();
+                      router.push(`/data?source=${source.id}`);
+                    }
+                  }}
                 >
                   <div className="flex items-center justify-between">
-                    <div>
-                      <p className="font-mono text-sm font-bold">
+                    <div className="flex-1">
+                      <p className="font-mono text-sm font-bold group-hover:text-blue-600 transition-colors">
                         {source.name}
                       </p>
                       <p className="text-caption text-gray-600">
-                        {source.type} • {source.status}
+                        {source.type}
                       </p>
                     </div>
-                    <span
-                      className={`px-2 py-1 text-xs font-mono ${
-                        source.status === "completed"
-                          ? "bg-green-100 text-green-800"
-                          : source.status === "running"
-                          ? "bg-yellow-100 text-yellow-800"
-                          : source.status === "error"
-                          ? "bg-red-100 text-red-800"
-                          : "bg-gray-100 text-gray-800"
-                      }`}
-                    >
-                      {source.status}
-                    </span>
+                    <div className="flex items-center gap-2">
+                      <StatusBadge 
+                        status={
+                          source.status === "completed" ? "completed" : 
+                          source.status === "running" ? "pending" : 
+                          source.status === "error" ? "failed" : "paused"
+                        }
+                        label={source.status}
+                      />
+                      <ArrowRight className="w-4 h-4 text-gray-400 group-hover:text-blue-600 group-hover:translate-x-1 transition-all" />
+                    </div>
                   </div>
                 </div>
               ))}
               {dataSources.length > 3 && (
-                <p className="text-caption text-center text-gray-500">
-                  +{dataSources.length - 3} more sources
-                </p>
+                <button
+                  onClick={() => router.push('/data')}
+                  className="text-caption text-center text-gray-500 hover:text-gray-700 hover:underline w-full py-2 cursor-pointer transition-colors"
+                >
+                  +{dataSources.length - 3} more sources • View all
+                </button>
               )}
             </div>
           )}
