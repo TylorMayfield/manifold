@@ -66,7 +66,7 @@
     "db:deploy": "prisma migrate deploy"
   },
   "dependencies": {
-    "@aws-sdk/client-s3": "^3.490.0",
+    "@aws-sdk/client-s3": "^3.899.0",
     "@aws-sdk/s3-request-presigner": "^3.490.0",
     "@monaco-editor/react": "^4.6.0",
     "@prisma/client": "^6.16.2",
