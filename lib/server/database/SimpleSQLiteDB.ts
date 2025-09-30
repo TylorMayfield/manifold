@@ -1,12 +1,13 @@
-import Database from "better-sqlite3";
+import initSqlJs, { Database as SqlJsDatabase } from "sql.js";
 import path from "path";
 import fs from "fs";
 import { logger } from "../utils/logger";
 
 export class SimpleSQLiteDB {
   private static instance: SimpleSQLiteDB;
-  private db: Database.Database;
+  private db: SqlJsDatabase | null = null;
   private dbPath: string;
+  private SQL: any = null;
 
   private constructor() {
     // Create database in project root data directory
@@ -16,10 +17,6 @@ export class SimpleSQLiteDB {
     }
 
     this.dbPath = path.join(dataDir, "manifold.db");
-    this.db = new Database(this.dbPath);
-
-    // Enable foreign keys
-    this.db.pragma("foreign_keys = ON");
   }
 
   static getInstance(): SimpleSQLiteDB {
@@ -31,8 +28,33 @@ export class SimpleSQLiteDB {
 
   async initialize(): Promise<void> {
     try {
+      // Initialize sql.js
+      if (!this.SQL) {
+        this.SQL = await initSqlJs({
+          // Use CDN for WASM file or provide local path
+          locateFile: (file) => `https://sql.js.org/dist/${file}`
+        });
+      }
+
+      // Load existing database or create new one
+      if (fs.existsSync(this.dbPath)) {
+        const buffer = fs.readFileSync(this.dbPath);
+        this.db = new this.SQL.Database(buffer);
+        logger.info("Loaded existing database", "database", { path: this.dbPath }, "SimpleSQLiteDB");
+      } else {
+        this.db = new this.SQL.Database();
+        logger.info("Created new database", "database", { path: this.dbPath }, "SimpleSQLiteDB");
+      }
+
+      // Enable foreign keys
+      this.db.run("PRAGMA foreign_keys = ON");
+
       // Create tables
       this.createTables();
+      
+      // Save to disk
+      this.save();
+
       logger.success(
         "Database initialized successfully",
         "database",
@@ -50,9 +72,42 @@ export class SimpleSQLiteDB {
     }
   }
 
+  private save(): void {
+    if (!this.db) return;
+    const data = this.db.export();
+    const buffer = Buffer.from(data);
+    fs.writeFileSync(this.dbPath, buffer);
+  }
+
+  // Helper to run queries and return results
+  private query(sql: string, params: any[] = []): any[] {
+    if (!this.db) throw new Error("Database not initialized");
+    
+    const results = this.db.exec(sql, params);
+    if (results.length === 0) return [];
+    
+    const { columns, values } = results[0];
+    return values.map(row => {
+      const obj: any = {};
+      columns.forEach((col, i) => {
+        obj[col] = row[i];
+      });
+      return obj;
+    });
+  }
+
+  // Helper to run statements without results
+  private run(sql: string, params: any[] = []): void {
+    if (!this.db) throw new Error("Database not initialized");
+    this.db.run(sql, params);
+    this.save();
+  }
+
   private createTables(): void {
+    if (!this.db) return;
+
     // Projects table
-    this.db.exec(`
+    this.db.run(`
       CREATE TABLE IF NOT EXISTS projects (
         id TEXT PRIMARY KEY,
         name TEXT NOT NULL,
@@ -64,13 +119,13 @@ export class SimpleSQLiteDB {
     `);
 
     // Data sources table
-    this.db.exec(`
+    this.db.run(`
       CREATE TABLE IF NOT EXISTS data_sources (
         id TEXT PRIMARY KEY,
         project_id TEXT NOT NULL,
         name TEXT NOT NULL,
         type TEXT NOT NULL,
-        config TEXT, -- JSON string
+        config TEXT,
         status TEXT DEFAULT 'idle',
         enabled BOOLEAN DEFAULT 1,
         created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
@@ -81,15 +136,15 @@ export class SimpleSQLiteDB {
     `);
 
     // Snapshots table
-    this.db.exec(`
+    this.db.run(`
       CREATE TABLE IF NOT EXISTS snapshots (
         id TEXT PRIMARY KEY,
         project_id TEXT NOT NULL,
         data_source_id TEXT NOT NULL,
         version INTEGER DEFAULT 1,
-        data TEXT, -- JSON string
-        schema TEXT, -- JSON string
-        metadata TEXT, -- JSON string
+        data TEXT,
+        schema TEXT,
+        metadata TEXT,
         record_count INTEGER DEFAULT 0,
         created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
         FOREIGN KEY (project_id) REFERENCES projects(id) ON DELETE CASCADE,
@@ -98,15 +153,14 @@ export class SimpleSQLiteDB {
     `);
 
     // Pipelines table
-    this.db.exec(`
+    this.db.run(`
       CREATE TABLE IF NOT EXISTS pipelines (
         id TEXT PRIMARY KEY,
         project_id TEXT NOT NULL,
         name TEXT NOT NULL,
         description TEXT,
-        steps TEXT, -- JSON string for TransformStep[]
-        input_source_ids TEXT, -- JSON string for string[]
-        output_config TEXT, -- JSON string for ExportConfig
+        config TEXT,
+        enabled BOOLEAN DEFAULT 1,
         created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
         updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
         FOREIGN KEY (project_id) REFERENCES projects(id) ON DELETE CASCADE
@@ -114,311 +168,187 @@ export class SimpleSQLiteDB {
     `);
 
     // Jobs table
-    this.db.exec(`
+    this.db.run(`
       CREATE TABLE IF NOT EXISTS jobs (
         id TEXT PRIMARY KEY,
-        project_id TEXT,
+        project_id TEXT NOT NULL,
         name TEXT NOT NULL,
+        type TEXT NOT NULL,
+        schedule TEXT,
         pipeline_id TEXT,
-        schedule TEXT, -- cron expression
-        enabled BOOLEAN DEFAULT 1,
+        data_source_id TEXT,
         status TEXT DEFAULT 'idle',
+        enabled BOOLEAN DEFAULT 1,
         last_run DATETIME,
         next_run DATETIME,
         created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
         updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-        FOREIGN KEY (project_id) REFERENCES projects(id) ON DELETE CASCADE,
-        FOREIGN KEY (pipeline_id) REFERENCES pipelines(id) ON DELETE CASCADE
+        FOREIGN KEY (project_id) REFERENCES projects(id) ON DELETE CASCADE
       )
     `);
 
-    // Create default project if it doesn't exist
-    const defaultProject = this.getProject("default");
-    if (!defaultProject) {
-      this.createProject({
-        id: "default",
-        name: "Default Project",
-        description: "Default ETL workspace",
-      });
-    }
-  }
-
-  close(): void {
-    this.db.close();
-  }
-
-  // Project methods
-  createProject(projectData: {
-    id?: string;
-    name: string;
-    description?: string;
-  }) {
-    const id =
-      projectData.id ||
-      `proj_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-    const dataPath = path.join(process.cwd(), "data", "projects", `${id}.db`);
-
-    // Ensure projects directory exists
-    const projectsDir = path.dirname(dataPath);
-    if (!fs.existsSync(projectsDir)) {
-      fs.mkdirSync(projectsDir, { recursive: true });
-    }
-
-    const stmt = this.db.prepare(`
-      INSERT INTO projects (id, name, description, data_path)
-      VALUES (?, ?, ?, ?)
+    // Logs table
+    this.db.run(`
+      CREATE TABLE IF NOT EXISTS logs (
+        id TEXT PRIMARY KEY,
+        project_id TEXT,
+        level TEXT NOT NULL,
+        message TEXT NOT NULL,
+        context TEXT,
+        metadata TEXT,
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (project_id) REFERENCES projects(id) ON DELETE CASCADE
+      )
     `);
 
-    stmt.run(id, projectData.name, projectData.description || null, dataPath);
-
-    return this.getProject(id);
+    // Webhooks table
+    this.db.run(`
+      CREATE TABLE IF NOT EXISTS webhooks (
+        id TEXT PRIMARY KEY,
+        project_id TEXT NOT NULL,
+        name TEXT NOT NULL,
+        url TEXT NOT NULL,
+        events TEXT,
+        enabled BOOLEAN DEFAULT 1,
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (project_id) REFERENCES projects(id) ON DELETE CASCADE
+      )
+    `);
   }
 
+  // Projects
   getProjects() {
-    const stmt = this.db.prepare(
-      "SELECT * FROM projects ORDER BY created_at DESC"
-    );
-    return stmt.all();
+    return this.query(`SELECT * FROM projects ORDER BY created_at DESC`);
   }
 
   getProject(id: string) {
-    const stmt = this.db.prepare("SELECT * FROM projects WHERE id = ?");
-    return stmt.get(id);
+    const results = this.query(`SELECT * FROM projects WHERE id = ?`, [id]);
+    return results[0] || null;
   }
 
-  updateProject(id: string, data: { name?: string; description?: string }) {
-    const stmt = this.db.prepare(`
-      UPDATE projects 
-      SET name = COALESCE(?, name), 
-          description = COALESCE(?, description),
-          updated_at = CURRENT_TIMESTAMP
-      WHERE id = ?
-    `);
-
-    stmt.run(data.name || null, data.description || null, id);
+  createProject(project: any) {
+    const id = project.id || `proj_${Date.now()}`;
+    this.run(
+      `INSERT INTO projects (id, name, description, data_path, created_at, updated_at)
+       VALUES (?, ?, ?, ?, datetime('now'), datetime('now'))`,
+      [id, project.name, project.description || '', project.dataPath || `./data/projects/${id}`]
+    );
     return this.getProject(id);
   }
 
-  deleteProject(id: string) {
-    const stmt = this.db.prepare("DELETE FROM projects WHERE id = ?");
-    const result = stmt.run(id);
-    return result.changes > 0;
-  }
+  updateProject(id: string, updates: any) {
+    const fields: string[] = [];
+    const values: any[] = [];
 
-  // Data source methods
-  createDataSource(
-    projectId: string,
-    dataSourceData: { name: string; type: string; config: any }
-  ) {
-    const id = `ds_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+    if (updates.name !== undefined) {
+      fields.push('name = ?');
+      values.push(updates.name);
+    }
+    if (updates.description !== undefined) {
+      fields.push('description = ?');
+      values.push(updates.description);
+    }
 
-    const stmt = this.db.prepare(`
-      INSERT INTO data_sources (id, project_id, name, type, config)
-      VALUES (?, ?, ?, ?, ?)
-    `);
+    if (fields.length === 0) return false;
 
-    stmt.run(
-      id,
-      projectId,
-      dataSourceData.name,
-      dataSourceData.type,
-      JSON.stringify(dataSourceData.config)
+    fields.push('updated_at = datetime(\'now\')');
+    values.push(id);
+
+    this.run(
+      `UPDATE projects SET ${fields.join(', ')} WHERE id = ?`,
+      values
     );
-
-    return this.getDataSource(id);
+    return true;
   }
 
-  getDataSources(projectId: string) {
-    const stmt = this.db.prepare(`
-      SELECT *, 
-             json(config) as config
-      FROM data_sources 
-      WHERE project_id = ? 
-      ORDER BY created_at DESC
-    `);
+  deleteProject(id: string) {
+    this.run(`DELETE FROM projects WHERE id = ?`, [id]);
+    return true;
+  }
 
-    const results = stmt.all(projectId) as any[];
-    return results.map((row: any) => ({
-      ...row,
-      config: row.config ? JSON.parse(row.config) : {},
-      enabled: Boolean(row.enabled),
-    }));
+  // Data Sources
+  getDataSources(projectId?: string) {
+    if (projectId) {
+      return this.query(`SELECT * FROM data_sources WHERE project_id = ? ORDER BY created_at DESC`, [projectId]);
+    }
+    return this.query(`SELECT * FROM data_sources ORDER BY created_at DESC`);
   }
 
   getDataSource(id: string) {
-    const stmt = this.db.prepare(`
-      SELECT *, 
-             json(config) as config
-      FROM data_sources 
-      WHERE id = ?
-    `);
-
-    const result = stmt.get(id) as any;
-    if (result) {
-      return {
-        ...result,
-        config: result.config ? JSON.parse(result.config) : {},
-        enabled: Boolean(result.enabled),
-      };
-    }
-    return null;
+    const results = this.query(`SELECT * FROM data_sources WHERE id = ?`, [id]);
+    if (results.length === 0) return null;
+    
+    const ds = results[0];
+    return {
+      ...ds,
+      config: ds.config ? JSON.parse(ds.config) : {},
+      enabled: Boolean(ds.enabled),
+      lastSyncAt: ds.last_sync_at ? new Date(ds.last_sync_at) : undefined,
+      createdAt: new Date(ds.created_at),
+      updatedAt: new Date(ds.updated_at)
+    };
   }
 
-  updateDataSource(
-    id: string,
-    data: { name?: string; type?: string; config?: any; status?: string }
-  ) {
-    const stmt = this.db.prepare(`
-      UPDATE data_sources 
-      SET name = COALESCE(?, name),
-          type = COALESCE(?, type),
-          config = COALESCE(?, config),
-          status = COALESCE(?, status),
-          updated_at = CURRENT_TIMESTAMP
-      WHERE id = ?
-    `);
-
-    stmt.run(
-      data.name || null,
-      data.type || null,
-      data.config ? JSON.stringify(data.config) : null,
-      data.status || null,
-      id
+  createDataSource(projectId: string, dataSource: any) {
+    const id = dataSource.id || `ds_${Date.now()}`;
+    this.run(
+      `INSERT INTO data_sources (id, project_id, name, type, config, status, enabled, created_at, updated_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?, datetime('now'), datetime('now'))`,
+      [
+        id,
+        projectId,
+        dataSource.name,
+        dataSource.type,
+        JSON.stringify(dataSource.config || {}),
+        dataSource.status || 'idle',
+        dataSource.enabled !== false ? 1 : 0
+      ]
     );
-
     return this.getDataSource(id);
   }
 
+  updateDataSource(id: string, updates: any) {
+    const fields: string[] = [];
+    const values: any[] = [];
+
+    if (updates.name !== undefined) {
+      fields.push('name = ?');
+      values.push(updates.name);
+    }
+    if (updates.config !== undefined) {
+      fields.push('config = ?');
+      values.push(JSON.stringify(updates.config));
+    }
+    if (updates.status !== undefined) {
+      fields.push('status = ?');
+      values.push(updates.status);
+    }
+    if (updates.enabled !== undefined) {
+      fields.push('enabled = ?');
+      values.push(updates.enabled ? 1 : 0);
+    }
+
+    if (fields.length === 0) return false;
+
+    fields.push('updated_at = datetime(\'now\')');
+    values.push(id);
+
+    this.run(
+      `UPDATE data_sources SET ${fields.join(', ')} WHERE id = ?`,
+      values
+    );
+    return true;
+  }
+
   deleteDataSource(id: string) {
-    const stmt = this.db.prepare("DELETE FROM data_sources WHERE id = ?");
-    const result = stmt.run(id);
-    return result.changes > 0;
+    this.run(`DELETE FROM data_sources WHERE id = ?`, [id]);
+    return true;
   }
 
-  // Snapshot methods
-  createSnapshot(
-    projectId: string,
-    snapshotData: {
-      dataSourceId: string;
-      data: any;
-      schema?: any;
-      metadata?: any;
-      recordCount?: number;
-      version?: number;
-    }
-  ) {
-    const id = `snap_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-
-    const stmt = this.db.prepare(`
-      INSERT INTO snapshots (id, project_id, data_source_id, version, data, schema, metadata, record_count)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-    `);
-
-    stmt.run(
-      id,
-      projectId,
-      snapshotData.dataSourceId,
-      snapshotData.version || 1,
-      JSON.stringify(snapshotData.data),
-      snapshotData.schema ? JSON.stringify(snapshotData.schema) : null,
-      snapshotData.metadata ? JSON.stringify(snapshotData.metadata) : null,
-      snapshotData.recordCount || 0
-    );
-
-    return this.getSnapshot(id);
-  }
-
-  getSnapshots(projectId: string, dataSourceId?: string) {
-    let query = `
-      SELECT *,
-             json(data) as data,
-             json(schema) as schema,
-             json(metadata) as metadata
-      FROM snapshots 
-      WHERE project_id = ?
-    `;
-
-    const params = [projectId];
-
-    if (dataSourceId) {
-      query += " AND data_source_id = ?";
-      params.push(dataSourceId);
-    }
-
-    query += " ORDER BY created_at DESC";
-
-    const stmt = this.db.prepare(query);
-    const results = stmt.all(...params) as any[];
-
-    return results.map((row: any) => ({
-      ...row,
-      data: row.data ? JSON.parse(row.data) : null,
-      schema: row.schema ? JSON.parse(row.schema) : null,
-      metadata: row.metadata ? JSON.parse(row.metadata) : null,
-    }));
-  }
-
-  getSnapshot(id: string) {
-    const stmt = this.db.prepare(`
-      SELECT *,
-             json(data) as data,
-             json(schema) as schema, 
-             json(metadata) as metadata
-      FROM snapshots 
-      WHERE id = ?
-    `);
-
-    const result = stmt.get(id) as any;
-    if (result) {
-      return {
-        ...result,
-        data: result.data ? JSON.parse(result.data) : null,
-        schema: result.schema ? JSON.parse(result.schema) : null,
-        metadata: result.metadata ? JSON.parse(result.metadata) : null,
-      };
-    }
-    return null;
-  }
-
-  deleteSnapshot(id: string) {
-    const stmt = this.db.prepare("DELETE FROM snapshots WHERE id = ?");
-    const result = stmt.run(id);
-    return result.changes > 0;
-  }
-
-  // Job methods
-  createJob(jobData: {
-    projectId?: string;
-    name: string;
-    pipelineId: string;
-    schedule: string;
-    enabled?: boolean;
-  }) {
-    const id = `job_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-
-    const stmt = this.db.prepare(`
-      INSERT INTO jobs (id, project_id, name, pipeline_id, schedule, enabled)
-      VALUES (?, ?, ?, ?, ?, ?)
-    `);
-
-    stmt.run(
-      id,
-      jobData.projectId || null,
-      jobData.name,
-      jobData.pipelineId,
-      jobData.schedule,
-      jobData.enabled !== false ? 1 : 0
-    );
-
-    return this.getJob(id);
-  }
-
+  // Jobs
   getJobs(projectId?: string) {
-    let query = `
-      SELECT *
-      FROM jobs
-    `;
-
+    let query = `SELECT * FROM jobs`;
     const params = [];
 
     if (projectId) {
@@ -428,9 +358,7 @@ export class SimpleSQLiteDB {
 
     query += " ORDER BY created_at DESC";
 
-    const stmt = this.db.prepare(query);
-    const results = stmt.all(...params) as any[];
-
+    const results = this.query(query, params);
     return results.map((row: any) => ({
       ...row,
       enabled: Boolean(row.enabled),
@@ -442,187 +370,130 @@ export class SimpleSQLiteDB {
   }
 
   getJob(id: string) {
-    const stmt = this.db.prepare(`
-      SELECT *
-      FROM jobs 
-      WHERE id = ?
-    `);
-
-    const result = stmt.get(id) as any;
-    if (result) {
-      return {
-        ...result,
-        enabled: Boolean(result.enabled),
-        lastRun: result.last_run ? new Date(result.last_run) : undefined,
-        nextRun: result.next_run ? new Date(result.next_run) : undefined,
-        createdAt: new Date(result.created_at),
-        updatedAt: new Date(result.updated_at),
-      };
-    }
-    return null;
+    const results = this.query(`SELECT * FROM jobs WHERE id = ?`, [id]);
+    if (results.length === 0) return null;
+    
+    const job = results[0];
+    return {
+      ...job,
+      enabled: Boolean(job.enabled),
+      lastRun: job.last_run ? new Date(job.last_run) : undefined,
+      nextRun: job.next_run ? new Date(job.next_run) : undefined,
+      createdAt: new Date(job.created_at),
+      updatedAt: new Date(job.updated_at)
+    };
   }
 
-  updateJob(
-    id: string,
-    data: {
-      name?: string;
-      schedule?: string;
-      enabled?: boolean;
-      status?: string;
-      lastRun?: Date;
-      nextRun?: Date;
-    }
-  ) {
-    const stmt = this.db.prepare(`
-      UPDATE jobs 
-      SET name = COALESCE(?, name),
-          schedule = COALESCE(?, schedule),
-          enabled = COALESCE(?, enabled),
-          status = COALESCE(?, status),
-          last_run = COALESCE(?, last_run),
-          next_run = COALESCE(?, next_run),
-          updated_at = CURRENT_TIMESTAMP
-      WHERE id = ?
-    `);
-
-    stmt.run(
-      data.name || null,
-      data.schedule || null,
-      data.enabled !== undefined ? (data.enabled ? 1 : 0) : null,
-      data.status || null,
-      data.lastRun ? data.lastRun.toISOString() : null,
-      data.nextRun ? data.nextRun.toISOString() : null,
-      id
+  createJob(job: any) {
+    const id = job.id || `job_${Date.now()}`;
+    this.run(
+      `INSERT INTO jobs (id, project_id, name, type, schedule, pipeline_id, data_source_id, status, enabled, created_at, updated_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, datetime('now'), datetime('now'))`,
+      [
+        id,
+        job.projectId || 'default',
+        job.name,
+        job.type || 'manual',
+        job.schedule || null,
+        job.pipelineId || null,
+        job.dataSourceId || null,
+        job.status || 'idle',
+        job.enabled !== false ? 1 : 0
+      ]
     );
-
     return this.getJob(id);
   }
 
+  updateJob(id: string, updates: any) {
+    const fields: string[] = [];
+    const values: any[] = [];
+
+    if (updates.name !== undefined) {
+      fields.push('name = ?');
+      values.push(updates.name);
+    }
+    if (updates.schedule !== undefined) {
+      fields.push('schedule = ?');
+      values.push(updates.schedule);
+    }
+    if (updates.status !== undefined) {
+      fields.push('status = ?');
+      values.push(updates.status);
+    }
+    if (updates.enabled !== undefined) {
+      fields.push('enabled = ?');
+      values.push(updates.enabled ? 1 : 0);
+    }
+    if (updates.lastRun !== undefined) {
+      fields.push('last_run = ?');
+      values.push(updates.lastRun);
+    }
+    if (updates.nextRun !== undefined) {
+      fields.push('next_run = ?');
+      values.push(updates.nextRun);
+    }
+
+    if (fields.length === 0) return false;
+
+    fields.push('updated_at = datetime(\'now\')');
+    values.push(id);
+
+    this.run(
+      `UPDATE jobs SET ${fields.join(', ')} WHERE id = ?`,
+      values
+    );
+    return true;
+  }
+
   deleteJob(id: string) {
-    const stmt = this.db.prepare("DELETE FROM jobs WHERE id = ?");
-    const result = stmt.run(id);
-    return result.changes > 0;
+    this.run(`DELETE FROM jobs WHERE id = ?`, [id]);
+    return true;
   }
 
-  // Pipeline methods
-  createPipeline(
-    projectId: string,
-    pipelineData: {
-      name: string;
-      description?: string;
-      steps?: any[];
-      inputSourceIds?: string[];
-      outputConfig?: any;
+  // Pipelines
+  getPipelines(projectId?: string) {
+    if (projectId) {
+      return this.query(`SELECT * FROM pipelines WHERE project_id = ? ORDER BY created_at DESC`, [projectId]);
     }
-  ) {
-    const id = `pipe_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+    return this.query(`SELECT * FROM pipelines ORDER BY created_at DESC`);
+  }
 
-    const stmt = this.db.prepare(`
-      INSERT INTO pipelines (id, project_id, name, description, steps, input_source_ids, output_config)
-      VALUES (?, ?, ?, ?, ?, ?, ?)
-    `);
-
-    stmt.run(
-      id,
-      projectId,
-      pipelineData.name,
-      pipelineData.description || null,
-      pipelineData.steps ? JSON.stringify(pipelineData.steps) : null,
-      pipelineData.inputSourceIds
-        ? JSON.stringify(pipelineData.inputSourceIds)
-        : null,
-      pipelineData.outputConfig
-        ? JSON.stringify(pipelineData.outputConfig)
-        : null
+  // Logs
+  getLogs(projectId?: string, limit: number = 100) {
+    if (projectId) {
+      return this.query(
+        `SELECT * FROM logs WHERE project_id = ? ORDER BY created_at DESC LIMIT ?`,
+        [projectId, limit]
+      );
+    }
+    return this.query(
+      `SELECT * FROM logs ORDER BY created_at DESC LIMIT ?`,
+      [limit]
     );
-
-    return this.getPipeline(id);
   }
 
-  getPipelines(projectId: string) {
-    const stmt = this.db.prepare(`
-      SELECT *,
-             json(steps) as steps,
-             json(input_source_ids) as input_source_ids,
-             json(output_config) as output_config
-      FROM pipelines 
-      WHERE project_id = ?
-      ORDER BY created_at DESC
-    `);
-
-    const results = stmt.all(projectId) as any[];
-    return results.map((row: any) => ({
-      ...row,
-      steps: row.steps ? JSON.parse(row.steps) : [],
-      inputSourceIds: row.input_source_ids
-        ? JSON.parse(row.input_source_ids)
-        : [],
-      outputConfig: row.output_config ? JSON.parse(row.output_config) : null,
-    }));
-  }
-
-  getPipeline(id: string) {
-    const stmt = this.db.prepare(`
-      SELECT *,
-             json(steps) as steps,
-             json(input_source_ids) as input_source_ids,
-             json(output_config) as output_config
-      FROM pipelines 
-      WHERE id = ?
-    `);
-
-    const result = stmt.get(id) as any;
-    if (result) {
-      return {
-        ...result,
-        steps: result.steps ? JSON.parse(result.steps) : [],
-        inputSourceIds: result.input_source_ids
-          ? JSON.parse(result.input_source_ids)
-          : [],
-        outputConfig: result.output_config
-          ? JSON.parse(result.output_config)
-          : null,
-      };
-    }
-    return null;
-  }
-
-  updatePipeline(
-    id: string,
-    data: {
-      name?: string;
-      description?: string;
-      steps?: any[];
-      inputSourceIds?: string[];
-      outputConfig?: any;
-    }
-  ) {
-    const stmt = this.db.prepare(`
-      UPDATE pipelines 
-      SET name = COALESCE(?, name),
-          description = COALESCE(?, description),
-          steps = COALESCE(?, steps),
-          input_source_ids = COALESCE(?, input_source_ids),
-          output_config = COALESCE(?, output_config),
-          updated_at = CURRENT_TIMESTAMP
-      WHERE id = ?
-    `);
-
-    stmt.run(
-      data.name || null,
-      data.description || null,
-      data.steps ? JSON.stringify(data.steps) : null,
-      data.inputSourceIds ? JSON.stringify(data.inputSourceIds) : null,
-      data.outputConfig ? JSON.stringify(data.outputConfig) : null,
-      id
+  createLog(log: any) {
+    const id = log.id || `log_${Date.now()}`;
+    this.run(
+      `INSERT INTO logs (id, project_id, level, message, context, metadata, created_at)
+       VALUES (?, ?, ?, ?, ?, ?, datetime('now'))`,
+      [
+        id,
+        log.projectId || null,
+        log.level,
+        log.message,
+        log.context || null,
+        log.metadata ? JSON.stringify(log.metadata) : null
+      ]
     );
-
-    return this.getPipeline(id);
+    return { id };
   }
 
-  deletePipeline(id: string) {
-    const stmt = this.db.prepare("DELETE FROM pipelines WHERE id = ?");
-    const result = stmt.run(id);
-    return result.changes > 0;
+  close() {
+    if (this.db) {
+      this.save();
+      this.db.close();
+      this.db = null;
+    }
   }
 }

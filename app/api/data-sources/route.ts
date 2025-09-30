@@ -1,6 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { SimpleSQLiteDB } from '../../../lib/server/database/SimpleSQLiteDB';
 
+// Force dynamic rendering
+export const dynamic = 'force-dynamic';
+
 let db: SimpleSQLiteDB;
 
 async function ensureDb() {

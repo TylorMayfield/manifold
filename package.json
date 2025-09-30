@@ -72,7 +72,6 @@
     "@prisma/client": "^6.16.2",
     "autoprefixer": "^10.4.21",
     "axios": "^1.6.0",
-    "better-sqlite3": "^12.4.1",
     "clsx": "^2.1.1",
     "csv-parser": "^3.0.0",
     "csv-stringify": "^6.4.4",
@@ -91,6 +90,7 @@
     "react-is": "^19.1.1",
     "reactflow": "^11.10.1",
     "recharts": "^3.2.0",
+    "sql.js": "^1.13.0",
     "tailwindcss": "^3.4.17",
     "uuid": "^9.0.1",
     "zod": "^4.1.11"
@@ -134,9 +134,7 @@
       "node_modules/**/*",
       "package.json"
     ],
-    "asarUnpack": [
-      "node_modules/better-sqlite3/**/*"
-    ],
+    "asarUnpack": [],
     "mac": {
       "category": "public.app-category.developer-tools"
     },
