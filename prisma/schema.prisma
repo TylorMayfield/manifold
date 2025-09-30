@@ -7,7 +7,7 @@ generator client {
 
 datasource db {
   provider = "sqlite"
-  url      = "file:./prisma/core.db"
+  url      = env("DATABASE_URL")
 }
 
 // Core Application Models - Stored in main SQLite database
