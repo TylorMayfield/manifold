@@ -36,16 +36,16 @@ const sourceTypeIcons: Record<DataProviderType, React.ComponentType<any>> = {
 };
 
 const sourceTypeColors: Record<DataProviderType, string> = {
-  csv: "text-blue-500",
-  json: "text-green-500",
-  sql_dump: "text-purple-500",
-  api_script: "text-orange-500",
-  mock: "text-yellow-500",
-  mysql: "text-red-500",
-  postgres: "text-indigo-500",
-  sqlite: "text-gray-500",
-  javascript: "text-yellow-600",
-  sql: "text-purple-600",
+  csv: "text-blue-400",
+  json: "text-green-400",
+  sql_dump: "text-purple-400",
+  api_script: "text-orange-400",
+  mock: "text-yellow-400",
+  mysql: "text-red-400",
+  postgres: "text-indigo-400",
+  sqlite: "text-gray-400",
+  javascript: "text-yellow-400",
+  sql: "text-purple-400",
 };
 
 export default function DataSourcesPage() {
@@ -121,43 +121,43 @@ export default function DataSourcesPage() {
       {sources.length === 0 ? (
         // Empty State
         <CellCard className="p-12 text-center">
-            <Database className="w-20 h-20 mx-auto mb-6 text-gray-300" />
-            <h2 className="text-heading mb-4">No Data Sources Connected</h2>
-            <p className="text-body text-gray-600 mb-8 max-w-2xl mx-auto">
+            <Database className="w-20 h-20 mx-auto mb-6 text-gray-600" />
+            <h2 className="text-heading mb-4 text-white">No Data Sources Connected</h2>
+            <p className="text-body text-gray-400 mb-8 max-w-2xl mx-auto">
               Connect your data sources to start building ETL pipelines. Import
               files, connect databases, or generate mock data for testing.
             </p>
 
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
               <CellCard className="p-6">
-                <Upload className="w-10 h-10 mx-auto mb-4 text-blue-500" />
-                <h3 className="font-mono font-bold mb-2">Upload Files</h3>
-                <p className="text-caption mb-4">
+                <Upload className="w-10 h-10 mx-auto mb-4 text-blue-400" />
+                <h3 className="font-mono font-bold mb-2 text-white">Upload Files</h3>
+                <p className="text-caption mb-4 text-gray-400">
                   CSV, JSON, and other structured data files
                 </p>
-                <CellButton size="sm" variant="secondary" className="w-full">
+                <CellButton size="sm" variant="accent" className="w-full">
                   Browse Files
                 </CellButton>
               </CellCard>
 
               <CellCard className="p-6">
-                <Database className="w-10 h-10 mx-auto mb-4 text-green-500" />
-                <h3 className="font-mono font-bold mb-2">Connect Database</h3>
-                <p className="text-caption mb-4">
+                <Database className="w-10 h-10 mx-auto mb-4 text-green-400" />
+                <h3 className="font-mono font-bold mb-2 text-white">Connect Database</h3>
+                <p className="text-caption mb-4 text-gray-400">
                   MySQL, PostgreSQL, SQLite connections
                 </p>
-                <CellButton size="sm" variant="secondary" className="w-full">
+                <CellButton size="sm" variant="success" className="w-full">
                   Connect DB
                 </CellButton>
               </CellCard>
 
               <CellCard className="p-6">
-                <Code className="w-10 h-10 mx-auto mb-4 text-orange-500" />
-                <h3 className="font-mono font-bold mb-2">API Script</h3>
-                <p className="text-caption mb-4">Fetch data using JavaScript</p>
+                <Code className="w-10 h-10 mx-auto mb-4 text-orange-400" />
+                <h3 className="font-mono font-bold mb-2 text-white">API Script</h3>
+                <p className="text-caption mb-4 text-gray-400">Fetch data using JavaScript</p>
                 <CellButton
                   size="sm"
-                  variant="secondary"
+                  variant="accent"
                   className="w-full"
                   onClick={() => setShowScriptModal(true)}
                 >
@@ -166,9 +166,9 @@ export default function DataSourcesPage() {
               </CellCard>
 
               <CellCard className="p-6">
-                <Zap className="w-10 h-10 mx-auto mb-4 text-yellow-500" />
-                <h3 className="font-mono font-bold mb-2">Mock Data</h3>
-                <p className="text-caption mb-4">Generate sample datasets</p>
+                <Zap className="w-10 h-10 mx-auto mb-4 text-yellow-400" />
+                <h3 className="font-mono font-bold mb-2 text-white">Mock Data</h3>
+                <p className="text-caption mb-4 text-gray-400">Generate sample datasets</p>
                 <CellButton
                   size="sm"
                   variant="accent"
@@ -181,7 +181,7 @@ export default function DataSourcesPage() {
             </div>
 
             <CellButton
-              variant="primary"
+              variant="accent"
               size="lg"
               onClick={() => setShowCreateModal(true)}
             >
@@ -198,22 +198,27 @@ export default function DataSourcesPage() {
               const colorClass = sourceTypeColors[source.type];
 
               return (
-                <CellCard key={source.id} className="p-6">
+                <CellCard key={source.id} className="p-6 hover:border-blue-500 transition-all">
                   <div className="flex items-start justify-between mb-4">
                     <div className="flex items-start space-x-3">
-                      <div className="p-2 bg-gray-50 border-2 border-black">
+                      <div className="p-2 bg-gray-800 border-2 border-gray-700 rounded">
                         <Icon className={`w-6 h-6 ${colorClass}`} />
                       </div>
                       <div className="flex-1">
-                        <h3 className="font-mono font-bold text-lg mb-1">
+                        <h3 className="font-mono font-bold text-lg mb-1 text-white">
                           {source.name}
                         </h3>
                         <div className="flex items-center space-x-2 mb-2">
-                          <span className="status-info px-2 py-1 text-xs">
+                          <span className="px-2 py-1 text-xs font-mono bg-blue-500/20 text-blue-300 border border-blue-600/30 rounded">
                             {source.type.toUpperCase()}
                           </span>
                           <span
-                            className={`status-${source.status} px-2 py-1 text-xs`}
+                            className={`px-2 py-1 text-xs font-mono rounded border ${
+                              source.status === 'completed' ? 'bg-green-500/20 text-green-300 border-green-600/30' :
+                              source.status === 'running' ? 'bg-yellow-500/20 text-yellow-300 border-yellow-600/30' :
+                              source.status === 'error' ? 'bg-red-500/20 text-red-300 border-red-600/30' :
+                              'bg-gray-500/20 text-gray-300 border-gray-600/30'
+                            }`}
                           >
                             {source.status?.toUpperCase() || "IDLE"}
                           </span>
@@ -221,10 +226,10 @@ export default function DataSourcesPage() {
                       </div>
                     </div>
                     <div className="flex space-x-1">
-                      <CellButton variant="ghost" size="sm">
+                      <CellButton variant="secondary" size="sm">
                         <Eye className="w-4 h-4" />
                       </CellButton>
-                      <CellButton variant="ghost" size="sm">
+                      <CellButton variant="secondary" size="sm">
                         <Settings className="w-4 h-4" />
                       </CellButton>
                     </div>
@@ -233,21 +238,21 @@ export default function DataSourcesPage() {
                   <div className="space-y-2 mb-4">
                     {source.lastSyncAt && (
                       <div className="flex items-center space-x-2">
-                        <Calendar className="w-4 h-4 text-gray-400" />
-                        <span className="text-caption">
+                        <Calendar className="w-4 h-4 text-blue-400" />
+                        <span className="text-caption text-gray-400">
                           Last sync: {source.lastSyncAt.toLocaleDateString()}
                         </span>
                       </div>
                     )}
                     {source.type === "mock" && source.config.mockConfig && (
-                      <div className="text-caption">
+                      <div className="text-caption text-gray-400">
                         {source.config.mockConfig.recordCount} records
                       </div>
                     )}
                   </div>
 
                   <div className="flex space-x-2">
-                    <CellButton variant="primary" size="sm" className="flex-1">
+                    <CellButton variant="accent" size="sm" className="flex-1">
                       <Play className="w-4 h-4 mr-2" />
                       Sync Now
                     </CellButton>
