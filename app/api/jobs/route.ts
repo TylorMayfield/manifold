@@ -2,6 +2,9 @@ import { NextRequest, NextResponse } from 'next/server';
 import { SimpleSQLiteDB } from '../../../lib/server/database/SimpleSQLiteDB';
 import { Job, JobStatus } from '../../../types';
 
+// Force dynamic rendering
+export const dynamic = 'force-dynamic';
+
 let db: SimpleSQLiteDB;
 
 async function ensureDb() {
@@ -16,15 +19,21 @@ export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
     const projectId = searchParams.get('projectId') || 'default';
+    const status = searchParams.get('status');
     
     const database = await ensureDb();
-    const jobs = database.getJobs(projectId);
+    let jobs = database.getJobs(projectId);
+    
+    // Filter by status if provided
+    if (status) {
+      jobs = jobs.filter((job: any) => job.status === status);
+    }
     
     return NextResponse.json(jobs);
   } catch (error) {
     console.error('Error fetching jobs:', error);
     return NextResponse.json(
-      { error: 'Failed to fetch jobs' },
+      { error: 'Failed to fetch jobs', message: error instanceof Error ? error.message : String(error) },
       { status: 500 }
     );
   }
