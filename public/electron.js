@@ -13,6 +13,51 @@ console.log("Development mode:", isDev);
 console.log("NODE_ENV:", process.env.NODE_ENV);
 console.log("isPackaged:", app.isPackaged);
 
+// Next.js server for production
+let nextServer = null;
+let serverUrl = null;
+
+async function startNextServer() {
+  if (isDev) {
+    serverUrl = "http://localhost:3000";
+    return;
+  }
+
+  try {
+    const { spawn } = require("child_process");
+    const serverPath = path.join(__dirname, "../out/server.js");
+    
+    console.log("Starting Next.js server from:", serverPath);
+    
+    // Start Next.js server on a random available port
+    const port = 3000;
+    serverUrl = `http://localhost:${port}`;
+    
+    nextServer = spawn(process.execPath, [
+      path.join(__dirname, "../node_modules/next/dist/bin/next"),
+      "start",
+      "-p",
+      port.toString()
+    ], {
+      cwd: path.join(__dirname, ".."),
+      env: { ...process.env, NODE_ENV: "production" }
+    });
+
+    nextServer.stdout.on("data", (data) => {
+      console.log(`Next.js: ${data}`);
+    });
+
+    nextServer.stderr.on("data", (data) => {
+      console.error(`Next.js Error: ${data}`);
+    });
+
+    // Wait for server to start
+    await new Promise((resolve) => setTimeout(resolve, 3000));
+  } catch (error) {
+    console.error("Failed to start Next.js server:", error);
+  }
+}
+
 let mainWindow;
 let dbManager;
 let handlersRegistered = false;
@@ -229,18 +274,12 @@ function createWindow() {
   });
 
   // Load the app
+  console.log("Loading app from:", serverUrl);
+  mainWindow.loadURL(serverUrl);
+  
+  // Open DevTools in development
   if (isDev) {
-    // Try port 3000 first, then fallback to 3001
-    const devUrl = "http://localhost:3000";
-    console.log("Loading development app from:", devUrl);
-    mainWindow.loadURL(devUrl);
-    // Open DevTools in development
     mainWindow.webContents.openDevTools();
-  } else {
-    // In production, try to load from the out directory
-    const indexPath = path.join(__dirname, "../out/index.html");
-    console.log("Loading from:", indexPath);
-    mainWindow.loadFile(indexPath);
   }
 
   // Handle window load errors
@@ -286,7 +325,10 @@ function createWindow() {
 }
 
 // App event handlers
-app.whenReady().then(() => {
+app.whenReady().then(async () => {
+  // Start Next.js server first
+  await startNextServer();
+  
   // Register IPC handlers first (only once)
   registerIpcHandlers();
 
@@ -311,6 +353,13 @@ app.on("window-all-closed", () => {
 });
 
 app.on("before-quit", () => {
+  // Stop Next.js server
+  if (nextServer) {
+    console.log("Stopping Next.js server...");
+    nextServer.kill();
+    nextServer = null;
+  }
+  
   // Save memory store before quitting
   if (dbManager) {
     dbManager.close();

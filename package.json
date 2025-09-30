@@ -128,10 +128,11 @@
       "output": "dist"
     },
     "files": [
+      ".next/**/*",
       "out/**/*",
-      "public/electron.js",
-      "public/lib/**/*",
-      "node_modules/**/*"
+      "public/**/*",
+      "node_modules/**/*",
+      "package.json"
     ],
     "asarUnpack": [
       "node_modules/better-sqlite3/**/*"
