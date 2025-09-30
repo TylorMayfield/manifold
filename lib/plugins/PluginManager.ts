@@ -401,8 +401,8 @@ export class PluginManager implements IPluginManager {
       return instance as T
     }
 
-    // Try to create instance
-    return this.createPluginInstance<T>(pluginId)
+    // Try to create instance (async operation, returns Promise)
+    return this.createPluginInstance<T>(pluginId) as any
   }
 
   /**
@@ -425,8 +425,8 @@ export class PluginManager implements IPluginManager {
         return undefined
       }
 
-      // Create instance
-      const instance = new PluginClass(metadata.manifest, this.context, metadata.config)
+      // Create instance (cast to any to handle varying constructor signatures)
+      const instance = new (PluginClass as any)(metadata.manifest, this.context, metadata.config)
       
       // Initialize if not already initialized
       if (!metadata.initialized) {

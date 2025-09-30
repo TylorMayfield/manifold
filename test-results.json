@@ -1,0 +1,596 @@
+{
+  "config": {
+    "configFile": "C:\\Users\\tmayfield.LSRVNA\\Documents\\GitHub\\manifold\\playwright.config.ts",
+    "rootDir": "C:/Users/tmayfield.LSRVNA/Documents/GitHub/manifold/e2e",
+    "forbidOnly": false,
+    "fullyParallel": true,
+    "globalSetup": null,
+    "globalTeardown": null,
+    "globalTimeout": 0,
+    "grep": {},
+    "grepInvert": null,
+    "maxFailures": 3,
+    "metadata": {
+      "actualWorkers": 7
+    },
+    "preserveOutput": "always",
+    "reporter": [
+      [
+        "list",
+        null
+      ],
+      [
+        "json",
+        {
+          "outputFile": "test-results.json"
+        }
+      ]
+    ],
+    "reportSlowTests": {
+      "max": 5,
+      "threshold": 300000
+    },
+    "quiet": false,
+    "projects": [
+      {
+        "outputDir": "C:/Users/tmayfield.LSRVNA/Documents/GitHub/manifold/test-results",
+        "repeatEach": 1,
+        "retries": 0,
+        "metadata": {
+          "actualWorkers": 7
+        },
+        "id": "chromium",
+        "name": "chromium",
+        "testDir": "C:/Users/tmayfield.LSRVNA/Documents/GitHub/manifold/e2e",
+        "testIgnore": [],
+        "testMatch": [
+          "**/*.@(spec|test).?(c|m)[jt]s?(x)"
+        ],
+        "timeout": 30000
+      }
+    ],
+    "shard": null,
+    "updateSnapshots": "missing",
+    "updateSourceMethod": "patch",
+    "version": "1.55.1",
+    "workers": 7,
+    "webServer": {
+      "command": "npm run dev:next",
+      "url": "http://localhost:3000",
+      "reuseExistingServer": true,
+      "timeout": 120000
+    }
+  },
+  "suites": [
+    {
+      "title": "navigation.spec.ts",
+      "file": "navigation.spec.ts",
+      "column": 0,
+      "line": 0,
+      "specs": [],
+      "suites": [
+        {
+          "title": "Navigation Workflows",
+          "file": "navigation.spec.ts",
+          "line": 10,
+          "column": 6,
+          "specs": [
+            {
+              "title": "should load the home page successfully",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 0,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 2782,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2025-09-30T12:50:40.491Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "5d2868f7d23420c27cca-684f9e19f1fabb1f14dc",
+              "file": "navigation.spec.ts",
+              "line": 19,
+              "column": 7
+            },
+            {
+              "title": "should navigate to Data Sources page",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 1,
+                      "parallelIndex": 1,
+                      "status": "interrupted",
+                      "duration": 21140,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2025-09-30T12:50:40.506Z",
+                      "annotations": [],
+                      "attachments": [
+                        {
+                          "name": "screenshot",
+                          "contentType": "image/png",
+                          "path": "C:\\Users\\tmayfield.LSRVNA\\Documents\\GitHub\\manifold\\test-results\\navigation-Navigation-Work-d82ab-vigate-to-Data-Sources-page-chromium\\test-failed-1.png"
+                        },
+                        {
+                          "name": "video",
+                          "contentType": "video/webm",
+                          "path": "C:\\Users\\tmayfield.LSRVNA\\Documents\\GitHub\\manifold\\test-results\\navigation-Navigation-Work-d82ab-vigate-to-Data-Sources-page-chromium\\video.webm"
+                        }
+                      ]
+                    }
+                  ],
+                  "status": "skipped"
+                }
+              ],
+              "id": "5d2868f7d23420c27cca-c2f72955397f71c57e84",
+              "file": "navigation.spec.ts",
+              "line": 28,
+              "column": 7
+            },
+            {
+              "title": "should navigate to Pipelines page",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 2,
+                      "parallelIndex": 2,
+                      "status": "interrupted",
+                      "duration": 14950,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2025-09-30T12:50:40.542Z",
+                      "annotations": [],
+                      "attachments": [
+                        {
+                          "name": "screenshot",
+                          "contentType": "image/png",
+                          "path": "C:\\Users\\tmayfield.LSRVNA\\Documents\\GitHub\\manifold\\test-results\\navigation-Navigation-Work-f927d--navigate-to-Pipelines-page-chromium\\test-failed-1.png"
+                        },
+                        {
+                          "name": "video",
+                          "contentType": "video/webm",
+                          "path": "C:\\Users\\tmayfield.LSRVNA\\Documents\\GitHub\\manifold\\test-results\\navigation-Navigation-Work-f927d--navigate-to-Pipelines-page-chromium\\video.webm"
+                        },
+                        {
+                          "name": "error-context",
+                          "contentType": "text/markdown",
+                          "path": "C:\\Users\\tmayfield.LSRVNA\\Documents\\GitHub\\manifold\\test-results\\navigation-Navigation-Work-f927d--navigate-to-Pipelines-page-chromium\\error-context.md"
+                        }
+                      ]
+                    }
+                  ],
+                  "status": "skipped"
+                }
+              ],
+              "id": "5d2868f7d23420c27cca-e91b0595c96c6639e93c",
+              "file": "navigation.spec.ts",
+              "line": 43,
+              "column": 7
+            },
+            {
+              "title": "should navigate to Jobs page",
+              "ok": false,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 3,
+                      "parallelIndex": 3,
+                      "status": "failed",
+                      "duration": 18242,
+                      "error": {
+                        "message": "TimeoutError: page.waitForURL: Timeout 15000ms exceeded.\n=========================== logs ===========================\nwaiting for navigation to \"**/jobs\" until \"domcontentloaded\"\n============================================================",
+                        "stack": "TimeoutError: page.waitForURL: Timeout 15000ms exceeded.\n=========================== logs ===========================\nwaiting for navigation to \"**/jobs\" until \"domcontentloaded\"\n============================================================\n    at C:\\Users\\tmayfield.LSRVNA\\Documents\\GitHub\\manifold\\e2e\\navigation.spec.ts:59:16",
+                        "location": {
+                          "file": "C:\\Users\\tmayfield.LSRVNA\\Documents\\GitHub\\manifold\\e2e\\navigation.spec.ts",
+                          "column": 16,
+                          "line": 59
+                        },
+                        "snippet": "  57 |     \n  58 |     // Wait for navigation\n> 59 |     await page.waitForURL('**/jobs', { waitUntil: 'domcontentloaded', timeout: 15000 });\n     |                ^\n  60 |     \n  61 |     // Verify we're on the jobs page\n  62 |     await expect(page).toHaveURL(/\\/jobs/);"
+                      },
+                      "errors": [
+                        {
+                          "location": {
+                            "file": "C:\\Users\\tmayfield.LSRVNA\\Documents\\GitHub\\manifold\\e2e\\navigation.spec.ts",
+                            "column": 16,
+                            "line": 59
+                          },
+                          "message": "TimeoutError: page.waitForURL: Timeout 15000ms exceeded.\n=========================== logs ===========================\nwaiting for navigation to \"**/jobs\" until \"domcontentloaded\"\n============================================================\n\n  57 |     \n  58 |     // Wait for navigation\n> 59 |     await page.waitForURL('**/jobs', { waitUntil: 'domcontentloaded', timeout: 15000 });\n     |                ^\n  60 |     \n  61 |     // Verify we're on the jobs page\n  62 |     await expect(page).toHaveURL(/\\/jobs/);\n    at C:\\Users\\tmayfield.LSRVNA\\Documents\\GitHub\\manifold\\e2e\\navigation.spec.ts:59:16"
+                        }
+                      ],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2025-09-30T12:50:40.492Z",
+                      "annotations": [],
+                      "attachments": [
+                        {
+                          "name": "screenshot",
+                          "contentType": "image/png",
+                          "path": "C:\\Users\\tmayfield.LSRVNA\\Documents\\GitHub\\manifold\\test-results\\navigation-Navigation-Workflows-should-navigate-to-Jobs-page-chromium\\test-failed-1.png"
+                        },
+                        {
+                          "name": "video",
+                          "contentType": "video/webm",
+                          "path": "C:\\Users\\tmayfield.LSRVNA\\Documents\\GitHub\\manifold\\test-results\\navigation-Navigation-Workflows-should-navigate-to-Jobs-page-chromium\\video.webm"
+                        },
+                        {
+                          "name": "error-context",
+                          "contentType": "text/markdown",
+                          "path": "C:\\Users\\tmayfield.LSRVNA\\Documents\\GitHub\\manifold\\test-results\\navigation-Navigation-Workflows-should-navigate-to-Jobs-page-chromium\\error-context.md"
+                        }
+                      ],
+                      "errorLocation": {
+                        "file": "C:\\Users\\tmayfield.LSRVNA\\Documents\\GitHub\\manifold\\e2e\\navigation.spec.ts",
+                        "column": 16,
+                        "line": 59
+                      }
+                    }
+                  ],
+                  "status": "unexpected"
+                }
+              ],
+              "id": "5d2868f7d23420c27cca-24f7a74a4a2a7cbfec76",
+              "file": "navigation.spec.ts",
+              "line": 54,
+              "column": 7
+            },
+            {
+              "title": "should navigate to Logs page",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 4,
+                      "parallelIndex": 4,
+                      "status": "interrupted",
+                      "duration": 19955,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2025-09-30T12:50:40.541Z",
+                      "annotations": [],
+                      "attachments": [
+                        {
+                          "name": "screenshot",
+                          "contentType": "image/png",
+                          "path": "C:\\Users\\tmayfield.LSRVNA\\Documents\\GitHub\\manifold\\test-results\\navigation-Navigation-Workflows-should-navigate-to-Logs-page-chromium\\test-failed-1.png"
+                        },
+                        {
+                          "name": "video",
+                          "contentType": "video/webm",
+                          "path": "C:\\Users\\tmayfield.LSRVNA\\Documents\\GitHub\\manifold\\test-results\\navigation-Navigation-Workflows-should-navigate-to-Logs-page-chromium\\video.webm"
+                        },
+                        {
+                          "name": "error-context",
+                          "contentType": "text/markdown",
+                          "path": "C:\\Users\\tmayfield.LSRVNA\\Documents\\GitHub\\manifold\\test-results\\navigation-Navigation-Workflows-should-navigate-to-Logs-page-chromium\\error-context.md"
+                        }
+                      ]
+                    }
+                  ],
+                  "status": "skipped"
+                }
+              ],
+              "id": "5d2868f7d23420c27cca-413f1d28176f6553b86d",
+              "file": "navigation.spec.ts",
+              "line": 69,
+              "column": 7
+            },
+            {
+              "title": "should navigate to Settings page",
+              "ok": false,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 5,
+                      "parallelIndex": 5,
+                      "status": "failed",
+                      "duration": 20133,
+                      "error": {
+                        "message": "TimeoutError: page.waitForURL: Timeout 15000ms exceeded.\n=========================== logs ===========================\nwaiting for navigation to \"**/settings\" until \"domcontentloaded\"\n============================================================",
+                        "stack": "TimeoutError: page.waitForURL: Timeout 15000ms exceeded.\n=========================== logs ===========================\nwaiting for navigation to \"**/settings\" until \"domcontentloaded\"\n============================================================\n    at C:\\Users\\tmayfield.LSRVNA\\Documents\\GitHub\\manifold\\e2e\\navigation.spec.ts:85:16",
+                        "location": {
+                          "file": "C:\\Users\\tmayfield.LSRVNA\\Documents\\GitHub\\manifold\\e2e\\navigation.spec.ts",
+                          "column": 16,
+                          "line": 85
+                        },
+                        "snippet": "  83 |     \n  84 |     // Wait for navigation\n> 85 |     await page.waitForURL('**/settings', { waitUntil: 'domcontentloaded', timeout: 15000 });\n     |                ^\n  86 |     \n  87 |     // Verify we're on the settings page\n  88 |     await expect(page).toHaveURL(/\\/settings/);"
+                      },
+                      "errors": [
+                        {
+                          "location": {
+                            "file": "C:\\Users\\tmayfield.LSRVNA\\Documents\\GitHub\\manifold\\e2e\\navigation.spec.ts",
+                            "column": 16,
+                            "line": 85
+                          },
+                          "message": "TimeoutError: page.waitForURL: Timeout 15000ms exceeded.\n=========================== logs ===========================\nwaiting for navigation to \"**/settings\" until \"domcontentloaded\"\n============================================================\n\n  83 |     \n  84 |     // Wait for navigation\n> 85 |     await page.waitForURL('**/settings', { waitUntil: 'domcontentloaded', timeout: 15000 });\n     |                ^\n  86 |     \n  87 |     // Verify we're on the settings page\n  88 |     await expect(page).toHaveURL(/\\/settings/);\n    at C:\\Users\\tmayfield.LSRVNA\\Documents\\GitHub\\manifold\\e2e\\navigation.spec.ts:85:16"
+                        }
+                      ],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2025-09-30T12:50:40.549Z",
+                      "annotations": [],
+                      "attachments": [
+                        {
+                          "name": "screenshot",
+                          "contentType": "image/png",
+                          "path": "C:\\Users\\tmayfield.LSRVNA\\Documents\\GitHub\\manifold\\test-results\\navigation-Navigation-Work-167a9-d-navigate-to-Settings-page-chromium\\test-failed-1.png"
+                        },
+                        {
+                          "name": "video",
+                          "contentType": "video/webm",
+                          "path": "C:\\Users\\tmayfield.LSRVNA\\Documents\\GitHub\\manifold\\test-results\\navigation-Navigation-Work-167a9-d-navigate-to-Settings-page-chromium\\video.webm"
+                        },
+                        {
+                          "name": "error-context",
+                          "contentType": "text/markdown",
+                          "path": "C:\\Users\\tmayfield.LSRVNA\\Documents\\GitHub\\manifold\\test-results\\navigation-Navigation-Work-167a9-d-navigate-to-Settings-page-chromium\\error-context.md"
+                        }
+                      ],
+                      "errorLocation": {
+                        "file": "C:\\Users\\tmayfield.LSRVNA\\Documents\\GitHub\\manifold\\e2e\\navigation.spec.ts",
+                        "column": 16,
+                        "line": 85
+                      }
+                    }
+                  ],
+                  "status": "unexpected"
+                }
+              ],
+              "id": "5d2868f7d23420c27cca-52a16bf8b148a91e0e76",
+              "file": "navigation.spec.ts",
+              "line": 80,
+              "column": 7
+            },
+            {
+              "title": "should navigate to Webhooks page",
+              "ok": false,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 6,
+                      "parallelIndex": 6,
+                      "status": "failed",
+                      "duration": 19074,
+                      "error": {
+                        "message": "TimeoutError: page.waitForURL: Timeout 15000ms exceeded.\n=========================== logs ===========================\nwaiting for navigation to \"**/webhooks\" until \"domcontentloaded\"\n============================================================",
+                        "stack": "TimeoutError: page.waitForURL: Timeout 15000ms exceeded.\n=========================== logs ===========================\nwaiting for navigation to \"**/webhooks\" until \"domcontentloaded\"\n============================================================\n    at C:\\Users\\tmayfield.LSRVNA\\Documents\\GitHub\\manifold\\e2e\\navigation.spec.ts:100:16",
+                        "location": {
+                          "file": "C:\\Users\\tmayfield.LSRVNA\\Documents\\GitHub\\manifold\\e2e\\navigation.spec.ts",
+                          "column": 16,
+                          "line": 100
+                        },
+                        "snippet": "   98 |     \n   99 |     // Wait for navigation\n> 100 |     await page.waitForURL('**/webhooks', { waitUntil: 'domcontentloaded', timeout: 15000 });\n      |                ^\n  101 |     \n  102 |     // Verify we're on the webhooks page\n  103 |     await expect(page).toHaveURL(/\\/webhooks/);"
+                      },
+                      "errors": [
+                        {
+                          "location": {
+                            "file": "C:\\Users\\tmayfield.LSRVNA\\Documents\\GitHub\\manifold\\e2e\\navigation.spec.ts",
+                            "column": 16,
+                            "line": 100
+                          },
+                          "message": "TimeoutError: page.waitForURL: Timeout 15000ms exceeded.\n=========================== logs ===========================\nwaiting for navigation to \"**/webhooks\" until \"domcontentloaded\"\n============================================================\n\n   98 |     \n   99 |     // Wait for navigation\n> 100 |     await page.waitForURL('**/webhooks', { waitUntil: 'domcontentloaded', timeout: 15000 });\n      |                ^\n  101 |     \n  102 |     // Verify we're on the webhooks page\n  103 |     await expect(page).toHaveURL(/\\/webhooks/);\n    at C:\\Users\\tmayfield.LSRVNA\\Documents\\GitHub\\manifold\\e2e\\navigation.spec.ts:100:16"
+                        }
+                      ],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2025-09-30T12:50:40.578Z",
+                      "annotations": [],
+                      "attachments": [
+                        {
+                          "name": "screenshot",
+                          "contentType": "image/png",
+                          "path": "C:\\Users\\tmayfield.LSRVNA\\Documents\\GitHub\\manifold\\test-results\\navigation-Navigation-Work-a9e41-d-navigate-to-Webhooks-page-chromium\\test-failed-1.png"
+                        },
+                        {
+                          "name": "video",
+                          "contentType": "video/webm",
+                          "path": "C:\\Users\\tmayfield.LSRVNA\\Documents\\GitHub\\manifold\\test-results\\navigation-Navigation-Work-a9e41-d-navigate-to-Webhooks-page-chromium\\video.webm"
+                        },
+                        {
+                          "name": "error-context",
+                          "contentType": "text/markdown",
+                          "path": "C:\\Users\\tmayfield.LSRVNA\\Documents\\GitHub\\manifold\\test-results\\navigation-Navigation-Work-a9e41-d-navigate-to-Webhooks-page-chromium\\error-context.md"
+                        }
+                      ],
+                      "errorLocation": {
+                        "file": "C:\\Users\\tmayfield.LSRVNA\\Documents\\GitHub\\manifold\\e2e\\navigation.spec.ts",
+                        "column": 16,
+                        "line": 100
+                      }
+                    }
+                  ],
+                  "status": "unexpected"
+                }
+              ],
+              "id": "5d2868f7d23420c27cca-adb2145ba0966ec8e987",
+              "file": "navigation.spec.ts",
+              "line": 95,
+              "column": 7
+            },
+            {
+              "title": "should highlight active navigation item",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 0,
+                      "parallelIndex": 0,
+                      "status": "interrupted",
+                      "duration": 18245,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2025-09-30T12:50:43.549Z",
+                      "annotations": [],
+                      "attachments": [
+                        {
+                          "name": "screenshot",
+                          "contentType": "image/png",
+                          "path": "C:\\Users\\tmayfield.LSRVNA\\Documents\\GitHub\\manifold\\test-results\\navigation-Navigation-Work-ab38d-ight-active-navigation-item-chromium\\test-failed-1.png"
+                        },
+                        {
+                          "name": "video",
+                          "contentType": "video/webm",
+                          "path": "C:\\Users\\tmayfield.LSRVNA\\Documents\\GitHub\\manifold\\test-results\\navigation-Navigation-Work-ab38d-ight-active-navigation-item-chromium\\video.webm"
+                        }
+                      ]
+                    }
+                  ],
+                  "status": "skipped"
+                }
+              ],
+              "id": "5d2868f7d23420c27cca-7ff90f72737bf6a15372",
+              "file": "navigation.spec.ts",
+              "line": 106,
+              "column": 7
+            },
+            {
+              "title": "should complete full navigation cycle",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 7,
+                      "parallelIndex": 3,
+                      "status": "interrupted",
+                      "duration": 0,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2025-09-30T12:51:02.658Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "skipped"
+                }
+              ],
+              "id": "5d2868f7d23420c27cca-17d2f7263a0eaabd4fad",
+              "file": "navigation.spec.ts",
+              "line": 116,
+              "column": 7
+            },
+            {
+              "title": "should maintain navigation after page reload",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [],
+                  "status": "skipped"
+                }
+              ],
+              "id": "5d2868f7d23420c27cca-2f0b89503ff271aca3bb",
+              "file": "navigation.spec.ts",
+              "line": 136,
+              "column": 7
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "errors": [
+    {
+      "message": "Testing stopped early after 3 maximum allowed failures."
+    }
+  ],
+  "stats": {
+    "startTime": "2025-09-30T12:50:31.640Z",
+    "duration": 31347.681,
+    "expected": 1,
+    "skipped": 6,
+    "unexpected": 3,
+    "flaky": 0
+  }
+}

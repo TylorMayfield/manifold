@@ -1,5 +1,4 @@
 import { PrismaClient } from "@prisma/client";
-import { app } from "electron";
 import path from "path";
 import fs from "fs";
 
@@ -9,8 +8,30 @@ export class CoreDatabase {
   private dbPath: string;
 
   private constructor() {
-    // Get app data path
-    const appDataPath = app.getPath("userData");
+    // Get app data path - handle both Electron and web contexts
+    let appDataPath: string;
+    
+    // Check if we're in a build/CI environment or if electron is available
+    const isBuild = process.env.NEXT_PHASE === 'phase-production-build' || process.env.CI;
+    
+    if (isBuild || typeof window !== 'undefined') {
+      // Build time or browser context - use data folder
+      appDataPath = path.join(process.cwd(), "data");
+    } else {
+      // Runtime - try electron
+      try {
+        const electron = require("electron");
+        if (electron && electron.app) {
+          appDataPath = electron.app.getPath("userData");
+        } else {
+          appDataPath = path.join(process.cwd(), "data");
+        }
+      } catch (error) {
+        // Fallback for non-Electron contexts
+        appDataPath = path.join(process.cwd(), "data");
+      }
+    }
+    
     this.dbPath = path.join(appDataPath, "core.db");
 
     // Ensure directory exists
@@ -64,8 +85,29 @@ export class CoreDatabase {
     const projectId = `proj_${Date.now()}_${Math.random()
       .toString(36)
       .substr(2, 9)}`;
+    
+    // Get app data path - handle both Electron and web contexts
+    let appDataPath: string;
+    
+    const isBuild = process.env.NEXT_PHASE === 'phase-production-build' || process.env.CI;
+    
+    if (isBuild || typeof window !== 'undefined') {
+      appDataPath = path.join(process.cwd(), "data");
+    } else {
+      try {
+        const electron = require("electron");
+        if (electron && electron.app) {
+          appDataPath = electron.app.getPath("userData");
+        } else {
+          appDataPath = path.join(process.cwd(), "data");
+        }
+      } catch (error) {
+        appDataPath = path.join(process.cwd(), "data");
+      }
+    }
+    
     const dataPath = path.join(
-      app.getPath("userData"),
+      appDataPath,
       "projects",
       `${projectId}.db`
     );

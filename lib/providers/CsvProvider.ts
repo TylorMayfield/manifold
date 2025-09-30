@@ -35,7 +35,7 @@ export interface CsvProviderConfig extends ProviderConfig {
 }
 
 export class CsvProvider extends BaseProvider {
-  private config: CsvProviderConfig;
+  protected config: CsvProviderConfig;
 
   constructor(config: ProviderConfig) {
     super(config);

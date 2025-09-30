@@ -49,7 +49,7 @@ export interface ScriptProviderConfig extends ProviderConfig {
 }
 
 export class ScriptProvider extends BaseProvider {
-  private config: ScriptProviderConfig;
+  protected config: ScriptProviderConfig;
 
   constructor(config: ProviderConfig) {
     super(config);

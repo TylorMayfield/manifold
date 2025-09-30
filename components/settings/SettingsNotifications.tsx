@@ -6,7 +6,9 @@ import CellButton from '../ui/CellButton'
 import { Mail, TestTube, CheckCircle, AlertTriangle } from 'lucide-react'
 
 export default function SettingsNotifications() {
-  const { settings, updateSetting } = useSettings()
+  const { settings: rawSettings, updateSetting: rawUpdateSetting } = useSettings()
+  const settings = rawSettings as any; // Type assertion for extended settings
+  const updateSetting = rawUpdateSetting as any; // Type assertion for dynamic keys
   const [testingEmail, setTestingEmail] = useState(false)
 
   const handleTestEmail = async () => {

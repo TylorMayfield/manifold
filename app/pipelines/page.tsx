@@ -20,6 +20,8 @@ import CellButton from "../../components/ui/CellButton";
 import CellCard from "../../components/ui/CellCard";
 import CellInput from "../../components/ui/CellInput";
 import CellModal from "../../components/ui/CellModal";
+import LoadingState from "../../components/ui/LoadingState";
+import EmptyState from "../../components/ui/EmptyState";
 import { PipelineProvider, usePipelines } from "../../contexts/PipelineContext";
 import { Pipeline, TransformType } from "../../types";
 
@@ -93,60 +95,19 @@ function PipelinesPageContent() {
         )}
 
         {loading ? (
-          <CellCard className="p-12 text-center">
-            <Loader2 className="w-8 h-8 mx-auto mb-4 animate-spin text-gray-400" />
-            <p className="text-body text-gray-600">Loading pipelines...</p>
-          </CellCard>
+          <LoadingState variant="card" message="Loading pipelines..." />
         ) : pipelines.length === 0 ? (
           // Empty State
-          <CellCard className="p-12 text-center">
-              <Zap className="w-20 h-20 mx-auto mb-6 text-gray-300" />
-              <h2 className="text-heading mb-4">No Pipelines Created</h2>
-              <p className="text-body text-gray-600 mb-8 max-w-2xl mx-auto">
-                Pipelines let you transform, filter, and combine data from
-                multiple sources. Create your first pipeline to start processing
-                data.
-              </p>
-
-              <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
-                <CellCard className="p-4">
-                  <Filter className="w-8 h-8 mx-auto mb-3 text-blue-500" />
-                  <h3 className="font-mono font-bold mb-2">Filter</h3>
-                  <p className="text-caption">
-                    Remove unwanted rows based on conditions
-                  </p>
-                </CellCard>
-
-                <CellCard className="p-4">
-                  <Shuffle className="w-8 h-8 mx-auto mb-3 text-green-500" />
-                  <h3 className="font-mono font-bold mb-2">Transform</h3>
-                  <p className="text-caption">Map and modify column values</p>
-                </CellCard>
-
-                <CellCard className="p-4">
-                  <BarChart3 className="w-8 h-8 mx-auto mb-3 text-purple-500" />
-                  <h3 className="font-mono font-bold mb-2">Aggregate</h3>
-                  <p className="text-caption">Group and summarize data</p>
-                </CellCard>
-
-                <CellCard className="p-4">
-                  <Code className="w-8 h-8 mx-auto mb-3 text-orange-500" />
-                  <h3 className="font-mono font-bold mb-2">Custom</h3>
-                  <p className="text-caption">
-                    Write JavaScript transformations
-                  </p>
-                </CellCard>
-              </div>
-
-              <CellButton
-                variant="primary"
-                size="lg"
-                onClick={() => setShowCreateModal(true)}
-              >
-                <Plus className="w-5 h-5 mr-2" />
-                Create Your First Pipeline
-              </CellButton>
-            </CellCard>
+          <EmptyState
+            icon={Zap}
+            title="No Pipelines Created"
+            description="Pipelines let you transform, filter, and combine data from multiple sources. Create your first pipeline to start processing data."
+            action={{
+              label: "Create Your First Pipeline",
+              onClick: () => setShowCreateModal(true),
+              icon: Plus
+            }}
+          />
         ) : (
           // Pipeline List
           <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">

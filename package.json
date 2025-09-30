@@ -49,6 +49,14 @@
     "test:mobile": "node __tests__/test-runner.js --mobile",
     "test:comprehensive": "node __tests__/test-runner.js",
     "test:cleanup": "node __tests__/test-runner.js --cleanup",
+    "test:playwright": "playwright test",
+    "test:playwright:ui": "playwright test --ui",
+    "test:playwright:headed": "playwright test --headed",
+    "test:playwright:debug": "playwright test --debug",
+    "test:playwright:chromium": "playwright test --project=chromium",
+    "test:playwright:firefox": "playwright test --project=firefox",
+    "test:playwright:webkit": "playwright test --project=webkit",
+    "test:playwright:report": "playwright show-report",
     "db:generate": "prisma generate",
     "db:generate:project": "prisma generate --schema=prisma/project-schema.prisma",
     "db:migrate": "prisma migrate dev",
@@ -88,6 +96,8 @@
     "zod": "^4.1.11"
   },
   "devDependencies": {
+    "@playwright/experimental-ct-react": "^1.55.1",
+    "@playwright/test": "^1.55.1",
     "@testing-library/jest-dom": "^6.8.0",
     "@testing-library/react": "^16.3.0",
     "@testing-library/user-event": "^14.6.1",

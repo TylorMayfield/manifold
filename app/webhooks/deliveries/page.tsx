@@ -7,6 +7,7 @@ import CellButton from "../../../components/ui/CellButton";
 import CellCard from "../../../components/ui/CellCard";
 import CellModal from "../../../components/ui/CellModal";
 import LoadingSpinner from "../../../components/ui/LoadingSpinner";
+import StatusBadge from "../../../components/ui/StatusBadge";
 import { useApi } from "../../../hooks/useApi";
 import {
   MessageSquare,
@@ -319,9 +320,10 @@ export default function WebhookDeliveriesPage() {
                       <td className="px-4 py-3">
                         <div className="flex items-center space-x-2">
                           {getStatusIcon(delivery.status)}
-                          <span className={`px-2 py-1 text-xs font-mono ${getStatusColor(delivery.status)}`}>
-                            {delivery.status}
-                          </span>
+                          <StatusBadge 
+                            status={delivery.status === 'success' ? 'completed' : delivery.status === 'failed' ? 'failed' : 'pending'} 
+                            label={delivery.status}
+                          />
                         </div>
                       </td>
                       <td className="px-4 py-3">

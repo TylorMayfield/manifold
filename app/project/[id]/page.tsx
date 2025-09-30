@@ -190,7 +190,7 @@ export default function ProjectOverviewPage() {
                 onClick={() =>
                   router.push(`/project/${projectId}/add-data-source`)
                 }
-                variant="outline"
+                variant="secondary"
                 className="w-full justify-start h-12"
               >
                 <div className="flex items-center gap-3">
@@ -208,7 +208,7 @@ export default function ProjectOverviewPage() {
                 onClick={() =>
                   router.push(`/project/${projectId}/workflows/new`)
                 }
-                variant="outline"
+                variant="secondary"
                 className="w-full justify-start h-12"
               >
                 <div className="flex items-center gap-3">
@@ -226,7 +226,7 @@ export default function ProjectOverviewPage() {
                 onClick={() =>
                   router.push(`/project/${projectId}/models/build`)
                 }
-                variant="outline"
+                variant="secondary"
                 className="w-full justify-start h-12"
               >
                 <div className="flex items-center gap-3">
@@ -242,7 +242,7 @@ export default function ProjectOverviewPage() {
 
               <CellButton
                 onClick={() => router.push(`/project/${projectId}/sql-editor`)}
-                variant="outline"
+                variant="secondary"
                 className="w-full justify-start h-12"
               >
                 <div className="flex items-center gap-3">

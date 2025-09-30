@@ -51,7 +51,7 @@ export interface MockProviderConfig extends ProviderConfig {
 }
 
 export class MockProvider extends BaseProvider {
-  private config: MockProviderConfig;
+  protected config: MockProviderConfig;
   private rng: () => number;
 
   // Mock data generators
@@ -396,9 +396,9 @@ export class MockProvider extends BaseProvider {
       case 'url':
         const protocol = this.rng() < 0.8 ? 'https' : 'http';
         const subdomain = this.rng() < 0.3 ? 'www.' : '';
-        const domain = this.randomFromArray(this.generators.companies).toLowerCase().replace(/\s+/g, '');
+        const domainName = this.randomFromArray(this.generators.companies).toLowerCase().replace(/\s+/g, '');
         const tld = this.randomFromArray(['com', 'org', 'net', 'io', 'co']);
-        return `${protocol}://${subdomain}${domain}.${tld}`;
+        return `${protocol}://${subdomain}${domainName}.${tld}`;
         
       case 'currency':
         const amount = this.randomInt(options.min ?? 100, options.max ?? 10000) / 100;

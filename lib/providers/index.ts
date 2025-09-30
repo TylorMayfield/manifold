@@ -141,7 +141,7 @@ export function getProvidersByCategory(category: string) {
   return Object.entries(PROVIDER_REGISTRY)
     .filter(([_, provider]) => provider.category === category)
     .reduce((acc, [key, provider]) => {
-      acc[key as keyof typeof PROVIDER_REGISTRY] = provider;
+      (acc as any)[key] = provider;
       return acc;
     }, {} as Partial<typeof PROVIDER_REGISTRY>);
 }

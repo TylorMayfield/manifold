@@ -284,6 +284,7 @@ export default function AddDataSourcePage() {
           />
         )}
       </div>
+      </div>
     </PageLayout>
   );
 }

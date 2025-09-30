@@ -16,7 +16,7 @@ export interface SqliteProviderConfig extends ProviderConfig {
 }
 
 export class SqliteProvider extends BaseDatabaseProvider {
-  private config: SqliteProviderConfig;
+  protected config: any; // Use any to avoid type conflicts with base class
   private db: Database.Database | null = null;
 
   constructor(config: ProviderConfig) {
@@ -40,7 +40,7 @@ export class SqliteProvider extends BaseDatabaseProvider {
     return 'SQLite';
   }
 
-  async validateConfig(config?: Partial<SqliteProviderConfig>): Promise<any> {
+  async validateConfig(config?: any): Promise<any> {
     const configToValidate = config ? { ...this.config, ...config } : this.config;
     const baseValidation = await super.validateConfig(configToValidate);
 

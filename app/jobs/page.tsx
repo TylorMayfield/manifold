@@ -9,6 +9,7 @@ import CellButton from "../../components/ui/CellButton";
 import CellCard from "../../components/ui/CellCard";
 import CellModal from "../../components/ui/CellModal";
 import CellInput from "../../components/ui/CellInput";
+import StatusBadge from "../../components/ui/StatusBadge";
 import DefaultJobsManager from "../../components/jobs/DefaultJobsManager";
 import {
   Play,
@@ -387,21 +388,16 @@ export default function JobsPage() {
                     Performance
                   </h4>
                   <div className="p-3 border border-gray-200 bg-gray-50">
-                    <div
-                      className={`px-2 py-1 text-xs font-mono rounded ${
+                    <StatusBadge 
+                      status={job.status} 
+                      label={
                         job.status === "active"
-                          ? "bg-green-100 text-green-800"
+                          ? "Healthy"
                           : job.status === "failed"
-                          ? "bg-red-100 text-red-800"
-                          : "bg-gray-100 text-gray-800"
-                      }`}
-                    >
-                      {job.status === "active"
-                        ? "Healthy"
-                        : job.status === "failed"
-                        ? "Requires attention"
-                        : "Monitor"}
-                    </div>
+                          ? "Requires attention"
+                          : "Monitor"
+                      }
+                    />
                   </div>
                 </div>
               </div>
@@ -566,3 +562,4 @@ export default function JobsPage() {
       </CellModal>
     </PageLayout>
   );
+}

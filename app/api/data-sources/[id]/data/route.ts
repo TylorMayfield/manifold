@@ -13,7 +13,7 @@ async function ensureDb() {
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const { searchParams } = new URL(request.url);
@@ -21,7 +21,8 @@ export async function GET(
     const offset = parseInt(searchParams.get('offset') || '0');
     
     const database = await ensureDb();
-    const dataSource = database.getDataSource(params.id);
+    const resolvedParams = await params;
+    const dataSource = database.getDataSource(resolvedParams.id);
     
     if (!dataSource) {
       return NextResponse.json(
@@ -35,7 +36,7 @@ export async function GET(
       // In a real implementation, this would use the appropriate provider
       // to fetch actual data from the configured source
       
-      let mockData = [];
+      let mockData: any[] = [];
       let totalCount = 0;
       
       switch (dataSource.type) {
@@ -101,7 +102,7 @@ export async function GET(
       });
       
     } catch (dataError) {
-      console.error(`Error fetching data for source ${params.id}:`, dataError);
+      console.error(`Error fetching data for source ${resolvedParams.id}:`, dataError);
       return NextResponse.json({
         data: [],
         totalCount: 0,

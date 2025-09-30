@@ -31,6 +31,8 @@ const sourceTypeIcons: Record<DataProviderType, React.ComponentType<any>> = {
   mysql: Database,
   postgres: Database,
   sqlite: Database,
+  javascript: Code,
+  sql: Database,
 };
 
 const sourceTypeColors: Record<DataProviderType, string> = {
@@ -42,6 +44,8 @@ const sourceTypeColors: Record<DataProviderType, string> = {
   mysql: "text-red-500",
   postgres: "text-indigo-500",
   sqlite: "text-gray-500",
+  javascript: "text-yellow-600",
+  sql: "text-purple-600",
 };
 
 export default function DataSourcesPage() {

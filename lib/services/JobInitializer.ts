@@ -3,11 +3,18 @@ import { logger } from "../utils/logger";
 
 export class JobInitializer {
   private static instance: JobInitializer;
-  private defaultJobsService: DefaultJobsService;
+  private defaultJobsService: DefaultJobsService | null = null;
   private initialized = false;
 
   private constructor() {
-    this.defaultJobsService = new DefaultJobsService();
+    // Lazy initialization - don't create service until needed
+  }
+
+  private getJobsService(): DefaultJobsService {
+    if (!this.defaultJobsService) {
+      this.defaultJobsService = new DefaultJobsService();
+    }
+    return this.defaultJobsService;
   }
 
   static getInstance(): JobInitializer {
@@ -39,12 +46,12 @@ export class JobInitializer {
 
         // Create only the missing jobs
         if (needsBackupJob) {
-          await this.defaultJobsService.createConfigBackupJob();
+          await this.getJobsService().createConfigBackupJob();
           logger.success("Default backup job created", "initialization", {}, "JobInitializer");
         }
 
         if (needsIntegrityJob) {
-          await this.defaultJobsService.createIntegrityCheckJob();
+          await this.getJobsService().createIntegrityCheckJob();
           logger.success("Default integrity check job created", "initialization", {}, "JobInitializer");
         }
       } else {

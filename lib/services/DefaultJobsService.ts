@@ -47,7 +47,7 @@ export class DefaultJobsService {
     }
   }
 
-  private async createConfigBackupJob(): Promise<void> {
+  public async createConfigBackupJob(): Promise<void> {
     const jobData = {
       name: "Core Config Backup",
       type: "backup",
@@ -70,7 +70,7 @@ export class DefaultJobsService {
     );
   }
 
-  private async createIntegrityCheckJob(): Promise<void> {
+  public async createIntegrityCheckJob(): Promise<void> {
     const jobData = {
       name: "Data Source Integrity Check",
       type: "integrity_check",
@@ -214,7 +214,7 @@ export class DefaultJobsService {
           : "Integrity check completed successfully - no issues found",
         details: {
           projectsChecked: projects.length,
-          totalDataSources: projects.reduce((sum, p) => sum + (p.dataSources?.length || 0), 0),
+          totalDataSources: projects.reduce((sum, p) => sum + ((p as any).dataSources?.length || 0), 0),
           issuesFound: issues.length,
           repairsMade: repairs.length,
           duration,
@@ -304,8 +304,8 @@ export class DefaultJobsService {
             const dataSourceDb = await this.dbManager.getDataSourceDb(projectId, dataSource.id);
             if (dataSourceDb) {
               // Check if database has data
-              const stats = await dataSourceDb.getStats();
-              if (stats.totalVersions === 0 && dataSource.lastSyncAt) {
+              const stats = await this.dbManager.getDataSourceStats(projectId, dataSource.id);
+              if (stats && stats.totalVersions === 0 && dataSource.lastSyncAt) {
                 issues.push(`Database exists but has no data versions despite last sync: ${dataSource.lastSyncAt}`);
               }
             }

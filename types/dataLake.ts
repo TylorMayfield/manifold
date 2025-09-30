@@ -1,5 +1,22 @@
 import { DataSource } from './index';
 
+export interface VersionRetentionPolicy {
+  strategy: 'keep-last' | 'keep-all' | 'keep-days';
+  value?: number;
+  autoCleanup?: boolean;
+}
+
+export interface DataSourceConfig {
+  id?: string;
+  name: string;
+  type: string;
+  config?: any;
+  lastSyncAt?: Date;
+  createdAt?: Date;
+  updatedAt?: Date;
+  versionRetention?: VersionRetentionPolicy;
+}
+
 export interface DataLake {
   id: string;
   projectId: string;

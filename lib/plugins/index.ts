@@ -3,8 +3,8 @@
 
 export * from './types'
 export * from './BasePlugin'
-export * from './PluginManager'
-export * from './PluginRegistry'
+export { PluginManager } from './PluginManager'
+export { PluginRegistry } from './PluginRegistry'
 export * from './PluginContext'
 
 // Built-in plugins
@@ -83,17 +83,15 @@ class PluginSystem {
   }
 
   private async registerBuiltInPlugins(): Promise<void> {
-    // Register CSV plugin
-    this.registry.register('data-source', CSVDataSourcePlugin)
-    
-    // Register SQL plugin
-    this.registry.register('data-source', SQLDataSourcePlugin)
+    // TODO: Register CSV and SQL plugins once plugin system is fully implemented
+    // this.registry.register('data-source', CSVDataSourcePlugin)
+    // this.registry.register('data-source', SQLDataSourcePlugin)
 
     this.context.logger.info(
-      'Built-in plugins registered',
+      'Built-in plugins registration skipped (pending implementation)',
       'plugin-system',
       { 
-        dataSourcePlugins: this.registry.getPluginIds('data-source').length 
+        dataSourcePlugins: 0
       }
     )
   }

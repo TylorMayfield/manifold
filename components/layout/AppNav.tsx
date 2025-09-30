@@ -77,12 +77,6 @@ const defaultNavItems: NavItem[] = [
     label: 'Logs',
     icon: FileText,
     description: 'Activity and monitoring'
-  },
-  {
-    href: '/settings',
-    label: 'Settings',
-    icon: Settings,
-    description: 'Configuration and preferences'
   }
 ];
 

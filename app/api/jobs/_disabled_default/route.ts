@@ -1,7 +1,17 @@
 import { NextRequest, NextResponse } from "next/server";
 import { DefaultJobsService } from "../../../../lib/services/DefaultJobsService";
 
-const defaultJobsService = new DefaultJobsService();
+// Force dynamic rendering to avoid build-time database initialization
+export const dynamic = 'force-dynamic';
+
+let defaultJobsService: DefaultJobsService | null = null;
+
+function getJobsService() {
+  if (!defaultJobsService) {
+    defaultJobsService = new DefaultJobsService();
+  }
+  return defaultJobsService;
+}
 
 export async function GET(request: NextRequest) {
   try {
@@ -58,12 +68,12 @@ export async function POST(request: NextRequest) {
 }
 
 async function getJobStatus() {
-  const status = await defaultJobsService.getJobStatus();
+  const status = await getJobsService().getJobStatus();
   return NextResponse.json(status);
 }
 
 async function createDefaultJobs() {
-  await defaultJobsService.createDefaultJobs();
+  await getJobsService().createDefaultJobs();
   return NextResponse.json({ 
     success: true, 
     message: "Default jobs created successfully" 
@@ -71,6 +81,6 @@ async function createDefaultJobs() {
 }
 
 async function runJobManually(jobType: 'backup' | 'integrity_check') {
-  const result = await defaultJobsService.runJobManually(jobType);
+  const result = await getJobsService().runJobManually(jobType);
   return NextResponse.json(result);
 }

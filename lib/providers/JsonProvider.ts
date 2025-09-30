@@ -35,7 +35,7 @@ export interface JsonProviderConfig extends ProviderConfig {
 }
 
 export class JsonProvider extends BaseProvider {
-  private config: JsonProviderConfig;
+  protected config: JsonProviderConfig;
 
   constructor(config: ProviderConfig) {
     super(config);

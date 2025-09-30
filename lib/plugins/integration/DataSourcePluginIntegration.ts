@@ -2,7 +2,7 @@
 // Integration layer between the plugin system and existing data source workflow
 
 import { getPluginManager, initializePluginSystem } from '../index'
-import { DataProviderType } from '../../types'
+import { DataProviderType } from '../../../types'
 import { logger } from '../../utils/logger'
 
 export class DataSourcePluginIntegration {

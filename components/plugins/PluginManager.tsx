@@ -111,7 +111,7 @@ export default function PluginManager({ className }: PluginManagerProps) {
 
   const discoverPlugins = async () => {
     try {
-      await handlePluginAction('discover')
+      await handlePluginAction('discover', '')
     } catch (error) {
       // Error is already set in handlePluginAction
     }
@@ -281,12 +281,12 @@ export default function PluginManager({ className }: PluginManagerProps) {
                     </div>
                   </div>
                   
-                  <CellStack direction="horizontal" spacing="sm">
-                    <CellButton
-                      variant={plugin.enabled ? 'danger' : 'success'}
-                      size="sm"
-                      onClick={() => togglePlugin(plugin.id, !plugin.enabled)}
-                    >
+                    <CellStack direction="horizontal" spacing="sm">
+                      <CellButton
+                        variant={plugin.enabled ? 'danger' : 'primary'}
+                        size="sm"
+                        onClick={() => togglePlugin(plugin.id, !plugin.enabled)}
+                      >
                       {plugin.enabled ? (
                         <>
                           <Square className="w-4 h-4 mr-1" />

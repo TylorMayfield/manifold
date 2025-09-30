@@ -229,7 +229,7 @@ export default function DesignSystemDemo() {
               <CellProgress 
                 value={75} 
                 max={100}
-                variant="info"
+                variant="default"
               />
               
               <div className="flex gap-2">

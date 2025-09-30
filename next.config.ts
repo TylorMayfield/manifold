@@ -13,7 +13,13 @@ const nextConfig: NextConfig = {
       fs: false,
       net: false,
       tls: false,
+      electron: false, // Don't try to bundle electron
     };
+    // Externalize electron to prevent bundling
+    config.externals = config.externals || [];
+    if (Array.isArray(config.externals)) {
+      config.externals.push('electron');
+    }
     return config;
   },
 };

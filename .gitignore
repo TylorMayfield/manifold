@@ -43,3 +43,9 @@ next-env.d.ts
 
 /lib/generated/prisma
 *.db
+
+# Playwright
+test-results/
+playwright-report/
+playwright/.cache/
+*.md

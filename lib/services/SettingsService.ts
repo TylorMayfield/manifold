@@ -36,6 +36,8 @@ if (typeof window === 'undefined' && typeof process !== 'undefined') {
 }
 
 export interface AppSettings {
+  [key: string]: any; // Allow additional dynamic properties
+  
   // General Settings
   applicationName: string
   defaultTimezone: string

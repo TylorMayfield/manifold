@@ -8,6 +8,7 @@ import CellCard from "../../components/ui/CellCard";
 import CellModal from "../../components/ui/CellModal";
 import CellInput from "../../components/ui/CellInput";
 import LoadingSpinner from "../../components/ui/LoadingSpinner";
+import StatusBadge from "../../components/ui/StatusBadge";
 import { useApi } from "../../hooks/useApi";
 import {
   Webhook,
@@ -305,9 +306,10 @@ export default function WebhooksPage() {
                       <div>
                         <h3 className="font-mono font-bold">{webhook.name}</h3>
                         <div className="flex items-center space-x-2 mt-1">
-                          <span className={`px-2 py-1 text-xs font-mono ${getWebhookTypeColor(webhook.type)}`}>
-                            {webhook.type.toUpperCase()}
-                          </span>
+                          <StatusBadge 
+                            status={webhook.type === 'slack' ? 'active' : webhook.type === 'discord' ? 'completed' : 'pending'} 
+                            label={webhook.type.toUpperCase()} 
+                          />
                           <span className="text-caption text-gray-600">
                             {webhook.events.length} event{webhook.events.length !== 1 ? 's' : ''}
                           </span>
@@ -317,13 +319,10 @@ export default function WebhooksPage() {
                   </div>
 
                   <div className="flex items-center space-x-2">
-                    <div className={`px-2 py-1 text-xs font-mono ${
-                      webhook.isEnabled 
-                        ? 'bg-green-100 text-green-800' 
-                        : 'bg-gray-100 text-gray-800'
-                    }`}>
-                      {webhook.isEnabled ? 'Enabled' : 'Disabled'}
-                    </div>
+                    <StatusBadge 
+                      status={webhook.isEnabled ? 'active' : 'paused'} 
+                      label={webhook.isEnabled ? 'Enabled' : 'Disabled'}
+                    />
                     
                     <CellButton
                       variant="ghost"
@@ -401,9 +400,10 @@ export default function WebhooksPage() {
                       </div>
                       
                       <div className="flex items-center space-x-2">
-                        <span className={`px-2 py-1 text-xs font-mono ${getDeliveryStatusColor(delivery.status)}`}>
-                          {delivery.status}
-                        </span>
+                        <StatusBadge 
+                          status={delivery.status === 'success' ? 'completed' : delivery.status === 'failed' ? 'failed' : 'pending'} 
+                          label={delivery.status}
+                        />
                         {delivery.httpStatus && (
                           <span className="text-caption text-gray-600">
                             HTTP {delivery.httpStatus}

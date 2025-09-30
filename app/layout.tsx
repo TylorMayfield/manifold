@@ -6,6 +6,7 @@ import { DataSourceProvider } from "../contexts/DataSourceContext";
 import { SettingsProvider } from "../contexts/SettingsContext";
 import ClientOnly from "../components/providers/ClientOnly";
 import TransitionProvider from "../components/providers/TransitionProvider";
+import StatusFooter from "../components/layout/StatusFooter";
 
 const inter = Inter({
   variable: "--font-inter",
@@ -44,7 +45,10 @@ export default function RootLayout({
           <SettingsProvider>
             <LogProvider>
               <DataSourceProvider>
-                <TransitionProvider>{children}</TransitionProvider>
+                <TransitionProvider>
+                  {children}
+                  <StatusFooter />
+                </TransitionProvider>
               </DataSourceProvider>
             </LogProvider>
           </SettingsProvider>

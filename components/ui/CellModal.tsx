@@ -60,17 +60,28 @@ const CellModal: React.FC<CellModalProps> = ({
       <div 
         className="absolute inset-0 cell-modal-backdrop"
         onClick={onClose}
+        aria-hidden="true"
       />
       
       {/* Modal */}
-      <div className={cn(
-        "relative w-full cell-modal animate-pop-in",
-        sizeClasses[size]
-      )}>
+      <div 
+        className={cn(
+          "relative w-full cell-modal animate-pop-in",
+          sizeClasses[size]
+        )}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="modal-title"
+      >
         {/* Header */}
         <div className="flex items-center justify-between p-6 border-b-2 border-black">
-          <h2 className="text-heading font-bold">{title}</h2>
-          <CellButton variant="ghost" size="sm" onClick={onClose}>
+          <h2 id="modal-title" className="text-heading font-bold">{title}</h2>
+          <CellButton 
+            variant="ghost" 
+            size="sm" 
+            onClick={onClose}
+            aria-label="Close modal"
+          >
             <X className="w-4 h-4" />
           </CellButton>
         </div>

@@ -144,15 +144,17 @@ export default function CreateJobPage() {
               </div>
 
               <div className="md:col-span-2">
-                <CellInput
-                  label="Description"
+                <label className="block text-sm font-medium text-white mb-2">
+                  Description
+                </label>
+                <textarea
                   value={formData.description}
                   onChange={(e) =>
                     setFormData({ ...formData, description: e.target.value })
                   }
                   placeholder="Describe what this job does..."
-                  multiline
                   rows={3}
+                  className="w-full px-3 py-2 bg-white/10 border-2 border-black rounded-lg text-white placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-apricot-400"
                 />
               </div>
 

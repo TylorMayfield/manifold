@@ -4,19 +4,21 @@ import React from 'react';
 import { cn } from '../../lib/utils/cn';
 
 export interface CellCardProps extends React.HTMLAttributes<HTMLDivElement> {
-  variant?: 'default' | 'elevated' | 'flat';
+  title?: string;
+  variant?: 'default' | 'elevated' | 'flat' | 'accent';
   padding?: 'none' | 'sm' | 'md' | 'lg';
   children: React.ReactNode;
 }
 
 const CellCard = React.forwardRef<HTMLDivElement, CellCardProps>(
-  ({ className, variant = 'default', padding = 'md', children, ...props }, ref) => {
+  ({ className, title, variant = 'default', padding = 'md', children, ...props }, ref) => {
     const baseStyles = "bg-white border-2 border-black";
     
     const variants = {
       default: "shadow-cell",
       elevated: "shadow-cell-lg",
-      flat: "shadow-none"
+      flat: "shadow-none",
+      accent: "shadow-cell bg-accent border-black"
     };
 
     const paddings = {
@@ -37,6 +39,11 @@ const CellCard = React.forwardRef<HTMLDivElement, CellCardProps>(
         ref={ref}
         {...props}
       >
+        {title && (
+          <h3 className="text-lg font-bold mb-3 pb-3 border-b-2 border-black">
+            {title}
+          </h3>
+        )}
         {children}
       </div>
     );
