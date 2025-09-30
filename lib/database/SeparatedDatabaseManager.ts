@@ -1,4 +1,4 @@
-import Database from "better-sqlite3";
+import initSqlJs, { Database as SqlJsDatabase } from "sql.js";
 import path from "path";
 import fs from "fs";
 import { logger } from "../utils/logger";
@@ -40,7 +40,8 @@ export interface DataSourceMetadata {
   projectId: string;
   dataSourceId: string;
   dbPath: string;
-  db: Database.Database | null;
+  db: SqlJsDatabase | null;
+  SQL: any;
 }
 
 /**
@@ -92,16 +93,19 @@ export class SeparatedDatabaseManager {
   /**
    * Get or create a database connection for a data source
    */
-  async getDataSourceDb(projectId: string, dataSourceId: string): Promise<Database.Database> {
+  async getDataSourceDb(projectId: string, dataSourceId: string): Promise<SqlJsDatabase> {
     const key = `${projectId}_${dataSourceId}`;
     
     if (!this.databases.has(key)) {
       const dbPath = this.getDataSourceDbPath(projectId, dataSourceId);
+      const SQL = await initSqlJs();
+      
       const metadata: DataSourceMetadata = {
         projectId,
         dataSourceId,
         dbPath,
         db: null,
+        SQL,
       };
       
       this.databases.set(key, metadata);
@@ -110,20 +114,27 @@ export class SeparatedDatabaseManager {
     const metadata = this.databases.get(key)!;
     
     if (!metadata.db) {
-      // Create database connection
-      if (!fs.existsSync(metadata.dbPath)) {
-        const dbDir = path.dirname(metadata.dbPath);
-        if (!fs.existsSync(dbDir)) {
-          fs.mkdirSync(dbDir, { recursive: true });
-        }
+      // Ensure directory exists
+      const dbDir = path.dirname(metadata.dbPath);
+      if (!fs.existsSync(dbDir)) {
+        fs.mkdirSync(dbDir, { recursive: true });
       }
 
-      metadata.db = new Database(metadata.dbPath);
-      metadata.db.pragma("journal_mode = WAL");
-      metadata.db.pragma("foreign_keys = ON");
+      // Load existing database or create new one
+      if (fs.existsSync(metadata.dbPath)) {
+        const buffer = fs.readFileSync(metadata.dbPath);
+        metadata.db = new metadata.SQL.Database(buffer);
+      } else {
+        metadata.db = new metadata.SQL.Database();
+      }
+
+      metadata.db.run("PRAGMA foreign_keys = ON");
       
       // Initialize tables
       this.initializeTables(metadata.db);
+      
+      // Save to disk
+      this.saveDatabase(metadata);
       
       logger.info("Data source database opened", "database", {
         projectId,
@@ -136,10 +147,45 @@ export class SeparatedDatabaseManager {
   }
 
   /**
+   * Save database to disk
+   */
+  private saveDatabase(metadata: DataSourceMetadata): void {
+    if (!metadata.db) return;
+    const data = metadata.db.export();
+    const buffer = Buffer.from(data);
+    fs.writeFileSync(metadata.dbPath, buffer);
+  }
+
+  /**
+   * Helper to run queries and get all results
+   */
+  private queryAll(db: SqlJsDatabase, sql: string, params: any[] = []): any[] {
+    const results = db.exec(sql, params);
+    if (results.length === 0) return [];
+    
+    const { columns, values } = results[0];
+    return values.map(row => {
+      const obj: any = {};
+      columns.forEach((col, i) => {
+        obj[col] = row[i];
+      });
+      return obj;
+    });
+  }
+
+  /**
+   * Helper to run queries and get first result
+   */
+  private queryOne(db: SqlJsDatabase, sql: string, params: any[] = []): any | null {
+    const results = this.queryAll(db, sql, params);
+    return results.length > 0 ? results[0] : null;
+  }
+
+  /**
    * Initialize database tables
    */
-  private initializeTables(db: Database.Database): void {
-    db.exec(`
+  private initializeTables(db: SqlJsDatabase): void {
+    db.run(`
       CREATE TABLE IF NOT EXISTS data_versions (
         id TEXT PRIMARY KEY,
         version INTEGER NOT NULL,
@@ -180,41 +226,40 @@ export class SeparatedDatabaseManager {
   ): Promise<ImportResult> {
     try {
       const db = await this.getDataSourceDb(projectId, dataSourceId);
+      const metadata = this.databases.get(`${projectId}_${dataSourceId}`)!;
       
       // Create new version
       const versionId = `v_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
       const version = this.getNextVersion(db);
       
-      // Begin transaction
-      const insertVersion = db.prepare(`
-        INSERT INTO data_versions (id, version, recordCount, createdAt, metadata)
-        VALUES (?, ?, ?, ?, ?)
-      `);
-
-      const insertRecord = db.prepare(`
-        INSERT INTO data_records (versionId, recordData, createdAt)
-        VALUES (?, ?, ?)
-      `);
-
-      const transaction = db.transaction(() => {
-        insertVersion.run(
+      // Insert version record
+      db.run(
+        `INSERT INTO data_versions (id, version, recordCount, createdAt, metadata)
+         VALUES (?, ?, ?, ?, ?)`,
+        [
           versionId,
           version,
           data.length,
           new Date().toISOString(),
           JSON.stringify(schema || {})
-        );
+        ]
+      );
 
-        for (const record of data) {
-          insertRecord.run(
+      // Insert all records
+      for (const record of data) {
+        db.run(
+          `INSERT INTO data_records (versionId, recordData, createdAt)
+           VALUES (?, ?, ?)`,
+          [
             versionId,
             JSON.stringify(record),
             new Date().toISOString()
-          );
-        }
-      });
+          ]
+        );
+      }
 
-      transaction();
+      // Save to disk
+      this.saveDatabase(metadata);
 
       logger.success("Data imported successfully", "database", {
         projectId,
@@ -252,13 +297,13 @@ export class SeparatedDatabaseManager {
   /**
    * Get next version number for a data source
    */
-  private getNextVersion(db: Database.Database): number {
-    const result = db.prepare(`
+  private getNextVersion(db: SqlJsDatabase): number {
+    const result = this.queryOne(db, `
       SELECT COALESCE(MAX(version), 0) + 1 as nextVersion
       FROM data_versions
-    `).get() as { nextVersion: number };
+    `);
     
-    return result.nextVersion;
+    return result ? result.nextVersion : 1;
   }
 
   /**
@@ -280,26 +325,26 @@ export class SeparatedDatabaseManager {
       } = options;
 
       // Get latest version
-      const latestVersion = db.prepare(`
+      const latestVersion = this.queryOne(db, `
         SELECT id FROM data_versions
         ORDER BY version DESC
         LIMIT 1
-      `).get() as { id: string } | undefined;
+      `);
 
       if (!latestVersion) {
         return [];
       }
 
       // Get records from latest version
-      const records = db.prepare(`
+      const records = this.queryAll(db, `
         SELECT recordData
         FROM data_records
         WHERE versionId = ?
         ORDER BY ${orderBy} ${orderDirection}
         LIMIT ? OFFSET ?
-      `).all(latestVersion.id, limit, offset) as { recordData: string }[];
+      `, [latestVersion.id, limit, offset]);
 
-      return records.map(r => JSON.parse(r.recordData));
+      return records.map((r: any) => JSON.parse(r.recordData));
     } catch (error) {
       logger.error("Failed to get data source data", "database", {
         projectId,
@@ -455,19 +500,19 @@ export class SeparatedDatabaseManager {
     try {
       const db = await this.getDataSourceDb(projectId, dataSourceId);
       
-      const stats = db.prepare(`
+      const stats = this.queryOne(db, `
         SELECT 
           COUNT(DISTINCT id) as totalVersions,
           COALESCE(SUM(recordCount), 0) as totalRecords,
           MAX(version) as latestVersion,
           MIN(version) as oldestVersion
         FROM data_versions
-      `).get() as any;
+      `) || { totalVersions: 0, totalRecords: 0, latestVersion: null, oldestVersion: null };
 
-      const latestImport = db.prepare(`
+      const latestImport = this.queryOne(db, `
         SELECT createdAt FROM data_versions
         ORDER BY createdAt DESC LIMIT 1
-      `).get() as { createdAt: string } | undefined;
+      `);
 
       return {
         ...stats,
@@ -493,11 +538,11 @@ export class SeparatedDatabaseManager {
     try {
       const db = await this.getDataSourceDb(projectId, dataSourceId);
       
-      const versions = db.prepare(`
+      const versions = this.queryAll(db, `
         SELECT id, version, recordCount, createdAt, metadata
         FROM data_versions
         ORDER BY version DESC
-      `).all();
+      `);
 
       return versions.map((v: any) => ({
         ...v,
@@ -789,15 +834,18 @@ export class SeparatedDatabaseManager {
       `);
 
       // Store retention policy
-      const stmt = db.prepare(`
-        INSERT OR REPLACE INTO datasource_metadata (key, value, updatedAt)
-        VALUES ('retentionPolicy', ?, ?)
-      `);
-
-      stmt.run(
-        JSON.stringify(policy),
-        new Date().toISOString()
+      db.run(
+        `INSERT OR REPLACE INTO datasource_metadata (key, value, updatedAt)
+         VALUES ('retentionPolicy', ?, ?)`,
+        [
+          JSON.stringify(policy),
+          new Date().toISOString()
+        ]
       );
+
+      // Save to disk
+      const metadata = this.databases.get(`${projectId}_${dataSourceId}`)!;
+      this.saveDatabase(metadata);
 
       logger.info("Retention policy set", "database", {
         projectId,

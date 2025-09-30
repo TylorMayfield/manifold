@@ -30,10 +30,7 @@ export class SimpleSQLiteDB {
     try {
       // Initialize sql.js
       if (!this.SQL) {
-        this.SQL = await initSqlJs({
-          // Use CDN for WASM file or provide local path
-          locateFile: (file) => `https://sql.js.org/dist/${file}`
-        });
+        this.SQL = await initSqlJs();
       }
 
       // Load existing database or create new one
