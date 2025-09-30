@@ -130,6 +130,7 @@
     "files": [
       "out/**/*",
       "public/electron.js",
+      "public/lib/**/*",
       "node_modules/**/*"
     ],
     "asarUnpack": [
@@ -139,7 +140,9 @@
       "category": "public.app-category.developer-tools"
     },
     "win": {
-      "target": "nsis"
+      "target": "nsis",
+      "sign": null,
+      "verifyUpdateCodeSignature": false
     },
     "linux": {
       "target": "AppImage"
