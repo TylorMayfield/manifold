@@ -125,13 +125,13 @@ export default function DataBrowserPage() {
             </CellButton>
           )}
           <CellButton 
-            variant="ghost" 
+            variant="secondary" 
             size="sm"
             onClick={loadDataSources}
             disabled={loading}
           >
             <RefreshCw className={`w-4 h-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
-            Refresh
+            <span className="text-white">Refresh</span>
           </CellButton>
         </div>
       }
@@ -142,9 +142,9 @@ export default function DataBrowserPage() {
       ) : error ? (
         <CellCard className="p-12 text-center">
           <AlertTriangle className="w-16 h-16 mx-auto mb-4 text-red-400" />
-          <h2 className="text-heading mb-4">Error Loading Data</h2>
-          <p className="text-body text-gray-600 mb-6">{error}</p>
-          <CellButton onClick={loadDataSources}>
+          <h2 className="text-heading mb-4 text-white">Error Loading Data</h2>
+          <p className="text-body text-gray-400 mb-6">{error}</p>
+          <CellButton onClick={loadDataSources} variant="accent">
             <RefreshCw className="w-4 h-4 mr-2" />
             Try Again
           </CellButton>
@@ -154,12 +154,12 @@ export default function DataBrowserPage() {
           {/* Data Sources Sidebar */}
           <div className="lg:col-span-1">
             <CellCard className="p-4">
-              <h2 className="text-subheading mb-4">Data Sources</h2>
+              <h2 className="text-subheading mb-4 text-white font-mono">Data Sources</h2>
               
               {dataSources.length === 0 ? (
                 <div className="text-center py-8">
-                  <Database className="w-12 h-12 mx-auto mb-4 text-gray-300" />
-                  <p className="text-caption text-gray-600">No data sources found</p>
+                  <Database className="w-12 h-12 mx-auto mb-4 text-gray-600" />
+                  <p className="text-caption text-gray-400">No data sources found</p>
                   <p className="text-caption text-gray-500 mt-2">Add data sources to explore your data</p>
                 </div>
               ) : (
@@ -167,35 +167,35 @@ export default function DataBrowserPage() {
                   {dataSources.map((source) => {
                     const getTypeIcon = (type: string) => {
                       switch (type) {
-                        case 'csv': return <FileText className="w-4 h-4" />;
-                        case 'mysql': return <Database className="w-4 h-4" />;
-                        case 'json': return <FileText className="w-4 h-4" />;
-                        case 'api_script': return <Database className="w-4 h-4" />;
-                        default: return <Database className="w-4 h-4" />;
+                        case 'csv': return <FileText className="w-4 h-4 text-blue-400" />;
+                        case 'mysql': return <Database className="w-4 h-4 text-green-400" />;
+                        case 'json': return <FileText className="w-4 h-4 text-green-400" />;
+                        case 'api_script': return <Database className="w-4 h-4 text-orange-400" />;
+                        default: return <Database className="w-4 h-4 text-gray-400" />;
                       }
                     };
                     
                     return (
                       <div
                         key={source.id}
-                        className={`p-3 border border-gray-300 rounded-md cursor-pointer transition-colors ${
+                        className={`p-3 border-2 rounded-md cursor-pointer transition-all ${
                           selectedSource?.id === source.id 
-                            ? 'bg-dark_cyan-600 text-white border-dark_cyan-600' 
-                            : 'bg-white hover:bg-gray-50'
+                            ? 'bg-gradient-to-br from-blue-900/40 to-blue-800/40 border-blue-500 shadow-[2px_2px_0px_0px_rgba(59,130,246,0.3)]' 
+                            : 'bg-gray-800/50 border-gray-700 hover:border-gray-600 hover:bg-gray-800'
                         }`}
                         onClick={() => setSelectedSource(source)}
                       >
                         <div className="flex items-center space-x-2 mb-1">
                           {getTypeIcon(source.type)}
-                          <span className="font-bold text-sm">{source.name}</span>
+                          <span className="font-bold text-sm text-white">{source.name}</span>
                         </div>
-                        <div className="text-xs opacity-75">
+                        <div className="text-xs text-gray-400">
                           <div>{source.type.toUpperCase()}</div>
                           <div>
                             {source.error ? (
                               <span className="text-red-400">Error loading</span>
                             ) : (
-                              `${source.data.length} / ${source.totalCount} records`
+                              `${source.totalCount.toLocaleString()} records`
                             )}
                           </div>
                         </div>
@@ -205,15 +205,22 @@ export default function DataBrowserPage() {
                 </div>
               )}
             </CellCard>
+            
+            {/* Note about enhanced version */}
+            <div className="p-3 bg-blue-500/10 border-2 border-blue-600/30 rounded-md">
+              <p className="text-xs text-blue-300 font-mono">
+                💡 <strong>Tip:</strong> For version history and diff capabilities, check out page.enhanced.tsx
+              </p>
+            </div>
           </div>
 
           {/* Data Viewer */}
           <div className="lg:col-span-3">
             {!selectedSource ? (
               <CellCard className="p-12 text-center">
-                <Eye className="w-16 h-16 mx-auto mb-4 text-gray-300" />
-                <h2 className="text-heading mb-4">Select a Data Source</h2>
-                <p className="text-body text-gray-600">
+                <Eye className="w-16 h-16 mx-auto mb-4 text-gray-600" />
+                <h2 className="text-heading mb-4 text-white">Select a Data Source</h2>
+                <p className="text-body text-gray-400">
                   Choose a data source from the sidebar to browse its data.
                 </p>
               </CellCard>
@@ -222,12 +229,12 @@ export default function DataBrowserPage() {
                 {/* Table Header */}
                 <div className="flex items-center justify-between mb-6">
                   <div>
-                    <h2 className="text-subheading font-bold">{selectedSource.name}</h2>
-                    <p className="text-caption text-gray-600">
-                      Type: {selectedSource.type.toUpperCase()} • {selectedSource.totalCount} total records
+                    <h2 className="text-subheading font-bold text-white font-mono">{selectedSource.name}</h2>
+                    <p className="text-caption text-gray-400">
+                      Type: {selectedSource.type.toUpperCase()} • {selectedSource.totalCount.toLocaleString()} total records
                     </p>
                     {selectedSource.error && (
-                      <p className="text-caption text-red-600 mt-1">
+                      <p className="text-caption text-red-400 mt-1">
                         ⚠️ {selectedSource.error}
                       </p>
                     )}
@@ -243,7 +250,7 @@ export default function DataBrowserPage() {
                     }}
                     className="w-64"
                   />
-                  <CellButton variant="ghost" size="sm">
+                  <CellButton variant="secondary" size="sm">
                     <Filter className="w-4 h-4" />
                   </CellButton>
                 </div>
@@ -253,17 +260,17 @@ export default function DataBrowserPage() {
                 {selectedSource.error ? (
                   <div className="text-center py-12">
                     <AlertTriangle className="w-12 h-12 mx-auto mb-4 text-red-400" />
-                    <p className="text-body text-red-600">
+                    <p className="text-body text-red-400">
                       Unable to load data from this source.
                     </p>
-                    <p className="text-caption text-gray-600 mt-2">
+                    <p className="text-caption text-gray-400 mt-2">
                       {selectedSource.error}
                     </p>
                   </div>
                 ) : filteredData.length === 0 ? (
                   <div className="text-center py-12">
-                    <Search className="w-12 h-12 mx-auto mb-4 text-gray-300" />
-                    <p className="text-body text-gray-600">
+                    <Search className="w-12 h-12 mx-auto mb-4 text-gray-600" />
+                    <p className="text-body text-gray-400">
                       {searchTerm ? 'No results found for your search.' : 'No data available.'}
                     </p>
                   </div>
@@ -297,13 +304,13 @@ export default function DataBrowserPage() {
                   {/* Pagination */}
                   {totalPages > 1 && (
                     <div className="flex items-center justify-between">
-                      <div className="text-caption">
+                      <div className="text-caption text-gray-400 font-mono">
                         Showing {startIndex + 1} to {Math.min(startIndex + pageSize, filteredData.length)} of {filteredData.length} results
                       </div>
                       
                       <div className="flex items-center space-x-2">
                         <CellButton
-                          variant="ghost"
+                          variant="secondary"
                           size="sm"
                           onClick={() => setCurrentPage(Math.max(1, currentPage - 1))}
                           disabled={currentPage === 1}
@@ -311,12 +318,12 @@ export default function DataBrowserPage() {
                           <ChevronLeft className="w-4 h-4" />
                         </CellButton>
                         
-                        <span className="font-mono text-sm px-3 py-1 border border-gray-300 bg-white rounded">
+                        <span className="font-mono text-sm px-3 py-1 border-2 border-gray-700 bg-gray-800 text-white rounded">
                           {currentPage} / {totalPages}
                         </span>
                         
                         <CellButton
-                          variant="ghost"
+                          variant="secondary"
                           size="sm"
                           onClick={() => setCurrentPage(Math.min(totalPages, currentPage + 1))}
                           disabled={currentPage === totalPages}
