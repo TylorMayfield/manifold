@@ -911,15 +911,16 @@ export class SeparatedDatabaseManager {
           MIN(createdAt) as oldest,
           MAX(createdAt) as newest
         FROM data_versions
-      `) as { total: number || null; oldest: string; newest: string };
+      `) as { total: number | null; oldest: string; newest: string } | null;
 
       let estimatedDeletable = 0;
+      const total = versionInfo?.total || 0;
 
       if (policy) {
         switch (policy.strategy) {
           case 'keep-last':
             const keepCount = policy.value || 10;
-            estimatedDeletable = Math.max(0, versionInfo.total - keepCount);
+            estimatedDeletable = Math.max(0, total - keepCount);
             break;
 
           case 'keep-days':
@@ -941,9 +942,9 @@ export class SeparatedDatabaseManager {
 
       return {
         policy,
-        totalVersions: versionInfo.total,
-        oldestVersion: versionInfo.oldest ? new Date(versionInfo.oldest) : null,
-        newestVersion: versionInfo.newest ? new Date(versionInfo.newest) : null,
+        totalVersions: total,
+        oldestVersion: versionInfo?.oldest ? new Date(versionInfo.oldest) : null,
+        newestVersion: versionInfo?.newest ? new Date(versionInfo.newest) : null,
         estimatedDeletableVersions: estimatedDeletable
       };
     } catch (error) {
