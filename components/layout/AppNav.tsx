@@ -97,7 +97,9 @@ export default function AppNav({
     if (href === '/') {
       return pathname === '/';
     }
-    return pathname.startsWith(href);
+    // Exact match or starts with href followed by a slash
+    // This prevents /data from matching /data-lakes
+    return pathname === href || pathname.startsWith(href + '/');
   };
 
   if (variant === 'vertical') {
