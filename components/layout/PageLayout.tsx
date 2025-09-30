@@ -57,14 +57,14 @@ export default function PageLayout({
   };
 
   return (
-    <div className={cn("min-h-screen bg-white", className)}>
+    <div className={cn("min-h-screen bg-gradient-to-br from-gray-900 via-black to-gray-900", className)}>
       {/* Header */}
-      <header className="cell-nav">
+      <header className="bg-gradient-to-r from-gray-900 via-gray-800 to-gray-900 border-b-2 border-gray-700 shadow-lg">
         <div className="flex items-center justify-between p-4">
           <div className="flex items-center space-x-4">
             {showBackButton && (
               <CellButton
-                variant="ghost"
+                variant="secondary"
                 size="sm"
                 onClick={handleBack}
               >
@@ -73,11 +73,11 @@ export default function PageLayout({
             )}
             
             <div className="flex items-center space-x-3">
-              {Icon && <Icon className="w-6 h-6" />}
+              {Icon && <Icon className="w-6 h-6 text-blue-400" />}
               <div>
-                <h1 className="text-heading font-bold">{title}</h1>
+                <h1 className="text-heading font-bold font-mono text-white">{title}</h1>
                 {subtitle && (
-                  <span className="text-caption text-gray-600">{subtitle}</span>
+                  <span className="text-caption text-gray-400">{subtitle}</span>
                 )}
               </div>
             </div>
@@ -85,35 +85,28 @@ export default function PageLayout({
 
           <div className="flex items-center space-x-2">
             {headerActions}
-            <CellButton 
-              variant="ghost" 
-              size="sm"
-              onClick={() => router.push('/settings')}
-            >
-              <Settings className="w-4 h-4" />
-            </CellButton>
           </div>
         </div>
       </header>
 
       {/* Breadcrumbs */}
       {breadcrumbs && breadcrumbs.length > 0 && (
-        <div className="border-b-2 border-gray-100 px-4 py-2">
+        <div className="border-b-2 border-gray-800 px-4 py-2 bg-gray-900/50">
           <nav className="flex" aria-label="Breadcrumb">
             {breadcrumbs.map((crumb, index) => (
               <div key={index} className="flex items-center">
                 {index > 0 && (
-                  <span className="mx-2 text-gray-400">/</span>
+                  <span className="mx-2 text-gray-600">/</span>
                 )}
                 {crumb.href ? (
                   <button
                     onClick={() => router.push(crumb.href!)}
-                    className="text-sm font-mono hover:underline text-gray-600"
+                    className="text-sm font-mono hover:underline text-gray-400 hover:text-white transition-colors"
                   >
                     {crumb.label}
                   </button>
                 ) : (
-                  <span className="text-sm font-mono text-gray-900">
+                  <span className="text-sm font-mono text-white">
                     {crumb.label}
                   </span>
                 )}

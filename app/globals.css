@@ -5,15 +5,21 @@
 
 @layer base {
   :root {
-    /* Cell-shaded color variables */
-    --background: #ffffff;
-    --foreground: #000000;
-    --surface: #f8f9fa;
+    /* Dark Cell-shaded color variables */
+    --background: #0a0a0a;
+    --foreground: #ffffff;
+    --surface: #1a1a1a;
+    --surface-elevated: #252525;
     --border: #000000;
-    --accent: #0066ff;
+    --border-light: #404040;
+    --accent: #3b82f6;
+    --accent-glow: rgba(59, 130, 246, 0.2);
     --success: #22c55e;
+    --success-glow: rgba(34, 197, 94, 0.2);
     --warning: #f59e0b;
+    --warning-glow: rgba(245, 158, 11, 0.2);
     --error: #ef4444;
+    --error-glow: rgba(239, 68, 68, 0.2);
   }
 
   * {
@@ -27,28 +33,57 @@
   }
 
   body {
-    background-color: var(--background);
+    background: linear-gradient(135deg, #0a0a0a 0%, #1a1a1a 50%, #0f0f0f 100%);
+    background-attachment: fixed;
     color: var(--foreground);
     font-feature-settings: "rlig" 1, "calt" 1;
     line-height: 1.5;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
     padding-bottom: 72px; /* Space for status footer */
+    min-height: 100vh;
+  }
+
+  /* Add subtle noise texture for depth */
+  body::before {
+    content: '';
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    opacity: 0.03;
+    pointer-events: none;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 400 400' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E");
+    z-index: -1;
   }
 }
 
 @layer components {
-  /* Cell-shaded card system */
+  /* Dark Cell-shaded card system */
   .cell-card {
-    @apply bg-white border-2 border-black shadow-cell;
+    @apply bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 border-2 border-gray-700 shadow-cell text-white;
   }
 
   .cell-card-elevated {
-    @apply bg-white border-2 border-black shadow-cell-lg;
+    @apply bg-gradient-to-br from-gray-800 via-gray-900 to-gray-800 border-2 border-gray-600 shadow-cell-lg text-white;
   }
 
   .cell-card-interactive {
-    @apply cell-card hover:bg-gray-50 transition-colors duration-100 cursor-pointer;
+    @apply bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 border-2 border-gray-700 hover:border-gray-500 hover:shadow-cell-lg transition-all duration-200 cursor-pointer text-white;
+  }
+
+  .cell-card-accent {
+    @apply bg-gradient-to-br from-blue-900/30 via-blue-800/20 to-blue-900/30 border-2 border-blue-600 shadow-[4px_4px_0px_0px_rgba(37,99,235,0.3)] text-white;
+  }
+
+  /* Gradient backgrounds for variety */
+  .gradient-bg {
+    @apply bg-gradient-to-br from-gray-900 via-black to-gray-900;
+  }
+
+  .gradient-bg-subtle {
+    @apply bg-gradient-to-br from-gray-800 via-gray-900 to-gray-800;
   }
 
   /* Cell-shaded button system */
@@ -72,30 +107,30 @@
     @apply cell-btn bg-transparent hover:bg-gray-50 text-black border-transparent hover:border-black;
   }
 
-  /* Cell-shaded input system */
+  /* Dark Cell-shaded input system */
   .cell-input {
-    @apply w-full border-2 border-black bg-white font-mono transition-all duration-100 focus:outline-none focus:shadow-cell-inset placeholder:text-gray-400;
+    @apply w-full border-2 border-gray-600 bg-gray-900 text-white font-mono transition-all duration-200 focus:outline-none focus:border-blue-500 focus:shadow-[0_0_0_3px_rgba(59,130,246,0.2)] placeholder:text-gray-500;
   }
 
   .cell-input-error {
-    @apply border-error focus:border-error;
+    @apply border-red-500 focus:border-red-500 focus:shadow-[0_0_0_3px_rgba(239,68,68,0.2)];
   }
 
   .cell-input-success {
-    @apply border-success focus:border-success;
+    @apply border-green-500 focus:border-green-500 focus:shadow-[0_0_0_3px_rgba(34,197,94,0.2)];
   }
 
-  /* Cell-shaded table system */
+  /* Dark Cell-shaded table system */
   .cell-table {
-    @apply border-2 border-black bg-white;
+    @apply border-2 border-gray-700 bg-gray-900 text-white;
   }
 
   .cell-table th {
-    @apply border-r-2 border-b-2 border-black bg-gray-50 px-4 py-2 text-left font-bold;
+    @apply border-r-2 border-b-2 border-gray-700 bg-gray-800 px-4 py-2 text-left font-bold text-white;
   }
 
   .cell-table td {
-    @apply border-r-2 border-b-2 border-black px-4 py-2 font-mono;
+    @apply border-r-2 border-b-2 border-gray-700 px-4 py-2 font-mono text-gray-200;
   }
 
   .cell-table th:last-child,
@@ -107,13 +142,17 @@
     @apply border-b-0;
   }
 
-  /* Cell-shaded navigation */
+  .cell-table tbody tr:hover {
+    @apply bg-gray-800/50;
+  }
+
+  /* Dark Cell-shaded navigation */
   .cell-nav {
-    @apply bg-white border-b-2 border-black;
+    @apply bg-gray-900 border-b-2 border-gray-700;
   }
 
   .cell-nav-item {
-    @apply px-4 py-2 border-r-2 border-black hover:bg-gray-50 transition-colors duration-100;
+    @apply px-4 py-2 border-r-2 border-gray-700 hover:bg-gray-800 transition-colors duration-200 text-white;
   }
 
   .cell-nav-item:last-child {
@@ -121,7 +160,7 @@
   }
 
   .cell-nav-item.active {
-    @apply bg-gray-100;
+    @apply bg-gray-800 border-b-2 border-blue-500;
   }
 
   /* Status indicators */
@@ -174,13 +213,18 @@
     @apply text-sm font-bold text-black;
   }
 
-  /* Cell-shaded modal system */
+  /* Dark Cell-shaded modal system */
   .cell-modal {
-    @apply bg-white border-4 border-black shadow-cell-lg;
+    @apply bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 border-4 border-gray-600 shadow-[8px_8px_0px_0px_rgba(0,0,0,0.5)] text-white;
   }
 
   .cell-modal-backdrop {
-    @apply bg-black bg-opacity-50;
+    @apply bg-black bg-opacity-70 backdrop-blur-sm;
+  }
+
+  /* Glass effect for overlays */
+  .glass-card {
+    @apply bg-white/5 backdrop-blur-md border-2 border-white/10 shadow-xl text-white;
   }
 
   /* ETL specific components */

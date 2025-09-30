@@ -29,15 +29,15 @@ const CellButton = React.forwardRef<HTMLButtonElement, CellButtonProps>(
     
     const variants = {
       primary: `
-        bg-gradient-to-br from-white via-white to-gray-50
-        hover:from-gray-50 hover:via-white hover:to-gray-100
+        bg-gradient-to-br from-gray-100 via-white to-gray-100
+        hover:from-white hover:via-gray-50 hover:to-white
         text-black
         before:absolute before:inset-0 before:bg-gradient-to-br before:from-white/40 before:to-transparent before:opacity-0 hover:before:opacity-100 before:transition-opacity
       `,
       secondary: `
-        bg-gradient-to-br from-gray-100 via-gray-100 to-gray-200
-        hover:from-gray-200 hover:via-gray-100 hover:to-gray-300
-        text-black
+        bg-gradient-to-br from-gray-700 via-gray-600 to-gray-700
+        hover:from-gray-600 hover:via-gray-500 hover:to-gray-600
+        text-white border-gray-800
       `,
       accent: `
         bg-gradient-to-br from-blue-500 via-blue-600 to-blue-700
