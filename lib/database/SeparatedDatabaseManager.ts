@@ -641,33 +641,26 @@ export class SeparatedDatabaseManager {
       const db = await this.getDataSourceDb(projectId, dataSourceId);
       
       // Get versions to delete (keep latest N versions)
-      const versionsToDelete = db.prepare(`
+      const versionsToDelete = this.queryAll(db, `
         SELECT id FROM data_versions
         ORDER BY version DESC
         LIMIT -1 OFFSET ?
-      `).all(keepVersions) as { id: string }[];
+      `, [keepVersions]) as { id: string }[];
 
       if (versionsToDelete.length === 0) {
         return 0;
       }
 
       // Delete old versions
-      const deleteRecords = db.prepare(`
-        DELETE FROM data_records WHERE versionId = ?
-      `);
+      const metadata = this.databases.get(`${projectId}_${dataSourceId}`)!;
+      
+      for (const version of versionsToDelete) {
+        db.run(`DELETE FROM data_records WHERE versionId = ?`, [version.id]);
+        db.run(`DELETE FROM data_versions WHERE id = ?`, [version.id]);
+      }
 
-      const deleteVersion = db.prepare(`
-        DELETE FROM data_versions WHERE id = ?
-      `);
-
-      const transaction = db.transaction(() => {
-        for (const version of versionsToDelete) {
-          deleteRecords.run(version.id);
-          deleteVersion.run(version.id);
-        }
-      });
-
-      transaction();
+      // Save to disk
+      this.saveDatabase(metadata);
 
       logger.success("Old versions cleaned up", "database", {
         projectId,
@@ -766,32 +759,25 @@ export class SeparatedDatabaseManager {
       const cutoffISO = cutoffDate.toISOString();
 
       // Get versions older than cutoff
-      const versionsToDelete = db.prepare(`
+      const versionsToDelete = this.queryAll(db, `
         SELECT id FROM data_versions
         WHERE createdAt < ?
-      `).all(cutoffISO) as { id: string }[];
+      `, [cutoffISO]) as { id: string }[];
 
       if (versionsToDelete.length === 0) {
         return 0;
       }
 
       // Delete old versions
-      const deleteRecords = db.prepare(`
-        DELETE FROM data_records WHERE versionId = ?
-      `);
+      const metadata = this.databases.get(`${projectId}_${dataSourceId}`)!;
+      
+      for (const version of versionsToDelete) {
+        db.run(`DELETE FROM data_records WHERE versionId = ?`, [version.id]);
+        db.run(`DELETE FROM data_versions WHERE id = ?`, [version.id]);
+      }
 
-      const deleteVersion = db.prepare(`
-        DELETE FROM data_versions WHERE id = ?
-      `);
-
-      const transaction = db.transaction(() => {
-        for (const version of versionsToDelete) {
-          deleteRecords.run(version.id);
-          deleteVersion.run(version.id);
-        }
-      });
-
-      transaction();
+      // Save to disk
+      this.saveDatabase(metadata);
 
       logger.success("Old versions cleaned up by age", "database", {
         projectId,
@@ -873,20 +859,19 @@ export class SeparatedDatabaseManager {
       const db = await this.getDataSourceDb(projectId, dataSourceId);
       
       // Check if metadata table exists
-      const tableExists = db.prepare(`
+      const tableExists = this.queryOne(db, `
         SELECT name FROM sqlite_master 
         WHERE type='table' AND name='datasource_metadata'
-      `).get();
+      `);
 
       if (!tableExists) {
         return null;
       }
 
       // Get retention policy
-      const result = db.prepare(`
-        SELECT value FROM datasource_metadata
+      const result = this.queryOne(db, `SELECT value FROM datasource_metadata
         WHERE key = 'retentionPolicy'
-      `).get() as { value: string } | undefined;
+      `) as { value: string } | undefined || null;
 
       if (!result) {
         return null;
@@ -921,13 +906,12 @@ export class SeparatedDatabaseManager {
       const policy = await this.getRetentionPolicy(projectId, dataSourceId);
 
       // Get version info
-      const versionInfo = db.prepare(`
-        SELECT 
+      const versionInfo = this.queryOne(db, `SELECT 
           COUNT(*) as total,
           MIN(createdAt) as oldest,
           MAX(createdAt) as newest
         FROM data_versions
-      `).get() as { total: number; oldest: string; newest: string };
+      `) as { total: number || null; oldest: string; newest: string };
 
       let estimatedDeletable = 0;
 
@@ -942,10 +926,10 @@ export class SeparatedDatabaseManager {
             const days = policy.value || 30;
             const cutoffDate = new Date();
             cutoffDate.setDate(cutoffDate.getDate() - days);
-            const oldCount = db.prepare(`
+            const oldCount = this.queryOne(db, `
               SELECT COUNT(*) as count FROM data_versions
               WHERE createdAt < ?
-            `).get(cutoffDate.toISOString()) as { count: number };
+            `, [cutoffDate.toISOString()]) as { count: number } || { count: 0 };
             estimatedDeletable = oldCount.count;
             break;
 
