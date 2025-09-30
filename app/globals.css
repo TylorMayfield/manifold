@@ -30,6 +30,7 @@
 
   html {
     scroll-behavior: smooth;
+    overflow-x: hidden;
   }
 
   body {
@@ -42,6 +43,25 @@
     -moz-osx-font-smoothing: grayscale;
     padding-bottom: 72px; /* Space for status footer */
     min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  /* Hide scrollbar while maintaining scroll functionality */
+  html::-webkit-scrollbar,
+  body::-webkit-scrollbar {
+    width: 0px;
+    height: 0px;
+    background: transparent;
+  }
+
+  /* For Firefox */
+  html {
+    scrollbar-width: none;
+  }
+
+  /* For IE/Edge */
+  html {
+    -ms-overflow-style: none;
   }
 
   /* Add subtle noise texture for depth */
