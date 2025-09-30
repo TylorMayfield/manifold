@@ -146,13 +146,13 @@ export default function JobsPage() {
       headerActions={
         <div className="flex items-center space-x-2">
           <CellButton
-            variant="primary"
+            variant="accent"
             onClick={() => setShowCreateModal(true)}
           >
             <Plus className="w-4 h-4 mr-2" />
             Schedule Job
           </CellButton>
-          <CellButton variant="ghost" size="sm">
+          <CellButton variant="secondary" size="sm">
             <Settings className="w-4 h-4" />
           </CellButton>
         </div>
@@ -164,17 +164,17 @@ export default function JobsPage() {
         <CellCard className="p-4">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-caption font-bold">Total Jobs</p>
-              <p className="text-heading font-mono">{jobs.length}</p>
+              <p className="text-caption font-bold text-gray-400">Total Jobs</p>
+              <p className="text-heading font-mono text-white">{jobs.length}</p>
             </div>
-            <Play className="w-8 h-8 text-gray-400" />
+            <Play className="w-8 h-8 text-blue-400" />
           </div>
         </CellCard>
         <CellCard className="p-4">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-caption font-bold">Active</p>
-              <p className="text-heading font-mono text-green-600">
+              <p className="text-caption font-bold text-gray-400">Active</p>
+              <p className="text-heading font-mono text-green-400">
                 {jobs.filter((j) => j.status === "active").length}
               </p>
             </div>
@@ -184,8 +184,8 @@ export default function JobsPage() {
         <CellCard className="p-4">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-caption font-bold">Failed</p>
-              <p className="text-heading font-mono text-red-600">
+              <p className="text-caption font-bold text-gray-400">Failed</p>
+              <p className="text-heading font-mono text-red-400">
                 {jobs.filter((j) => j.status === "failed").length}
               </p>
             </div>
@@ -195,8 +195,8 @@ export default function JobsPage() {
         <CellCard className="p-4">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-caption font-bold">Last 24h Runs</p>
-              <p className="text-heading font-mono">{executions.length}</p>
+              <p className="text-caption font-bold text-gray-400">Last 24h Runs</p>
+              <p className="text-heading font-mono text-white">{executions.length}</p>
             </div>
             <RefreshCw className="w-8 h-8 text-blue-400" />
           </div>
@@ -213,8 +213,8 @@ export default function JobsPage() {
         <CellCard className="p-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-4">
-              <Filter className="w-4 h-4 text-gray-500" />
-              <span className="text-sm font-mono font-bold">
+              <Filter className="w-4 h-4 text-blue-400" />
+              <span className="text-sm font-mono font-bold text-white">
                 Filter by status:
               </span>
               <div className="flex space-x-2">
@@ -223,10 +223,10 @@ export default function JobsPage() {
                     <button
                       key={status}
                       onClick={() => setFilterStatus(status)}
-                      className={`px-3 py-1 text-xs font-mono border-2 border-black ${
+                      className={`px-3 py-1 text-xs font-mono border-2 rounded transition-all ${
                         filterStatus === status
-                          ? "bg-accent text-white"
-                          : "bg-white"
+                          ? "bg-blue-500 text-white border-blue-600 shadow-[2px_2px_0px_0px_rgba(59,130,246,0.3)]"
+                          : "bg-gray-800 text-gray-300 border-gray-700 hover:border-gray-600"
                       }`}
                     >
                       {status === "all"
@@ -237,7 +237,7 @@ export default function JobsPage() {
                 )}
               </div>
             </div>
-            <div className="text-sm text-gray-500">
+            <div className="text-sm text-gray-400 font-mono">
               {filteredJobs.length} job{filteredJobs.length !== 1 ? "s" : ""}
             </div>
           </div>
@@ -248,19 +248,19 @@ export default function JobsPage() {
       {filteredJobs.length === 0 ? (
         <CellCard className="p-12">
           <div className="text-center">
-            <Clock className="w-16 h-16 mx-auto mb-4 text-gray-300" />
-            <h2 className="text-subheading mb-2">
+            <Clock className="w-16 h-16 mx-auto mb-4 text-gray-600" />
+            <h2 className="text-subheading mb-2 text-white font-mono">
               {filterStatus === "all"
                 ? "No jobs scheduled"
                 : `No ${filterStatus} jobs`}
             </h2>
-            <p className="text-caption text-gray-600 mb-8 max-w-md mx-auto">
+            <p className="text-caption text-gray-400 mb-8 max-w-md mx-auto">
               Schedule jobs to automate your data processing workflows. Jobs can
               run pipelines, sync data sources, or execute custom scripts on a
               schedule.
             </p>
             <CellButton
-              variant="primary"
+              variant="accent"
               onClick={() => setShowCreateModal(true)}
             >
               <Plus className="w-4 h-4 mr-2" />
@@ -271,39 +271,32 @@ export default function JobsPage() {
       ) : (
         <div className="space-y-4">
           {filteredJobs.map((job) => (
-            <CellCard key={job.id} className="p-6">
+            <CellCard key={job.id} className="p-6 hover:border-blue-500 transition-all">
               <div className="flex items-center justify-between mb-4">
                 <div className="flex items-center space-x-4">
-                  <div className="p-2 border-2 border-black bg-white">
+                  <div className="p-2 border-2 border-gray-700 bg-gray-800 rounded">
                     <span className="text-lg">{getTypeIcon(job.type)}</span>
                   </div>
                   <div>
-                    <h3 className="font-mono font-bold text-lg">{job.name}</h3>
-                    <p className="text-caption text-gray-600">
+                    <h3 className="font-mono font-bold text-lg text-white">{job.name}</h3>
+                    <p className="text-caption text-gray-400">
                       {job.description}
                     </p>
                   </div>
                 </div>
                 <div className="flex items-center space-x-2">
-                  <span
-                    className={`px-3 py-1 text-xs font-mono ${getStatusColor(
-                      job.status
-                    )}`}
-                  >
-                    {getStatusIcon(job.status)}
-                    <span className="ml-1">{job.status}</span>
-                  </span>
+                  <StatusBadge status={job.status} label={job.status} />
                   <div className="flex space-x-1">
                     <CellButton
                       size="sm"
-                      variant="ghost"
+                      variant="secondary"
                       onClick={() => handleRunJob(job.id)}
                     >
                       <Play className="w-4 h-4" />
                     </CellButton>
                     <CellButton
                       size="sm"
-                      variant="ghost"
+                      variant="secondary"
                       onClick={() => {
                         const execution = executions.find(
                           (e) => e.jobId === job.id
@@ -316,10 +309,10 @@ export default function JobsPage() {
                     >
                       <Eye className="w-4 h-4" />
                     </CellButton>
-                    <CellButton size="sm" variant="ghost">
+                    <CellButton size="sm" variant="secondary">
                       <Settings className="w-4 h-4" />
                     </CellButton>
-                    <CellButton size="sm" variant="ghost">
+                    <CellButton size="sm" variant="danger">
                       <Trash2 className="w-4 h-4" />
                     </CellButton>
                   </div>
@@ -328,11 +321,11 @@ export default function JobsPage() {
 
               <div className="grid grid-cols-1 lg:grid-cols-4 gap-4">
                 <div>
-                  <h4 className="font-mono font-bold text-sm mb-2">Schedule</h4>
-                  <div className="p-3 border border-gray-200 bg-gray-50">
+                  <h4 className="font-mono font-bold text-sm mb-2 text-white">Schedule</h4>
+                  <div className="p-3 border-2 border-gray-700 bg-gray-800 rounded">
                     <div className="flex items-center mb-1">
-                      <Calendar className="w-4 h-4 mr-2 text-gray-500" />
-                      <span className="text-sm font-mono">
+                      <Calendar className="w-4 h-4 mr-2 text-blue-400" />
+                      <span className="text-sm font-mono text-gray-300">
                         {job.schedule
                           ? parseCronExpression(job.schedule)
                           : "Manual only"}
@@ -347,13 +340,13 @@ export default function JobsPage() {
                 </div>
 
                 <div>
-                  <h4 className="font-mono font-bold text-sm mb-2">
+                  <h4 className="font-mono font-bold text-sm mb-2 text-white">
                     Last Execution
                   </h4>
-                  <div className="p-3 border border-gray-200 bg-gray-50">
+                  <div className="p-3 border-2 border-gray-700 bg-gray-800 rounded">
                     {job.lastRun ? (
                       <>
-                        <p className="text-sm font-mono">
+                        <p className="text-sm font-mono text-gray-300">
                           {job.lastRun.toLocaleString()}
                         </p>
                         {job.duration && (
@@ -369,11 +362,11 @@ export default function JobsPage() {
                 </div>
 
                 <div>
-                  <h4 className="font-mono font-bold text-sm mb-2">
+                  <h4 className="font-mono font-bold text-sm mb-2 text-white">
                     Type & Target
                   </h4>
-                  <div className="p-3 border border-gray-200 bg-gray-50">
-                    <p className="text-sm font-mono capitalize">{job.type}</p>
+                  <div className="p-3 border-2 border-gray-700 bg-gray-800 rounded">
+                    <p className="text-sm font-mono capitalize text-gray-300">{job.type}</p>
                     <p className="text-xs text-gray-500">
                       {job.pipelineId && "Pipeline ID: " + job.pipelineId}
                       {job.dataSourceId &&
@@ -384,10 +377,10 @@ export default function JobsPage() {
                 </div>
 
                 <div>
-                  <h4 className="font-mono font-bold text-sm mb-2">
+                  <h4 className="font-mono font-bold text-sm mb-2 text-white">
                     Performance
                   </h4>
-                  <div className="p-3 border border-gray-200 bg-gray-50">
+                  <div className="p-3 border-2 border-gray-700 bg-gray-800 rounded">
                     <StatusBadge 
                       status={job.status} 
                       label={
