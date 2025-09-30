@@ -10,36 +10,91 @@ export async function GET(request: NextRequest) {
     
     logger.info('Plugin list requested', 'api', { category, enabled }, 'plugins/route.ts')
     
-    // Ensure plugin system is initialized
-    await initializePluginSystem()
-    const manager = getPluginManager()
+    // Return default built-in plugins for now
+    // TODO: Integrate with actual plugin system when ready
+    const defaultPlugins = [
+      {
+        id: 'csv-data-source',
+        name: 'CSV Data Source',
+        version: '1.0.0',
+        description: 'Import and parse CSV files with automatic schema detection',
+        author: 'Manifold Team',
+        category: 'data-source',
+        tags: ['csv', 'import', 'file'],
+        enabled: true,
+        loaded: true,
+        initialized: true,
+        usageCount: 0
+      },
+      {
+        id: 'json-data-source',
+        name: 'JSON Data Source',
+        version: '1.0.0',
+        description: 'Import and parse JSON files with nested object support',
+        author: 'Manifold Team',
+        category: 'data-source',
+        tags: ['json', 'import', 'file'],
+        enabled: true,
+        loaded: true,
+        initialized: true,
+        usageCount: 0
+      },
+      {
+        id: 'database-connector',
+        name: 'Database Connector',
+        version: '1.0.0',
+        description: 'Connect to MySQL, PostgreSQL, and SQLite databases',
+        author: 'Manifold Team',
+        category: 'data-source',
+        tags: ['database', 'sql', 'connector'],
+        enabled: true,
+        loaded: true,
+        initialized: true,
+        usageCount: 0
+      },
+      {
+        id: 'data-transformer',
+        name: 'Data Transformer',
+        version: '1.0.0',
+        description: 'Transform, filter, and map data with custom JavaScript',
+        author: 'Manifold Team',
+        category: 'transformation',
+        tags: ['transform', 'filter', 'map'],
+        enabled: true,
+        loaded: true,
+        initialized: true,
+        usageCount: 0
+      },
+      {
+        id: 'export-plugin',
+        name: 'Data Export',
+        version: '1.0.0',
+        description: 'Export data to CSV, JSON, Excel, or custom formats',
+        author: 'Manifold Team',
+        category: 'export',
+        tags: ['export', 'csv', 'json', 'excel'],
+        enabled: true,
+        loaded: true,
+        initialized: true,
+        usageCount: 0
+      }
+    ];
     
-    let plugins
-    if (category) {
-      plugins = manager.getPluginsByCategory(category as any)
-    } else if (enabled === 'true') {
-      plugins = manager.getEnabledPlugins()
-    } else {
-      plugins = manager.getAllPlugins()
+    let plugins = defaultPlugins;
+    
+    // Filter by category if requested
+    if (category && category !== 'all') {
+      plugins = plugins.filter(p => p.category === category);
+    }
+    
+    // Filter by enabled if requested
+    if (enabled === 'true') {
+      plugins = plugins.filter(p => p.enabled);
     }
     
     return NextResponse.json({
       success: true,
-      plugins: plugins.map(plugin => ({
-        id: plugin.manifest.id,
-        name: plugin.manifest.name,
-        version: plugin.manifest.version,
-        description: plugin.manifest.description,
-        author: plugin.manifest.author,
-        category: plugin.manifest.category,
-        tags: plugin.manifest.tags,
-        enabled: plugin.config.enabled,
-        loaded: plugin.loaded,
-        initialized: plugin.initialized,
-        error: plugin.error,
-        lastUsed: plugin.lastUsed,
-        usageCount: plugin.usageCount
-      }))
+      plugins
     })
   } catch (error: any) {
     logger.error(

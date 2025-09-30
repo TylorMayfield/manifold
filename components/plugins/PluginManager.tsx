@@ -133,8 +133,8 @@ export default function PluginManager({ className }: PluginManagerProps) {
     return (
       <CellCard padding="lg" className={className}>
         <div className="text-center py-8">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-black mx-auto mb-4"></div>
-          <p className="text-gray-600">Loading plugins...</p>
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500 mx-auto mb-4"></div>
+          <p className="text-gray-400">Loading plugins...</p>
         </div>
       </CellCard>
     )
@@ -145,8 +145,8 @@ export default function PluginManager({ className }: PluginManagerProps) {
       <CellCard padding="lg">
         <div className="flex justify-between items-center mb-6">
           <div>
-            <h2 className="text-2xl font-bold text-gray-900">Plugin Manager</h2>
-            <p className="text-gray-600">Manage your Manifold plugins</p>
+            <h2 className="text-2xl font-bold text-white font-mono">Plugin Manager</h2>
+            <p className="text-gray-400">Manage your Manifold plugins</p>
           </div>
           
           <CellStack direction="horizontal" spacing="sm">
@@ -180,7 +180,7 @@ export default function PluginManager({ className }: PluginManagerProps) {
         <CellStack spacing="md" className="mb-6">
           <div className="flex flex-wrap gap-4 items-center">
             <div className="flex items-center space-x-2">
-              <Search className="w-4 h-4 text-gray-500" />
+              <Search className="w-4 h-4 text-blue-400" />
               <CellInput
                 placeholder="Search plugins..."
                 value={searchTerm}
@@ -192,7 +192,7 @@ export default function PluginManager({ className }: PluginManagerProps) {
             <select
               value={selectedCategory}
               onChange={(e) => setSelectedCategory(e.target.value)}
-              className="px-3 py-2 border-2 border-black bg-white rounded focus:outline-none"
+              className="px-3 py-2 border-2 border-gray-700 bg-gray-900 text-white rounded focus:outline-none focus:border-blue-500"
             >
               {categories.map(category => (
                 <option key={category} value={category}>
@@ -206,9 +206,9 @@ export default function PluginManager({ className }: PluginManagerProps) {
                 type="checkbox"
                 checked={showEnabledOnly}
                 onChange={(e) => setShowEnabledOnly(e.target.checked)}
-                className="w-4 h-4"
+                className="w-4 h-4 accent-blue-500"
               />
-              <span className="text-sm">Enabled only</span>
+              <span className="text-sm text-gray-300">Enabled only</span>
             </label>
           </div>
         </CellStack>
@@ -216,9 +216,9 @@ export default function PluginManager({ className }: PluginManagerProps) {
         {/* Plugin List */}
         {filteredPlugins.length === 0 ? (
           <div className="text-center py-8">
-            <Database className="w-12 h-12 mx-auto mb-4 text-gray-400" />
-            <h3 className="text-lg font-semibold mb-2">No plugins found</h3>
-            <p className="text-gray-600">
+            <Database className="w-12 h-12 mx-auto mb-4 text-gray-600" />
+            <h3 className="text-lg font-semibold mb-2 text-white font-mono">No plugins found</h3>
+            <p className="text-gray-400">
               {searchTerm || selectedCategory !== 'all' || showEnabledOnly
                 ? 'Try adjusting your search criteria'
                 : 'No plugins are installed. Click "Discover" to find available plugins.'}
@@ -227,11 +227,11 @@ export default function PluginManager({ className }: PluginManagerProps) {
         ) : (
           <CellGrid cols={1} gap="md">
             {filteredPlugins.map(plugin => (
-              <CellCard key={plugin.id} padding="md">
+              <CellCard key={plugin.id} padding="md" variant="elevated">
                 <div className="flex justify-between items-start">
                   <div className="flex-1">
                     <div className="flex items-center space-x-3 mb-2">
-                      <h3 className="text-lg font-semibold text-gray-900">
+                      <h3 className="text-lg font-semibold text-white font-mono">
                         {plugin.name}
                       </h3>
                       
@@ -253,23 +253,23 @@ export default function PluginManager({ className }: PluginManagerProps) {
                       )}
                     </div>
                     
-                    <p className="text-gray-600 mb-2">{plugin.description}</p>
+                    <p className="text-gray-400 mb-2">{plugin.description}</p>
                     
                     <div className="flex flex-wrap gap-2 mb-3">
                       {plugin.tags?.map(tag => (
                         <span
                           key={tag}
-                          className="px-2 py-1 bg-gray-100 text-gray-700 text-xs rounded"
+                          className="px-2 py-1 bg-gray-800 text-gray-300 border border-gray-700 text-xs rounded font-mono"
                         >
                           {tag}
                         </span>
                       )) || []}
                     </div>
                     
-                    <div className="flex items-center space-x-4 text-sm text-gray-500">
+                    <div className="flex items-center space-x-4 text-sm text-gray-500 font-mono">
                       <span>By {plugin.author}</span>
                       <span>•</span>
-                      <span>{plugin.category}</span>
+                      <span className="text-purple-400">{plugin.category}</span>
                       {plugin.lastUsed && (
                         <>
                           <span>•</span>
@@ -277,7 +277,7 @@ export default function PluginManager({ className }: PluginManagerProps) {
                         </>
                       )}
                       <span>•</span>
-                      <span>Used {plugin.usageCount} times</span>
+                      <span className="text-blue-400">Used {plugin.usageCount}× </span>
                     </div>
                   </div>
                   
