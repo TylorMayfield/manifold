@@ -96,6 +96,8 @@ export function DataSourceProvider({ children }: DataSourceProviderProps) {
 
   const addDataSource = async (source: DataProvider) => {
     try {
+      console.log('[DataSourceContext] Creating data source:', source);
+      
       const response = await fetch("/api/data-sources", {
         method: "POST",
         headers: {
@@ -107,13 +109,20 @@ export function DataSourceProvider({ children }: DataSourceProviderProps) {
       let newSource: DataProvider;
       if (response.ok) {
         newSource = await response.json();
+        console.log('[DataSourceContext] Data source created successfully:', newSource);
       } else {
-        console.warn("Failed to create data source via API, adding locally");
-        // Fallback: add locally if API fails
-        newSource = {
-          ...source,
-          id: source.id || `source_${Date.now()}`,
-        };
+        const errorText = await response.text();
+        console.error("API Error creating data source:", response.status, errorText);
+        
+        // Try to parse error
+        try {
+          const errorJson = JSON.parse(errorText);
+          alert(`Failed to create data source: ${errorJson.error || errorJson.message || 'Unknown error'}`);
+        } catch {
+          alert(`Failed to create data source: ${errorText || response.statusText}`);
+        }
+        
+        throw new Error(`API returned ${response.status}`);
       }
 
       setDataSources((prev) => [...prev, newSource]);

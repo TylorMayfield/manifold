@@ -35,10 +35,10 @@ function HomePageContent() {
           {dataSources.length === 0 ? (
             <div className="text-center py-8">
               <Database className="w-12 h-12 mx-auto mb-4 text-gray-600" />
-              <p className="font-mono text-sm mb-4 text-gray-400">
+              <p className="font-mono text-sm mb-4 text-gray-700">
                 No data sources configured
               </p>
-              <p className="text-caption mb-6 text-gray-500">
+              <p className="text-caption mb-6 text-gray-600">
                 Add your first data source to get started
               </p>
             </div>
@@ -47,7 +47,7 @@ function HomePageContent() {
               {dataSources.slice(0, 3).map((source) => (
                 <div
                   key={source.id}
-                  className="p-3 border-2 border-gray-700 bg-gradient-to-br from-gray-800 via-gray-900 to-gray-800 cursor-pointer hover:border-blue-500 hover:shadow-[2px_2px_0px_0px_rgba(59,130,246,0.3)] transition-all group rounded-md"
+                  className="p-3 border border-gray-300 bg-white cursor-pointer hover:border-blue-500 hover:shadow-md transition-all group rounded-lg"
                   onClick={() => router.push(`/data?source=${source.id}`)}
                   role="button"
                   tabIndex={0}
@@ -60,7 +60,7 @@ function HomePageContent() {
                 >
                   <div className="flex items-center justify-between">
                     <div className="flex-1">
-                      <p className="font-mono text-sm font-bold text-white group-hover:text-blue-400 transition-colors">
+                      <p className="font-mono text-sm font-bold text-gray-900 group-hover:text-blue-600 transition-colors">
                         {source.name}
                       </p>
                       <p className="text-caption text-gray-500">
@@ -113,7 +113,7 @@ function HomePageContent() {
 
           <div className="text-center py-8">
             <Zap className="w-12 h-12 mx-auto mb-4 text-gray-600" />
-            <p className="font-mono text-sm mb-4 text-gray-400">No pipelines created</p>
+            <p className="font-mono text-sm mb-4 text-gray-600">No pipelines created</p>
             <p className="text-caption mb-6 text-gray-500">
               Create data transformation pipelines
             </p>
@@ -134,7 +134,7 @@ function HomePageContent() {
 
           <div className="text-center py-8">
             <Play className="w-12 h-12 mx-auto mb-4 text-gray-600" />
-            <p className="font-mono text-sm mb-4 text-gray-400">No jobs scheduled</p>
+            <p className="font-mono text-sm mb-4 text-gray-600">No jobs scheduled</p>
             <p className="text-caption mb-6 text-gray-500">Automate your data processing</p>
           </div>
 
@@ -155,7 +155,7 @@ function HomePageContent() {
         {snapshots.length === 0 ? (
           <div className="text-center py-12">
             <FileText className="w-16 h-16 mx-auto mb-4 text-gray-600" />
-            <p className="font-mono text-lg mb-2 text-gray-400">No data imported yet</p>
+            <p className="font-mono text-lg mb-2 text-gray-600">No data imported yet</p>
             <p className="text-caption mb-8 max-w-md mx-auto text-gray-500">
               Data snapshots will appear here when you import data from your
               sources. Each import creates a versioned snapshot that you can
@@ -176,7 +176,7 @@ function HomePageContent() {
                   >
                     <div className="flex items-start justify-between mb-2">
                       <div>
-                        <p className="font-mono text-sm font-bold text-white">
+                        <p className="font-mono text-sm font-bold text-gray-900">
                           {dataSource?.name || "Unknown Source"}
                         </p>
                         <p className="text-caption text-gray-500">
@@ -203,22 +203,22 @@ function HomePageContent() {
         )}
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 max-w-2xl mx-auto">
-          <div className="bg-gradient-to-br from-gray-800 via-gray-900 to-gray-800 border-2 border-gray-700 p-4 text-center rounded-md hover:border-blue-500 transition-all shadow-cell">
-            <FileText className="w-8 h-8 mx-auto mb-2 text-blue-400" />
-            <p className="font-mono text-sm font-bold text-white">CSV Files</p>
-            <p className="text-caption text-gray-500">Import structured data</p>
+          <div className="bg-white border border-gray-300 p-4 text-center rounded-lg hover:border-blue-500 hover:shadow-md transition-all">
+            <FileText className="w-8 h-8 mx-auto mb-2 text-blue-600" />
+            <p className="font-mono text-sm font-bold text-gray-900">CSV Files</p>
+            <p className="text-caption text-gray-600">Import structured data</p>
           </div>
 
-          <div className="bg-gradient-to-br from-gray-800 via-gray-900 to-gray-800 border-2 border-gray-700 p-4 text-center rounded-md hover:border-green-500 transition-all shadow-cell">
-            <Database className="w-8 h-8 mx-auto mb-2 text-green-400" />
-            <p className="font-mono text-sm font-bold text-white">Database</p>
-            <p className="text-caption text-gray-500">Connect to live data</p>
+          <div className="bg-white border border-gray-300 p-4 text-center rounded-lg hover:border-green-500 hover:shadow-md transition-all">
+            <Database className="w-8 h-8 mx-auto mb-2 text-green-600" />
+            <p className="font-mono text-sm font-bold text-gray-900">Database</p>
+            <p className="text-caption text-gray-600">Connect to live data</p>
           </div>
 
-          <div className="bg-gradient-to-br from-gray-800 via-gray-900 to-gray-800 border-2 border-gray-700 p-4 text-center rounded-md hover:border-yellow-500 transition-all shadow-cell">
-            <Zap className="w-8 h-8 mx-auto mb-2 text-yellow-400" />
-            <p className="font-mono text-sm font-bold text-white">Mock Data</p>
-            <p className="text-caption text-gray-500">Generate test datasets</p>
+          <div className="bg-white border border-gray-300 p-4 text-center rounded-lg hover:border-yellow-500 hover:shadow-md transition-all">
+            <Zap className="w-8 h-8 mx-auto mb-2 text-yellow-600" />
+            <p className="font-mono text-sm font-bold text-gray-900">Mock Data</p>
+            <p className="text-caption text-gray-600">Generate test datasets</p>
           </div>
         </div>
       </CellCard>
@@ -226,14 +226,14 @@ function HomePageContent() {
       {/* Quick Start Guide */}
       <div className="mt-8">
         <CellCard className="p-6">
-          <h2 className="text-subheading mb-4 text-white font-mono">Getting Started with ETL</h2>
+          <h2 className="text-subheading mb-4 text-gray-900">Getting Started with ETL</h2>
           <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
             <div className="text-center">
-              <div className="w-12 h-12 mx-auto mb-3 bg-gradient-to-br from-blue-500 to-blue-700 text-white border-2 border-blue-900 shadow-[2px_2px_0px_0px_rgba(30,58,138,0.5)] flex items-center justify-center font-bold text-xl rounded-lg">
+              <div className="w-12 h-12 mx-auto mb-3 bg-blue-600 text-white border border-blue-700 shadow-sm flex items-center justify-center font-bold text-xl rounded-lg">
                 1
               </div>
-              <h3 className="font-mono font-bold mb-2 text-white">Add Data Sources</h3>
-              <p className="text-caption mb-3 text-gray-400">
+              <h3 className="font-bold mb-2 text-gray-900">Add Data Sources</h3>
+              <p className="text-caption mb-3 text-gray-600">
                 Import CSV files, connect to databases, or generate mock data
               </p>
               <CellButton
@@ -247,10 +247,10 @@ function HomePageContent() {
             </div>
 
             <div className="text-center opacity-40">
-              <div className="w-12 h-12 mx-auto mb-3 bg-gray-700 text-gray-400 border-2 border-gray-600 shadow-cell flex items-center justify-center font-bold text-xl rounded-lg">
+              <div className="w-12 h-12 mx-auto mb-3 bg-gray-700 text-gray-600 border-2 border-gray-600 shadow-cell flex items-center justify-center font-bold text-xl rounded-lg">
                 2
               </div>
-              <h3 className="font-mono font-bold mb-2 text-gray-400">Build Pipelines</h3>
+              <h3 className="font-mono font-bold mb-2 text-gray-600">Build Pipelines</h3>
               <p className="text-caption mb-3 text-gray-600">
                 Create transformation steps to clean and merge data
               </p>
@@ -260,10 +260,10 @@ function HomePageContent() {
             </div>
 
             <div className="text-center opacity-40">
-              <div className="w-12 h-12 mx-auto mb-3 bg-gray-700 text-gray-400 border-2 border-gray-600 shadow-cell flex items-center justify-center font-bold text-xl rounded-lg">
+              <div className="w-12 h-12 mx-auto mb-3 bg-gray-700 text-gray-600 border-2 border-gray-600 shadow-cell flex items-center justify-center font-bold text-xl rounded-lg">
                 3
               </div>
-              <h3 className="font-mono font-bold mb-2 text-gray-400">Schedule Jobs</h3>
+              <h3 className="font-mono font-bold mb-2 text-gray-600">Schedule Jobs</h3>
               <p className="text-caption mb-3 text-gray-600">
                 Automate your data processing with cron schedules
               </p>
@@ -273,10 +273,10 @@ function HomePageContent() {
             </div>
 
             <div className="text-center opacity-40">
-              <div className="w-12 h-12 mx-auto mb-3 bg-gray-700 text-gray-400 border-2 border-gray-600 shadow-cell flex items-center justify-center font-bold text-xl rounded-lg">
+              <div className="w-12 h-12 mx-auto mb-3 bg-gray-700 text-gray-600 border-2 border-gray-600 shadow-cell flex items-center justify-center font-bold text-xl rounded-lg">
                 4
               </div>
-              <h3 className="font-mono font-bold mb-2 text-gray-400">Export Data</h3>
+              <h3 className="font-mono font-bold mb-2 text-gray-600">Export Data</h3>
               <p className="text-caption mb-3 text-gray-600">
                 Send processed data to files, APIs, or databases
               </p>

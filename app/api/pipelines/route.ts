@@ -1,20 +1,20 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { SimpleSQLiteDB } from '../../../lib/server/database/SimpleSQLiteDB';
+import { MongoDatabase } from '../../../lib/server/database/MongoDatabase';
 import { Pipeline } from '../../../types';
 
-let db: SimpleSQLiteDB | null = null;
-let initPromise: Promise<SimpleSQLiteDB> | null = null;
+let db: MongoDatabase | null = null;
+let initPromise: Promise<MongoDatabase> | null = null;
 
 async function ensureDb() {
   if (db) return db;
   if (initPromise) return initPromise;
   
   initPromise = (async () => {
-    console.log('[Pipelines API] Initializing database...');
-    const instance = SimpleSQLiteDB.getInstance();
+    console.log('[Pipelines API] Initializing MongoDB...');
+    const instance = MongoDatabase.getInstance();
     await instance.initialize();
     db = instance;
-    console.log('[Pipelines API] Database initialized successfully');
+    console.log('[Pipelines API] MongoDB initialized successfully');
     return instance;
   })();
   
@@ -27,7 +27,7 @@ export async function GET(request: NextRequest) {
     const projectId = searchParams.get('projectId') || 'default';
     
     const database = await ensureDb();
-    const pipelines = database.getPipelines(projectId);
+    const pipelines = await database.getPipelines(projectId);
     
     return NextResponse.json(pipelines);
   } catch (error) {
@@ -47,7 +47,7 @@ export async function POST(request: NextRequest) {
     const database = await ensureDb();
     
     // Create pipeline
-    const pipeline = database.createPipeline(projectId, pipelineData);
+    const pipeline = await database.createPipeline(projectId, pipelineData);
     
     return NextResponse.json(pipeline, { status: 201 });
   } catch (error) {
@@ -72,7 +72,7 @@ export async function PUT(request: NextRequest) {
     }
     
     const database = await ensureDb();
-    const updated = database.updatePipeline(id, updates);
+    const updated = await database.updatePipeline(id, updates);
     
     if (!updated) {
       return NextResponse.json(
@@ -104,7 +104,7 @@ export async function DELETE(request: NextRequest) {
     }
     
     const database = await ensureDb();
-    const success = database.deletePipeline(pipelineId);
+    const success = await database.deletePipeline(pipelineId);
     
     return NextResponse.json({ success });
   } catch (error) {

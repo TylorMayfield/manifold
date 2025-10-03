@@ -1,31 +1,23 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { SimpleSQLiteDB } from '../../../lib/server/database/SimpleSQLiteDB';
+import { MongoDatabase } from '../../../lib/server/database/MongoDatabase';
 import { Job, JobStatus } from '../../../types';
 
 // Force dynamic rendering
 export const dynamic = 'force-dynamic';
 
-let db: SimpleSQLiteDB | null = null;
-let initPromise: Promise<SimpleSQLiteDB> | null = null;
+let db: MongoDatabase | null = null;
+let initPromise: Promise<MongoDatabase> | null = null;
 
 async function ensureDb() {
-  // If already initialized, return it
-  if (db) {
-    return db;
-  }
+  if (db) return db;
+  if (initPromise) return initPromise;
   
-  // If initialization is in progress, wait for it
-  if (initPromise) {
-    return initPromise;
-  }
-  
-  // Start initialization
   initPromise = (async () => {
-    console.log('[Jobs API] Initializing database...');
-    const instance = SimpleSQLiteDB.getInstance();
+    console.log('[Jobs API] Initializing MongoDB...');
+    const instance = MongoDatabase.getInstance();
     await instance.initialize();
     db = instance;
-    console.log('[Jobs API] Database initialized successfully');
+    console.log('[Jobs API] MongoDB initialized successfully');
     return instance;
   })();
   
@@ -39,7 +31,7 @@ export async function GET(request: NextRequest) {
     const status = searchParams.get('status');
     
     const database = await ensureDb();
-    let jobs = database.getJobs(projectId);
+    let jobs = await database.getJobs(projectId);
     
     // Filter by status if provided
     if (status) {
@@ -64,10 +56,12 @@ export async function POST(request: NextRequest) {
     const database = await ensureDb();
     
     // Create job
-    const job = database.createJob({
+    const job = await database.createJob({
       projectId,
       name: jobData.name,
+      type: jobData.type,
       pipelineId: jobData.pipelineId,
+      dataSourceId: jobData.dataSourceId,
       schedule: jobData.schedule,
       enabled: jobData.enabled !== undefined ? jobData.enabled : true
     });
@@ -95,16 +89,16 @@ export async function PUT(request: NextRequest) {
     }
     
     const database = await ensureDb();
-    const success = database.updateJob(id, updates);
+    const result = await database.updateJob(id, updates);
     
-    if (!success) {
+    if (!result) {
       return NextResponse.json(
         { error: 'Job not found' },
         { status: 404 }
       );
     }
     
-    return NextResponse.json({ success: true });
+    return NextResponse.json(result);
   } catch (error) {
     console.error('Error updating job:', error);
     return NextResponse.json(
@@ -127,7 +121,7 @@ export async function DELETE(request: NextRequest) {
     }
     
     const database = await ensureDb();
-    const success = database.deleteJob(jobId);
+    const success = await database.deleteJob(jobId);
     
     return NextResponse.json({ success });
   } catch (error) {

@@ -1,7 +1,7 @@
 "use client"
 
 import React from "react";
-import { Inbox, Plus, RefreshCw } from "lucide-react";
+import { Inbox } from "lucide-react";
 import CellButton from "./CellButton";
 import { cn } from "../../lib/utils/cn";
 
@@ -37,16 +37,16 @@ const EmptyState: React.FC<EmptyStateProps> = ({
         className
       )}
     >
-      <div className="mb-6 p-6 bg-white/10 rounded-2xl border-2 border-black shadow-cell-lg">
-        <Icon className="w-16 h-16 text-white/50" />
+      <div className="mb-6 p-6 bg-gray-100 rounded-2xl border border-gray-300">
+        <Icon className="w-16 h-16 text-gray-400" />
       </div>
       
-      <h3 className="text-xl font-bold text-white mb-2">
+      <h3 className="text-xl font-bold text-gray-900 mb-2">
         {title}
       </h3>
       
       {description && (
-        <p className="text-white/70 mb-8 max-w-md">
+        <p className="text-gray-600 mb-8 max-w-md">
           {description}
         </p>
       )}

@@ -1,13 +1,12 @@
-import initSqlJs, { Database as SqlJsDatabase } from "sql.js";
+import Database from "better-sqlite3";
 import path from "path";
 import fs from "fs";
 import { logger } from "../utils/logger";
 
 export class SimpleSQLiteDB {
   private static instance: SimpleSQLiteDB;
-  private db: SqlJsDatabase | null = null;
+  private db: Database.Database | null = null;
   private dbPath: string;
-  private SQL: any = null;
 
   private constructor() {
     // Create database in project root data directory
@@ -34,36 +33,39 @@ export class SimpleSQLiteDB {
         return;
       }
 
-      // Initialize sql.js
-      if (!this.SQL) {
-        this.SQL = await initSqlJs();
+      // Initialize better-sqlite3 (synchronous, no WASM issues!)
+      if (!this.db) {
+        console.log("Initializing better-sqlite3...");
+        
+        try {
+          this.db = new Database(this.dbPath, {
+            verbose: process.env.NODE_ENV === 'development' ? console.log : undefined
+          });
+          
+          logger.info("Database opened", "database", { path: this.dbPath }, "SimpleSQLiteDB");
+
+          // Enable foreign keys
+          this.db.pragma("foreign_keys = ON");
+          
+          // Enable WAL mode for better concurrency
+          this.db.pragma("journal_mode = WAL");
+
+          // Create tables
+          this.createTables();
+
+          console.log("better-sqlite3 initialized successfully");
+          
+          logger.success(
+            "Database initialized successfully",
+            "database",
+            { path: this.dbPath },
+            "SimpleSQLiteDB"
+          );
+        } catch (initError) {
+          console.error("Failed to initialize better-sqlite3:", initError);
+          throw initError;
+        }
       }
-
-      // Load existing database or create new one
-      if (fs.existsSync(this.dbPath)) {
-        const buffer = fs.readFileSync(this.dbPath);
-        this.db = new this.SQL.Database(buffer);
-        logger.info("Loaded existing database", "database", { path: this.dbPath }, "SimpleSQLiteDB");
-      } else {
-        this.db = new this.SQL.Database();
-        logger.info("Created new database", "database", { path: this.dbPath }, "SimpleSQLiteDB");
-      }
-
-      // Enable foreign keys
-      this.db.run("PRAGMA foreign_keys = ON");
-
-      // Create tables
-      this.createTables();
-      
-      // Save to disk
-      this.save();
-
-      logger.success(
-        "Database initialized successfully",
-        "database",
-        { path: this.dbPath },
-        "SimpleSQLiteDB"
-      );
     } catch (error) {
       logger.error(
         "Failed to initialize database",
@@ -75,13 +77,6 @@ export class SimpleSQLiteDB {
     }
   }
 
-  private save(): void {
-    if (!this.db) return;
-    const data = this.db.export();
-    const buffer = Buffer.from(data);
-    fs.writeFileSync(this.dbPath, buffer);
-  }
-
   // Helper to run queries and return results
   private query(sql: string, params: any[] = []): any[] {
     if (!this.db) {
@@ -91,17 +86,14 @@ export class SimpleSQLiteDB {
       throw new Error("Database not initialized - call initialize() first");
     }
     
-    const results = this.db.exec(sql, params);
-    if (results.length === 0) return [];
-    
-    const { columns, values } = results[0];
-    return values.map(row => {
-      const obj: any = {};
-      columns.forEach((col, i) => {
-        obj[col] = row[i];
-      });
-      return obj;
-    });
+    try {
+      const stmt = this.db.prepare(sql);
+      const results = stmt.all(...params);
+      return results as any[];
+    } catch (error) {
+      console.error("Query error:", error, "SQL:", sql, "Params:", params);
+      throw error;
+    }
   }
 
   // Helper to run statements without results
@@ -112,15 +104,21 @@ export class SimpleSQLiteDB {
       }
       throw new Error("Database not initialized - call initialize() first");
     }
-    this.db.run(sql, params);
-    this.save();
+    
+    try {
+      const stmt = this.db.prepare(sql);
+      stmt.run(...params);
+    } catch (error) {
+      console.error("Run error:", error, "SQL:", sql, "Params:", params);
+      throw error;
+    }
   }
 
   private createTables(): void {
     if (!this.db) return;
 
-    // Projects table
-    this.db.run(`
+    // Use exec for multi-statement SQL
+    this.db.exec(`
       CREATE TABLE IF NOT EXISTS projects (
         id TEXT PRIMARY KEY,
         name TEXT NOT NULL,
@@ -128,11 +126,8 @@ export class SimpleSQLiteDB {
         data_path TEXT NOT NULL,
         created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
         updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
-      )
-    `);
+      );
 
-    // Data sources table
-    this.db.run(`
       CREATE TABLE IF NOT EXISTS data_sources (
         id TEXT PRIMARY KEY,
         project_id TEXT NOT NULL,
@@ -145,11 +140,8 @@ export class SimpleSQLiteDB {
         updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
         last_sync_at DATETIME,
         FOREIGN KEY (project_id) REFERENCES projects(id) ON DELETE CASCADE
-      )
-    `);
+      );
 
-    // Snapshots table
-    this.db.run(`
       CREATE TABLE IF NOT EXISTS snapshots (
         id TEXT PRIMARY KEY,
         project_id TEXT NOT NULL,
@@ -162,11 +154,8 @@ export class SimpleSQLiteDB {
         created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
         FOREIGN KEY (project_id) REFERENCES projects(id) ON DELETE CASCADE,
         FOREIGN KEY (data_source_id) REFERENCES data_sources(id) ON DELETE CASCADE
-      )
-    `);
+      );
 
-    // Pipelines table
-    this.db.run(`
       CREATE TABLE IF NOT EXISTS pipelines (
         id TEXT PRIMARY KEY,
         project_id TEXT NOT NULL,
@@ -177,11 +166,8 @@ export class SimpleSQLiteDB {
         created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
         updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
         FOREIGN KEY (project_id) REFERENCES projects(id) ON DELETE CASCADE
-      )
-    `);
+      );
 
-    // Jobs table
-    this.db.run(`
       CREATE TABLE IF NOT EXISTS jobs (
         id TEXT PRIMARY KEY,
         project_id TEXT NOT NULL,
@@ -197,11 +183,8 @@ export class SimpleSQLiteDB {
         created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
         updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
         FOREIGN KEY (project_id) REFERENCES projects(id) ON DELETE CASCADE
-      )
-    `);
+      );
 
-    // Logs table
-    this.db.run(`
       CREATE TABLE IF NOT EXISTS logs (
         id TEXT PRIMARY KEY,
         project_id TEXT,
@@ -211,11 +194,8 @@ export class SimpleSQLiteDB {
         metadata TEXT,
         created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
         FOREIGN KEY (project_id) REFERENCES projects(id) ON DELETE CASCADE
-      )
-    `);
+      );
 
-    // Webhooks table
-    this.db.run(`
       CREATE TABLE IF NOT EXISTS webhooks (
         id TEXT PRIMARY KEY,
         project_id TEXT NOT NULL,
@@ -226,7 +206,7 @@ export class SimpleSQLiteDB {
         created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
         updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
         FOREIGN KEY (project_id) REFERENCES projects(id) ON DELETE CASCADE
-      )
+      );
     `);
   }
 
@@ -573,9 +553,13 @@ export class SimpleSQLiteDB {
 
   close() {
     if (this.db) {
-      this.save();
-      this.db.close();
-      this.db = null;
+      try {
+        this.db.close();
+        this.db = null;
+        console.log("Database closed successfully");
+      } catch (error) {
+        console.error("Error closing database:", error);
+      }
     }
   }
 }

@@ -1,22 +1,22 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { SimpleSQLiteDB } from '../../../lib/server/database/SimpleSQLiteDB';
+import { MongoDatabase } from '../../../lib/server/database/MongoDatabase';
 
 // Force dynamic rendering
 export const dynamic = 'force-dynamic';
 
-let db: SimpleSQLiteDB | null = null;
-let initPromise: Promise<SimpleSQLiteDB> | null = null;
+let db: MongoDatabase | null = null;
+let initPromise: Promise<MongoDatabase> | null = null;
 
 async function ensureDb() {
   if (db) return db;
   if (initPromise) return initPromise;
   
   initPromise = (async () => {
-    console.log('[DataSources API] Initializing database...');
-    const instance = SimpleSQLiteDB.getInstance();
+    console.log('[DataSources API] Initializing MongoDB...');
+    const instance = MongoDatabase.getInstance();
     await instance.initialize();
     db = instance;
-    console.log('[DataSources API] Database initialized successfully');
+    console.log('[DataSources API] MongoDB initialized successfully');
     return instance;
   })();
   
@@ -29,7 +29,7 @@ export async function GET(request: NextRequest) {
     const projectId = searchParams.get('projectId') || 'default';
     
     const database = await ensureDb();
-    const dataSources = database.getDataSources(projectId);
+    const dataSources = await database.getDataSources(projectId);
     
     return NextResponse.json(dataSources);
   } catch (error) {
@@ -49,7 +49,7 @@ export async function POST(request: NextRequest) {
     const database = await ensureDb();
     
     // Create data source
-    const dataSource = database.createDataSource(projectId, dataSourceData);
+    const dataSource = await database.createDataSource(projectId, dataSourceData);
     
     return NextResponse.json(dataSource, { status: 201 });
   } catch (error) {
@@ -67,7 +67,7 @@ export async function PUT(request: NextRequest) {
     const { dataSourceId, ...updates } = body;
     
     const database = await ensureDb();
-    const result = database.updateDataSource(dataSourceId, updates);
+    const result = await database.updateDataSource(dataSourceId, updates);
     
     return NextResponse.json(result);
   } catch (error) {
@@ -92,7 +92,7 @@ export async function DELETE(request: NextRequest) {
     }
     
     const database = await ensureDb();
-    const success = database.deleteDataSource(dataSourceId);
+    const success = await database.deleteDataSource(dataSourceId);
     
     return NextResponse.json({ success });
   } catch (error) {

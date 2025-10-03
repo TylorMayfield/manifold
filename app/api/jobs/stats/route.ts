@@ -1,25 +1,23 @@
 import { NextResponse } from "next/server";
-import { SimpleSQLiteDB } from "../../../../lib/server/database/SimpleSQLiteDB";
-import { SeparatedDatabaseManager } from "../../../../lib/database/SeparatedDatabaseManager";
-import fs from "fs";
+import { MongoDatabase } from "../../../../lib/server/database/MongoDatabase";
 import path from "path";
 
 // Force dynamic rendering
 export const dynamic = 'force-dynamic';
 
-let db: SimpleSQLiteDB | null = null;
-let initPromise: Promise<SimpleSQLiteDB> | null = null;
+let db: MongoDatabase | null = null;
+let initPromise: Promise<MongoDatabase> | null = null;
 
 async function ensureDb() {
   if (db) return db;
   if (initPromise) return initPromise;
   
   initPromise = (async () => {
-    console.log('[Jobs Stats API] Initializing database...');
-    const instance = SimpleSQLiteDB.getInstance();
+    console.log('[Jobs Stats API] Initializing MongoDB...');
+    const instance = MongoDatabase.getInstance();
     await instance.initialize();
     db = instance;
-    console.log('[Jobs Stats API] Database initialized successfully');
+    console.log('[Jobs Stats API] MongoDB initialized successfully');
     return instance;
   })();
   
@@ -29,48 +27,16 @@ async function ensureDb() {
 export async function GET() {
   try {
     const database = await ensureDb();
-    const separatedDb = SeparatedDatabaseManager.getInstance();
     
     // Get all projects to count data sources
-    const projects = database.getProjects();
-    let totalDataSources = 0;
-    let totalStorageBytes = 0;
+    const projects = await database.getProjects();
     
-    // Count data sources and storage across all projects
-    for (const project of projects) {
-      try {
-        const projectDataSources = await separatedDb.getDataSources(project.id);
-        totalDataSources += projectDataSources.length;
-        
-        // Calculate storage used by checking database files
-        const dataPath = path.join(process.cwd(), "data", "datasources");
-        for (const ds of projectDataSources) {
-          try {
-            const dbPath = path.join(dataPath, project.id, `${ds.id}.db`);
-            if (fs.existsSync(dbPath)) {
-              const stats = fs.statSync(dbPath);
-              totalStorageBytes += stats.size;
-            }
-          } catch (err) {
-            // Skip if database doesn't exist yet
-          }
-        }
-      } catch (err) {
-        // Skip if project has no data sources
-      }
-    }
-    
-    // Format storage size
-    const formatBytes = (bytes: number): string => {
-      if (bytes === 0) return '0 B';
-      const k = 1024;
-      const sizes = ['B', 'KB', 'MB', 'GB'];
-      const i = Math.floor(Math.log(bytes) / Math.log(k));
-      return Math.round((bytes / Math.pow(k, i)) * 100) / 100 + ' ' + sizes[i];
-    };
+    // Get all data sources
+    const allDataSources = await database.getDataSources();
+    const totalDataSources = allDataSources.length;
     
     // Get jobs from database
-    const allJobs = database.getJobs();
+    const allJobs = await database.getJobs();
     const totalJobs = allJobs.length;
     
     // Count completed and failed jobs today
@@ -98,9 +64,9 @@ export async function GET() {
     let uptime = "0m";
     if (projects.length > 0) {
       const oldestProject = projects.reduce((oldest: any, project: any) => {
-        return new Date(project.created_at) < new Date(oldest.created_at) ? project : oldest;
+        return new Date(project.createdAt) < new Date(oldest.createdAt) ? project : oldest;
       });
-      const uptimeMs = Date.now() - new Date(oldestProject.created_at).getTime();
+      const uptimeMs = Date.now() - new Date(oldestProject.createdAt).getTime();
       const uptimeHours = Math.floor(uptimeMs / (1000 * 60 * 60));
       const uptimeDays = Math.floor(uptimeHours / 24);
       
@@ -124,7 +90,7 @@ export async function GET() {
       systemStats: {
         dataSources: totalDataSources,
         activePipelines: 0,
-        storageUsed: formatBytes(totalStorageBytes),
+        storageUsed: "N/A", // MongoDB storage not directly accessible
         uptime,
       },
       lastJob: allJobs.length > 0 ? allJobs[0] : undefined,

@@ -110,14 +110,14 @@ export default function DataSourceTemplateSelector({
     >
       <div className="flex items-center justify-between mb-6">
         <div>
-          <h2 className="text-2xl font-bold text-white">Choose a Template</h2>
-          <p className="text-white/60 mt-1">
+          <h2 className="text-2xl font-bold text-gray-900">Choose a Template</h2>
+          <p className="text-gray-600 mt-1">
             Select a template to quickly set up your data source
           </p>
         </div>
         <button
           onClick={onClose}
-          className="p-2 text-white/60 hover:text-white hover:bg-white/10 rounded-lg transition-colors"
+          className="p-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors"
         >
           <X className="h-5 w-5" />
         </button>
@@ -127,13 +127,13 @@ export default function DataSourceTemplateSelector({
       <div className="mb-6 space-y-4">
         {/* Search */}
         <div className="relative">
-          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-white/40" />
+          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
           <input
             type="text"
             placeholder="Search templates..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full pl-10 pr-4 py-2 bg-white/10 border border-white/20 rounded-lg text-white placeholder-white/40 focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="w-full pl-10 pr-4 py-2 bg-white border border-gray-300 rounded-lg text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500"
           />
         </div>
 
@@ -146,7 +146,7 @@ export default function DataSourceTemplateSelector({
               className={`flex items-center space-x-2 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
                 selectedCategory === category.id
                   ? "bg-blue-500 text-white"
-                  : "bg-white/10 text-white/70 hover:bg-white/20 hover:text-white"
+                  : "bg-gray-100 text-gray-700 hover:bg-gray-200 hover:text-gray-900"
               }`}
             >
               {category.icon}
@@ -179,8 +179,8 @@ export default function DataSourceTemplateSelector({
                 <div
                   className={
                     selectedTemplate?.id === template.id
-                      ? "text-blue-400"
-                      : "text-white/60"
+                      ? "text-blue-500"
+                      : "text-gray-400"
                   }
                 >
                   {getTemplateIcon(template)}
@@ -189,15 +189,15 @@ export default function DataSourceTemplateSelector({
 
               <div className="flex-1 min-w-0">
                 <div className="flex items-center space-x-2 mb-1">
-                  <h3 className="text-sm font-semibold text-white truncate">
-                    {template.name}
-                  </h3>
+                <h3 className="text-sm font-semibold text-gray-900 truncate">
+                  {template.name}
+                </h3>
                   {template.popular && (
                     <Star className="h-3 w-3 text-yellow-400 fill-current" />
                   )}
                 </div>
 
-                <p className="text-xs text-white/60 mb-2 line-clamp-2">
+                <p className="text-xs text-gray-600 mb-2 line-clamp-2">
                   {template.description}
                 </p>
 
@@ -205,13 +205,13 @@ export default function DataSourceTemplateSelector({
                   {template.tags.slice(0, 3).map((tag) => (
                     <span
                       key={tag}
-                      className="px-2 py-0.5 bg-white/10 text-xs text-white/60 rounded"
+                      className="px-2 py-0.5 bg-gray-100 text-xs text-gray-600 rounded"
                     >
                       {tag}
                     </span>
                   ))}
                   {template.tags.length > 3 && (
-                    <span className="px-2 py-0.5 bg-white/10 text-xs text-white/60 rounded">
+                    <span className="px-2 py-0.5 bg-gray-100 text-xs text-gray-600 rounded">
                       +{template.tags.length - 3}
                     </span>
                   )}
@@ -230,8 +230,8 @@ export default function DataSourceTemplateSelector({
 
       {filteredTemplates.length === 0 && (
         <div className="text-center py-8">
-          <div className="text-white/60 mb-2">No templates found</div>
-          <div className="text-white/40 text-sm">
+          <div className="text-gray-700 mb-2">No templates found</div>
+          <div className="text-gray-600 text-sm">
             Try adjusting your search or category filter
           </div>
         </div>

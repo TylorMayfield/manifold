@@ -57,9 +57,9 @@ export default function PageLayout({
   };
 
   return (
-    <div className={cn("min-h-screen bg-black", className)}>
-      {/* Header */}
-      <header className="bg-gray-900 border-b-2 border-gray-700 shadow-lg">
+    <div className={cn("min-h-screen bg-gray-100", className)}>
+      {/* Header - stays dark */}
+      <header className="bg-gray-900 border-b border-gray-700 shadow-sm">
         <div className="flex items-center justify-between p-4">
           <div className="flex items-center space-x-4">
             {showBackButton && (
@@ -73,11 +73,11 @@ export default function PageLayout({
             )}
             
             <div className="flex items-center space-x-3">
-              {Icon && <Icon className="w-6 h-6 text-blue-400" />}
+              {Icon && <Icon className="w-6 h-6 text-blue-500" />}
               <div>
                 <h1 className="text-heading font-bold font-mono text-white">{title}</h1>
                 {subtitle && (
-                  <span className="text-caption text-gray-400">{subtitle}</span>
+                  <span className="text-caption text-gray-300">{subtitle}</span>
                 )}
               </div>
             </div>
@@ -91,7 +91,7 @@ export default function PageLayout({
 
       {/* Breadcrumbs */}
       {breadcrumbs && breadcrumbs.length > 0 && (
-        <div className="border-b-2 border-gray-800 px-4 py-2 bg-gray-900/50">
+        <div className="border-b border-gray-300 px-4 py-2 bg-white">
           <nav className="flex" aria-label="Breadcrumb">
             {breadcrumbs.map((crumb, index) => (
               <div key={index} className="flex items-center">

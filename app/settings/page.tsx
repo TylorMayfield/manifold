@@ -6,6 +6,7 @@ import PageLayout from "../../components/layout/PageLayout";
 import CellButton from "../../components/ui/CellButton";
 import CellCard from "../../components/ui/CellCard";
 import { useSettings } from "../../contexts/SettingsContext";
+import SettingsDatabase from "../../components/settings/SettingsDatabase";
 import {
   Settings,
   User,
@@ -134,7 +135,7 @@ export default function SettingsPage() {
           onChange={(e) =>
             handleSettingChange("applicationName", e.target.value)
           }
-          className="w-full px-3 py-2 bg-white border border-gray-300 rounded-md text-gray-900 focus:ring-2 focus:ring-dark_cyan-500 focus:border-dark_cyan-500"
+          className="w-full px-3 py-2 bg-white border border-gray-300 rounded text-gray-900 focus:ring-2 focus:ring-blue-200 focus:border-blue-500"
         />
       </div>
 
@@ -187,7 +188,7 @@ export default function SettingsPage() {
           onChange={(e) =>
             handleSettingChange("maxConcurrentJobs", parseInt(e.target.value))
           }
-          className="w-full px-3 py-2 bg-white border border-gray-300 rounded-md text-black"
+          className="w-full px-3 py-2 bg-gray-800 border border-gray-600 rounded-md text-gray-900"
         />
         <p className="text-xs text-dark_cyan-400 mt-1">
           Maximum number of jobs that can run simultaneously
@@ -197,95 +198,7 @@ export default function SettingsPage() {
   );
 
   const renderDatabaseSettings = () => (
-    <div className="space-y-6">
-      <div>
-        <label className="block text-sm font-bold text-gray-900 mb-2">
-          Database Path
-        </label>
-        <input
-          type="text"
-          value={settings.databasePath}
-          onChange={(e) => handleSettingChange("databasePath", e.target.value)}
-          className="w-full px-3 py-2 bg-white border border-gray-300 rounded-md text-black"
-        />
-        <p className="text-xs text-dark_cyan-400 mt-1">
-          Directory where database files are stored
-        </p>
-      </div>
-
-      <div className="space-y-4">
-        <div className="flex items-center space-x-2">
-          <input
-            type="checkbox"
-            id="backupEnabled"
-            checked={settings.backupEnabled}
-            onChange={(e) =>
-              handleSettingChange("backupEnabled", e.target.checked)
-            }
-            className="w-4 h-4"
-          />
-          <label htmlFor="backupEnabled" className="font-bold text-gray-900">
-            Enable Automatic Backups
-          </label>
-        </div>
-
-        {settings.backupEnabled && (
-          <div className="ml-6 space-y-4">
-            <div>
-              <label className="block text-sm font-bold text-gray-900 mb-2">
-                Backup Frequency
-              </label>
-              <select
-                value={settings.backupFrequency}
-                onChange={(e) =>
-                  handleSettingChange("backupFrequency", e.target.value)
-                }
-                className="px-3 py-2 bg-white border border-gray-300 rounded-md text-black"
-              >
-                <option value="hourly">Hourly</option>
-                <option value="daily">Daily</option>
-                <option value="weekly">Weekly</option>
-                <option value="monthly">Monthly</option>
-              </select>
-            </div>
-
-            <div>
-              <label className="block text-sm font-bold text-gray-900 mb-2">
-                Retention Days
-              </label>
-              <input
-                type="number"
-                min="1"
-                max="365"
-                value={settings.retentionDays}
-                onChange={(e) =>
-                  handleSettingChange("retentionDays", parseInt(e.target.value))
-                }
-                className="w-full px-3 py-2 bg-white border border-gray-300 rounded-md text-black"
-              />
-              <p className="text-xs text-dark_cyan-400 mt-1">
-                How long to keep backup files
-              </p>
-            </div>
-
-            <div className="flex items-center space-x-2">
-              <input
-                type="checkbox"
-                id="compressionEnabled"
-                checked={settings.compressionEnabled}
-                onChange={(e) =>
-                  handleSettingChange("compressionEnabled", e.target.checked)
-                }
-                className="w-4 h-4"
-              />
-              <label htmlFor="compressionEnabled" className="text-gray-900">
-                Enable Backup Compression
-              </label>
-            </div>
-          </div>
-        )}
-      </div>
-    </div>
+    <SettingsDatabase />
   );
 
   const renderNotificationSettings = () => (
@@ -374,7 +287,7 @@ export default function SettingsPage() {
           onChange={(e) =>
             handleSettingChange("sessionTimeout", parseInt(e.target.value))
           }
-          className="w-full px-3 py-2 bg-white border border-gray-300 rounded-md text-black"
+          className="w-full px-3 py-2 bg-gray-800 border border-gray-600 rounded-md text-gray-900"
         />
         <p className="text-xs text-dark_cyan-400 mt-1">
           Automatically log out after inactivity
@@ -438,7 +351,7 @@ export default function SettingsPage() {
         <select
           value={settings.logLevel}
           onChange={(e) => handleSettingChange("logLevel", e.target.value)}
-          className="px-3 py-2 bg-white border border-gray-300 rounded-md text-black"
+          className="px-3 py-2 bg-gray-800 border border-gray-600 rounded-md text-gray-900"
         >
           <option value="debug">Debug</option>
           <option value="info">Info</option>
@@ -466,7 +379,7 @@ export default function SettingsPage() {
           onChange={(e) =>
             handleSettingChange("maxSnapshotSize", parseInt(e.target.value))
           }
-          className="w-full px-3 py-2 bg-white border border-gray-300 rounded-md text-black"
+          className="w-full px-3 py-2 bg-gray-800 border border-gray-600 rounded-md text-gray-900"
         />
         <p className="text-xs text-dark_cyan-400 mt-1">
           Maximum size for individual data snapshots
@@ -508,7 +421,7 @@ export default function SettingsPage() {
                   parseInt(e.target.value)
                 )
               }
-              className="w-full px-3 py-2 bg-white border border-gray-300 rounded-md text-black"
+              className="w-full px-3 py-2 bg-gray-800 border border-gray-600 rounded-md text-gray-900"
             />
             <p className="text-xs text-dark_cyan-400 mt-1">
               Start cleanup when disk usage exceeds this percentage
@@ -518,23 +431,23 @@ export default function SettingsPage() {
       </div>
 
       <div className="cell-card p-4">
-        <h4 className="font-bold text-black mb-2">Storage Usage</h4>
+        <h4 className="font-bold text-gray-900 mb-2">Storage Usage</h4>
         <div className="space-y-2">
           <div className="flex justify-between text-sm">
-            <span className="text-black">Database:</span>
-            <span className="font-mono text-accent">156 MB</span>
+            <span className="text-gray-700">Database:</span>
+            <span className="font-mono text-blue-600">MongoDB</span>
           </div>
           <div className="flex justify-between text-sm">
-            <span className="text-black">Snapshots:</span>
-            <span className="font-mono text-accent">2.3 GB</span>
+            <span className="text-gray-700">Snapshots:</span>
+            <span className="font-mono text-blue-600">In MongoDB</span>
           </div>
           <div className="flex justify-between text-sm">
-            <span className="text-black">Backups:</span>
-            <span className="font-mono text-accent">890 MB</span>
+            <span className="text-gray-700">Backups:</span>
+            <span className="font-mono text-blue-600">Cloud-based</span>
           </div>
-          <div className="flex justify-between text-sm font-bold pt-2 border-t-2 border-black">
-            <span className="text-black">Total:</span>
-            <span className="font-mono text-accent">3.35 GB</span>
+          <div className="flex justify-between text-sm font-bold pt-2 border-t border-gray-300">
+            <span className="text-gray-900">Status:</span>
+            <span className="font-mono text-green-600">Connected</span>
           </div>
         </div>
       </div>
@@ -603,7 +516,7 @@ export default function SettingsPage() {
         <select
           value={settings.fontSize}
           onChange={(e) => handleSettingChange("fontSize", e.target.value)}
-          className="px-3 py-2 bg-white border border-gray-300 rounded-md text-black"
+          className="px-3 py-2 bg-gray-800 border border-gray-600 rounded-md text-gray-900"
         >
           <option value="small">Small</option>
           <option value="medium">Medium</option>
@@ -691,10 +604,10 @@ export default function SettingsPage() {
                   <button
                     key={section.id}
                     onClick={() => setActiveSection(section.id)}
-                    className={`w-full text-left p-3 border-2 border-black transition-colors ${
+                    className={`w-full text-left p-3 border border-gray-300 rounded transition-colors ${
                       activeSection === section.id
-                        ? "bg-accent text-white"
-                        : "bg-white hover:bg-gray-50 text-black"
+                        ? "bg-blue-600 text-gray-900 shadow-sm"
+                        : "bg-white hover:bg-gray-50 text-gray-900"
                     }`}
                   >
                     <div className="flex items-center space-x-3">
@@ -704,7 +617,7 @@ export default function SettingsPage() {
                           {section.title}
                         </div>
                         <div className={`text-xs ${
-                          activeSection === section.id ? "text-white opacity-80" : "text-gray-600"
+                          activeSection === section.id ? "text-gray-900 opacity-80" : "text-gray-600"
                         }`}>
                           {section.description}
                         </div>

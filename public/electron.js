@@ -2,6 +2,9 @@ const { app, BrowserWindow, Menu, ipcMain, dialog } = require("electron");
 const path = require("path");
 const fs = require("fs");
 
+// Note: Database operations are now handled by MongoDB through the Next.js API
+// No direct database access from Electron main process
+
 // CRITICAL: Prevent multiple instances
 const gotTheLock = app.requestSingleInstanceLock();
 
@@ -123,13 +126,11 @@ async function startNextServer() {
 }
 
 let mainWindow;
-let dbManager;
 let handlersRegistered = false;
 
 // Handle second instance
 app.on('second-instance', (event, commandLine, workingDirectory) => {
   console.log("Second instance detected, focusing main window");
-  // Someone tried to run a second instance, focus our window instead
   if (mainWindow) {
     if (mainWindow.isMinimized()) mainWindow.restore();
     mainWindow.focus();
@@ -172,142 +173,8 @@ function registerIpcHandlers() {
     }
   });
 
-  // Database operations
-  try {
-    dbManager = DatabaseManager.getInstance();
-    console.log("Database manager initialized successfully");
-  } catch (error) {
-    console.error("Failed to initialize database manager:", error);
-    dbManager = null;
-  }
-
-  // Project operations
-  ipcMain.handle("get-projects", async () => {
-    try {
-      if (!dbManager) {
-        throw new Error("Database not initialized");
-      }
-      return dbManager.getProjects();
-    } catch (error) {
-      console.error("Failed to get projects:", error);
-      throw error;
-    }
-  });
-
-  ipcMain.handle("get-project", async (event, id) => {
-    try {
-      if (!dbManager) {
-        throw new Error("Database not initialized");
-      }
-      return dbManager.getProject(id);
-    } catch (error) {
-      console.error("Failed to get project:", error);
-      throw error;
-    }
-  });
-
-  ipcMain.handle("create-project", async (event, project) => {
-    try {
-      console.log("Creating project in Electron:", project);
-      if (!dbManager) {
-        throw new Error("Database not initialized");
-      }
-      dbManager.createProject(project);
-      console.log("Project created successfully");
-      return { success: true };
-    } catch (error) {
-      console.error("Failed to create project:", error);
-      console.error("Error details:", {
-        message: error.message,
-        stack: error.stack,
-        name: error.name,
-      });
-      throw error;
-    }
-  });
-
-  ipcMain.handle("update-project", async (event, id, updates) => {
-    try {
-      if (!dbManager) {
-        throw new Error("Database not initialized");
-      }
-      dbManager.updateProject(id, updates);
-      return { success: true };
-    } catch (error) {
-      console.error("Failed to update project:", error);
-      throw error;
-    }
-  });
-
-  ipcMain.handle("delete-project", async (event, id) => {
-    try {
-      if (!dbManager) {
-        throw new Error("Database not initialized");
-      }
-      dbManager.deleteProject(id);
-      return { success: true };
-    } catch (error) {
-      console.error("Failed to delete project:", error);
-      throw error;
-    }
-  });
-
-  // Data source operations
-  ipcMain.handle("get-data-sources", async (event, projectId) => {
-    try {
-      if (!dbManager) {
-        throw new Error("Database not initialized");
-      }
-      return dbManager.getDataSources(projectId);
-    } catch (error) {
-      console.error("Failed to get data sources:", error);
-      throw error;
-    }
-  });
-
-  ipcMain.handle("create-data-source", async (event, dataSource) => {
-    try {
-      console.log("Electron: create-data-source called with:", dataSource);
-      if (!dbManager) {
-        console.error("Electron: Database manager not initialized");
-        throw new Error("Database not initialized");
-      }
-      console.log("Electron: About to call dbManager.createDataSource");
-      const result = dbManager.createDataSource(dataSource);
-      console.log("Electron: Data source created successfully:", result);
-      return result;
-    } catch (error) {
-      console.error("Electron: Failed to create data source:", error);
-      console.error("Electron: Error stack:", error.stack);
-      throw error;
-    }
-  });
-
-  ipcMain.handle("update-data-source", async (event, id, updates) => {
-    try {
-      if (!dbManager) {
-        throw new Error("Database not initialized");
-      }
-      dbManager.updateDataSource(id, updates);
-      return { success: true };
-    } catch (error) {
-      console.error("Failed to update data source:", error);
-      throw error;
-    }
-  });
-
-  ipcMain.handle("delete-data-source", async (event, id) => {
-    try {
-      if (!dbManager) {
-        throw new Error("Database not initialized");
-      }
-      dbManager.deleteDataSource(id);
-      return { success: true };
-    } catch (error) {
-      console.error("Failed to delete data source:", error);
-      throw error;
-    }
-  });
+  // NOTE: All database operations now go through the Next.js API routes
+  // which use MongoDB. No direct database access from Electron main process.
 
   // File operations
   ipcMain.handle("show-open-dialog", async (event, options) => {
@@ -439,15 +306,9 @@ app.on("before-quit", () => {
     }
   }
   
-  // Clean up database connections
-  if (dbManager) {
-    try {
-      dbManager.close();
-      console.log("Database connections closed");
-    } catch (error) {
-      console.error("Error closing database:", error);
-    }
-  }
+  // MongoDB connections are managed by the Next.js server
+  // They will be cleaned up when the server stops
+  console.log("Application shutting down cleanly");
 });
 
 // Create application menu

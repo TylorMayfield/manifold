@@ -95,24 +95,22 @@ export async function DELETE(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
     const snapshotId = searchParams.get('snapshotId');
-    const projectId = searchParams.get('projectId') || 'default';
-    const dataSourceId = searchParams.get('dataSourceId');
     
-    if (!snapshotId || !dataSourceId) {
+    if (!snapshotId) {
       return NextResponse.json(
-        { error: 'snapshotId and dataSourceId are required' },
+        { error: 'snapshotId is required' },
         { status: 400 }
       );
     }
     
-    const separatedDb = SeparatedDatabaseManager.getInstance();
+    const { MongoDatabase } = await import('../../../lib/server/database/MongoDatabase');
+    const db = MongoDatabase.getInstance();
+    await db.initialize();
     
-    // Delete the specific version
-    const db = await separatedDb.getDataSourceDb(projectId, dataSourceId);
-    const deleteStmt = db.prepare('DELETE FROM data_versions WHERE id = ?');
-    const result = deleteStmt.run(snapshotId);
+    // Delete the snapshot from MongoDB
+    const success = await db.deleteSnapshot(snapshotId);
     
-    return NextResponse.json({ success: result.changes > 0 });
+    return NextResponse.json({ success });
   } catch (error) {
     console.error('Error deleting snapshot:', error);
     return NextResponse.json(

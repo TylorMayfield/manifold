@@ -34,8 +34,8 @@
   }
 
   body {
-    background: #0a0a0a;
-    color: var(--foreground);
+    background: #f5f5f5;
+    color: #1a1a1a;
     font-feature-settings: "rlig" 1, "calt" 1;
     line-height: 1.5;
     -webkit-font-smoothing: antialiased;
@@ -79,77 +79,77 @@
 }
 
 @layer components {
-  /* Dark Cell-shaded card system */
+  /* Light Metro card system */
   .cell-card {
-    @apply bg-gray-900 border-2 border-gray-700 shadow-cell text-white;
+    @apply bg-white border border-gray-300 shadow-sm text-gray-900;
   }
 
   .cell-card-elevated {
-    @apply bg-gray-800 border-2 border-gray-600 shadow-cell-lg text-white;
+    @apply bg-white border border-gray-200 shadow-md text-gray-900;
   }
 
   .cell-card-interactive {
-    @apply bg-gray-900 border-2 border-gray-700 hover:border-gray-500 hover:shadow-cell-lg transition-all duration-200 cursor-pointer text-white;
+    @apply bg-white border border-gray-300 hover:border-blue-500 hover:shadow-md transition-all duration-200 cursor-pointer text-gray-900;
   }
 
   .cell-card-accent {
-    @apply bg-blue-900/20 border-2 border-blue-600 shadow-[4px_4px_0px_0px_rgba(37,99,235,0.3)] text-white;
+    @apply bg-blue-50 border border-blue-300 shadow-sm text-gray-900;
   }
 
-  /* Solid backgrounds for professional look */
+  /* Light backgrounds for content areas */
   .gradient-bg {
-    @apply bg-black;
+    @apply bg-gray-100;
   }
 
   .gradient-bg-subtle {
-    @apply bg-gray-900;
+    @apply bg-gray-50;
   }
 
-  /* Cell-shaded button system */
+  /* Metro-style button system */
   .cell-btn {
-    @apply inline-flex items-center justify-center font-medium border-2 border-gray-600 shadow-cell active:shadow-cell-sm active:translate-x-[1px] active:translate-y-[1px] transition-all duration-100 disabled:opacity-50 disabled:cursor-not-allowed;
+    @apply inline-flex items-center justify-center font-medium border transition-all duration-150 disabled:opacity-50 disabled:cursor-not-allowed;
   }
 
   .cell-btn-primary {
-    @apply cell-btn bg-white hover:bg-gray-50 text-black border-gray-300;
+    @apply cell-btn bg-blue-600 hover:bg-blue-700 text-white border-blue-700 shadow-sm hover:shadow;
   }
 
   .cell-btn-accent {
-    @apply cell-btn bg-accent hover:bg-accent-600 text-white border-accent-700;
+    @apply cell-btn bg-blue-500 hover:bg-blue-600 text-white border-blue-600 shadow-sm hover:shadow;
   }
 
   .cell-btn-danger {
-    @apply cell-btn bg-error hover:bg-red-600 text-white border-red-700;
+    @apply cell-btn bg-red-600 hover:bg-red-700 text-white border-red-700 shadow-sm hover:shadow;
   }
 
   .cell-btn-ghost {
-    @apply cell-btn bg-gray-800 hover:bg-gray-700 text-white border-gray-600 hover:border-gray-500;
+    @apply cell-btn bg-gray-100 hover:bg-gray-200 text-gray-900 border-gray-300 shadow-sm hover:shadow;
   }
 
-  /* Dark Cell-shaded input system */
+  /* Metro-style input system */
   .cell-input {
-    @apply w-full border-2 border-gray-600 bg-gray-900 text-white font-mono transition-all duration-200 focus:outline-none focus:border-blue-500 focus:shadow-[0_0_0_3px_rgba(59,130,246,0.2)] placeholder:text-gray-500;
+    @apply w-full border border-gray-300 bg-white text-gray-900 transition-all duration-200 focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-200 placeholder:text-gray-400;
   }
 
   .cell-input-error {
-    @apply border-red-500 focus:border-red-500 focus:shadow-[0_0_0_3px_rgba(239,68,68,0.2)];
+    @apply border-red-400 focus:border-red-500 focus:ring-red-200;
   }
 
   .cell-input-success {
-    @apply border-green-500 focus:border-green-500 focus:shadow-[0_0_0_3px_rgba(34,197,94,0.2)];
+    @apply border-green-400 focus:border-green-500 focus:ring-green-200;
   }
 
-  /* Dark Cell-shaded table system */
+  /* Metro-style table system */
   .cell-table {
-    @apply border-2 border-gray-700 bg-gray-900 text-white;
+    @apply border border-gray-300 bg-white text-gray-900;
   }
 
   .cell-table th {
-    @apply border-r-2 border-b-2 border-gray-700 bg-gray-800 px-4 py-2 text-left font-bold text-white;
+    @apply border-r border-b border-gray-300 bg-gray-50 px-4 py-2 text-left font-bold text-gray-900;
   }
 
   .cell-table td {
-    @apply border-r-2 border-b-2 border-gray-700 px-4 py-2 font-mono text-gray-200;
+    @apply border-r border-b border-gray-200 px-4 py-2 text-gray-900;
   }
 
   .cell-table th:last-child,
@@ -162,16 +162,16 @@
   }
 
   .cell-table tbody tr:hover {
-    @apply bg-gray-800/50;
+    @apply bg-gray-50;
   }
 
-  /* Dark Cell-shaded navigation */
+  /* Dark navigation (stays dark) */
   .cell-nav {
-    @apply bg-gray-900 border-b-2 border-gray-700;
+    @apply bg-gray-900 border-b border-gray-700;
   }
 
   .cell-nav-item {
-    @apply px-4 py-2 border-r-2 border-gray-700 hover:bg-gray-800 transition-colors duration-200 text-white;
+    @apply px-4 py-2 border-r border-gray-700 hover:bg-gray-800 transition-colors duration-200 text-white;
   }
 
   .cell-nav-item:last-child {
@@ -188,23 +188,23 @@
   }
 
   .status-success {
-    @apply status-badge bg-success text-white border-green-700;
+    @apply status-badge bg-green-500 text-white border-green-600;
   }
 
   .status-warning {
-    @apply status-badge bg-warning text-black border-yellow-600;
+    @apply status-badge bg-yellow-500 text-white border-yellow-600;
   }
 
   .status-error {
-    @apply status-badge bg-error text-white border-red-700;
+    @apply status-badge bg-red-500 text-white border-red-600;
   }
 
   .status-info {
-    @apply status-badge bg-accent text-white border-blue-700;
+    @apply status-badge bg-blue-500 text-white border-blue-600;
   }
 
   .status-idle {
-    @apply status-badge bg-gray-700 text-white border-gray-500;
+    @apply status-badge bg-gray-300 text-gray-900 border-gray-400;
   }
 
   /* Typography scale */
@@ -225,20 +225,20 @@
   }
 
   .text-caption {
-    @apply text-sm text-gray-400 font-medium;
+    @apply text-sm text-gray-600 font-medium;
   }
 
   .text-label {
-    @apply text-sm font-bold text-white;
+    @apply text-sm font-bold text-gray-900;
   }
 
-  /* Dark Cell-shaded modal system */
+  /* Light Metro modal system */
   .cell-modal {
-    @apply bg-gray-900 border-4 border-gray-600 shadow-[8px_8px_0px_0px_rgba(0,0,0,0.5)] text-white;
+    @apply bg-white border border-gray-300 shadow-2xl text-gray-900;
   }
 
   .cell-modal-backdrop {
-    @apply bg-black bg-opacity-70 backdrop-blur-sm;
+    @apply bg-black bg-opacity-50 backdrop-blur-sm;
   }
 
   /* Glass effect for overlays */

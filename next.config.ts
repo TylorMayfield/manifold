@@ -25,15 +25,10 @@ const nextConfig: NextConfig = {
     if (isServer) {
       config.externals = config.externals || [];
       if (Array.isArray(config.externals)) {
-        config.externals.push('electron', 'better-sqlite3');
+        // Externalize Electron only
+        config.externals.push('electron');
       }
     }
-    
-    // Handle sql.js wasm files
-    config.module.rules.push({
-      test: /\.wasm$/,
-      type: 'asset/resource',
-    });
     
     return config;
   },

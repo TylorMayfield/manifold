@@ -299,7 +299,8 @@ export default function UnifiedDataSourceWorkflow({
       }
     } catch (error) {
       console.error("Failed to create data source:", error);
-      // Handle error (show toast, etc.)
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
+      alert(`Failed to create data source: ${errorMessage}\n\nPlease check:\n1. MongoDB is running\n2. Connection string is correct in Settings > Database\n3. Browser console for more details`);
     } finally {
       setLoading(false);
     }

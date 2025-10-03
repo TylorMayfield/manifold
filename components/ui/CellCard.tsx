@@ -12,13 +12,13 @@ export interface CellCardProps extends React.HTMLAttributes<HTMLDivElement> {
 
 const CellCard = React.forwardRef<HTMLDivElement, CellCardProps>(
   ({ className, title, variant = 'default', padding = 'md', children, ...props }, ref) => {
-    const baseStyles = "bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 border-2 text-white transition-all duration-200";
+    const baseStyles = "bg-white text-gray-900 transition-all duration-200 rounded-lg";
     
     const variants = {
-      default: "border-gray-700 shadow-cell hover:border-gray-600",
-      elevated: "border-gray-600 shadow-cell-lg hover:shadow-[6px_6px_0px_0px_rgba(0,0,0,0.5)]",
-      flat: "border-gray-700 shadow-none",
-      accent: "border-blue-600 shadow-[4px_4px_0px_0px_rgba(37,99,235,0.3)] bg-gradient-to-br from-blue-900/30 via-blue-800/20 to-blue-900/30"
+      default: "border border-gray-300 shadow-sm hover:shadow-md",
+      elevated: "border border-gray-200 shadow-md hover:shadow-lg",
+      flat: "border border-gray-200 shadow-none",
+      accent: "border border-blue-300 shadow-sm bg-blue-50"
     };
 
     const paddings = {
@@ -40,7 +40,7 @@ const CellCard = React.forwardRef<HTMLDivElement, CellCardProps>(
         {...props}
       >
         {title && (
-          <h3 className="text-lg font-bold font-mono mb-3 pb-3 border-b-2 border-gray-700 text-white">
+          <h3 className="text-lg font-bold mb-3 pb-3 border-b border-gray-300 text-gray-900">
             {title}
           </h3>
         )}

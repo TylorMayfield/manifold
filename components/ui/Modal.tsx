@@ -58,14 +58,17 @@ const Modal: React.FC<ModalProps> = ({
 
         {/* Modal panel */}
         <div
-          className={`inline-block align-bottom modal rounded-2xl text-left overflow-hidden transform transition-all sm:my-8 sm:align-middle sm:w-full animate-scale-in ${sizeClasses[size]}`}
+          className={`inline-block align-bottom bg-white rounded-lg text-left overflow-hidden shadow-2xl transform transition-all sm:my-8 sm:align-middle sm:w-full ${sizeClasses[size]}`}
         >
           {/* Header */}
-          <div className="px-6 pt-6 pb-4 sm:p-6 sm:pb-4 border-b border-white/10">
+          <div className="px-6 pt-6 pb-4 border-b border-gray-300">
             <div className="flex items-center justify-between">
-              <h3 className="text-heading text-white">{title}</h3>
+              <h3 className="text-xl font-bold text-gray-900">{title}</h3>
               {showCloseButton && (
-                <button onClick={onClose} className="btn-ghost p-2 rounded-lg">
+                <button 
+                  onClick={onClose} 
+                  className="p-2 rounded-lg hover:bg-gray-100 text-gray-600 hover:text-gray-900 transition-colors"
+                >
                   <X className="h-5 w-5" />
                 </button>
               )}
@@ -73,7 +76,7 @@ const Modal: React.FC<ModalProps> = ({
           </div>
 
           {/* Content */}
-          <div className="px-6 pb-6 sm:p-6">{children}</div>
+          <div className="px-6 py-6 text-gray-900">{children}</div>
         </div>
       </div>
     </div>

@@ -6,31 +6,47 @@ import {
   type WebhookConfig 
 } from '../../../lib/validation/webhook';
 import { webhookService } from '../../../lib/webhooks';
+import { MongoDatabase } from '../../../lib/server/database/MongoDatabase';
 
-// Mock database functions - replace with actual database calls
+// Force dynamic rendering
+export const dynamic = 'force-dynamic';
+
+let db: MongoDatabase | null = null;
+let initPromise: Promise<MongoDatabase> | null = null;
+
+async function ensureDb() {
+  if (db) return db;
+  if (initPromise) return initPromise;
+  
+  initPromise = (async () => {
+    console.log('[Webhooks API] Initializing MongoDB...');
+    const instance = MongoDatabase.getInstance();
+    await instance.initialize();
+    db = instance;
+    console.log('[Webhooks API] MongoDB initialized successfully');
+    return instance;
+  })();
+  
+  return initPromise;
+}
+
 async function getWebhooks(filters: any = {}): Promise<WebhookConfig[]> {
-  // This would query the webhook_configs table
-  // For now, return mock data
-  return [];
+  const database = await ensureDb();
+  const webhooks = await database.getWebhooks(filters.projectId);
+  return webhooks as any[];
 }
 
 async function createWebhook(data: CreateWebhookRequest): Promise<WebhookConfig> {
-  // This would insert into webhook_configs table
-  const webhook: WebhookConfig = {
-    id: `webhook_${Date.now()}`,
-    ...data,
-    headers: data.headers || {},
-    templateConfig: data.templateConfig || {},
+  const database = await ensureDb();
+  
+  const webhook = await database.createWebhook(data.projectId || 'default', {
+    name: data.name,
+    url: data.url,
     events: data.events || ['start', 'success', 'failure', 'complete'],
-    isEnabled: data.isEnabled ?? true,
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString()
-  };
+    enabled: data.isEnabled ?? true
+  });
   
-  // Save to database here
-  console.log('Creating webhook:', webhook);
-  
-  return webhook;
+  return webhook as any;
 }
 
 // GET /api/webhooks - List webhooks with optional filtering

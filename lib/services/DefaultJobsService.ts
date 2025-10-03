@@ -277,44 +277,14 @@ export class DefaultJobsService {
     const repairs: string[] = [];
 
     try {
-      // Check if data source database file exists
-      if (dataSource.dataPath) {
-        if (!fs.existsSync(dataSource.dataPath)) {
-          issues.push(`Data source database file missing: ${dataSource.dataPath}`);
-          
-          // Attempt to recreate if it's a JavaScript data source
-          if (dataSource.type === 'javascript') {
-            try {
-              const dataSourceDb = await this.dbManager.getDataSourceDb(projectId, dataSource.id);
-              if (!dataSourceDb) {
-                // Recreate the database
-                const newDataPath = this.dbManager['getDataSourceDbPath'](projectId, dataSource.id);
-                const newDataSourceDb = DataSourceDatabase.getInstance(projectId, dataSource.id, newDataPath);
-                await newDataSourceDb.initialize();
-                
-                repairs.push(`Recreated missing database file: ${newDataPath}`);
-              }
-            } catch (error) {
-              issues.push(`Failed to recreate database: ${error}`);
-            }
-          }
-        } else {
-          // Check if database is accessible
-          try {
-            const dataSourceDb = await this.dbManager.getDataSourceDb(projectId, dataSource.id);
-            if (dataSourceDb) {
-              // Check if database has data
-              const stats = await this.dbManager.getDataSourceStats(projectId, dataSource.id);
-              if (stats && stats.totalVersions === 0 && dataSource.lastSyncAt) {
-                issues.push(`Database exists but has no data versions despite last sync: ${dataSource.lastSyncAt}`);
-              }
-            }
-          } catch (error) {
-            issues.push(`Database file exists but is not accessible: ${error}`);
-          }
+      // Check if data source has snapshots (MongoDB-based)
+      try {
+        const stats = await this.dbManager.getDataSourceStats(projectId, dataSource.id);
+        if (stats && stats.totalVersions === 0 && dataSource.lastSyncAt) {
+          issues.push(`Data source has no snapshots despite last sync: ${dataSource.lastSyncAt}`);
         }
-      } else {
-        issues.push("Data source missing dataPath in configuration");
+      } catch (error) {
+        issues.push(`Failed to get data source stats: ${error}`);
       }
 
       // Check if lastSyncAt is reasonable (not too old for active data sources)

@@ -1,14 +1,23 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { SimpleSQLiteDB } from '../../../../../lib/server/database/SimpleSQLiteDB';
+import { MongoDatabase } from '../../../../../lib/server/database/MongoDatabase';
 
-let db: SimpleSQLiteDB;
+let db: MongoDatabase | null = null;
+let initPromise: Promise<MongoDatabase> | null = null;
 
 async function ensureDb() {
-  if (!db) {
-    db = SimpleSQLiteDB.getInstance();
-    await db.initialize();
-  }
-  return db;
+  if (db) return db;
+  if (initPromise) return initPromise;
+  
+  initPromise = (async () => {
+    console.log('[Data API] Initializing MongoDB...');
+    const instance = MongoDatabase.getInstance();
+    await instance.initialize();
+    db = instance;
+    console.log('[Data API] MongoDB initialized successfully');
+    return instance;
+  })();
+  
+  return initPromise;
 }
 
 export async function GET(
@@ -19,10 +28,11 @@ export async function GET(
     const { searchParams } = new URL(request.url);
     const limit = parseInt(searchParams.get('limit') || '50');
     const offset = parseInt(searchParams.get('offset') || '0');
+    const version = searchParams.get('version') ? parseInt(searchParams.get('version')!) : undefined;
     
     const database = await ensureDb();
     const resolvedParams = await params;
-    const dataSource = database.getDataSource(resolvedParams.id);
+    const dataSource = await database.getDataSource(resolvedParams.id) as any;
     
     if (!dataSource) {
       return NextResponse.json(
@@ -32,10 +42,27 @@ export async function GET(
     }
 
     try {
-      // For now, return mock data based on the data source type
-      // In a real implementation, this would use the appropriate provider
-      // to fetch actual data from the configured source
-      
+      // Try to get imported data from MongoDB
+      const result = await database.getImportedData({
+        dataSourceId: resolvedParams.id,
+        version,
+        limit,
+        offset
+      });
+
+      // If we have imported data, return it
+      if (result.data.length > 0) {
+        return NextResponse.json({
+          data: result.data,
+          totalCount: result.totalCount,
+          version: result.snapshot?.version,
+          schema: result.snapshot?.schema,
+          metadata: result.snapshot?.metadata,
+          source: 'imported'
+        });
+      }
+
+      // Otherwise, return mock data as fallback
       let mockData: any[] = [];
       let totalCount = 0;
       
