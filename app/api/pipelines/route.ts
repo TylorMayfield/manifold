@@ -2,14 +2,23 @@ import { NextRequest, NextResponse } from 'next/server';
 import { SimpleSQLiteDB } from '../../../lib/server/database/SimpleSQLiteDB';
 import { Pipeline } from '../../../types';
 
-let db: SimpleSQLiteDB;
+let db: SimpleSQLiteDB | null = null;
+let initPromise: Promise<SimpleSQLiteDB> | null = null;
 
 async function ensureDb() {
-  if (!db) {
-    db = SimpleSQLiteDB.getInstance();
-    await db.initialize();
-  }
-  return db;
+  if (db) return db;
+  if (initPromise) return initPromise;
+  
+  initPromise = (async () => {
+    console.log('[Pipelines API] Initializing database...');
+    const instance = SimpleSQLiteDB.getInstance();
+    await instance.initialize();
+    db = instance;
+    console.log('[Pipelines API] Database initialized successfully');
+    return instance;
+  })();
+  
+  return initPromise;
 }
 
 export async function GET(request: NextRequest) {

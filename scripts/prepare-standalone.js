@@ -49,6 +49,62 @@ for (const file of criticalFiles) {
 
 console.log('✓ All critical files present');
 
+// Copy static files to standalone directory
+const standaloneStaticDir = path.join(standaloneDir, '.next', 'static');
+if (!fs.existsSync(standaloneStaticDir)) {
+  console.log('Copying static files to standalone...');
+  const copyRecursive = (src, dest) => {
+    if (!fs.existsSync(dest)) {
+      fs.mkdirSync(dest, { recursive: true });
+    }
+    const entries = fs.readdirSync(src, { withFileTypes: true });
+    for (const entry of entries) {
+      const srcPath = path.join(src, entry.name);
+      const destPath = path.join(dest, entry.name);
+      if (entry.isDirectory()) {
+        copyRecursive(srcPath, destPath);
+      } else {
+        fs.copyFileSync(srcPath, destPath);
+      }
+    }
+  };
+  
+  copyRecursive(staticDir, standaloneStaticDir);
+  console.log('✓ Copied static files to standalone');
+} else {
+  console.log('✓ Static files already in standalone');
+}
+
+// Copy public files to standalone
+const standalonePublicDirFinal = path.join(standaloneDir, 'public');
+if (!fs.existsSync(standalonePublicDirFinal)) {
+  console.log('Copying public files to standalone...');
+  const copyRecursive = (src, dest) => {
+    if (!fs.existsSync(dest)) {
+      fs.mkdirSync(dest, { recursive: true });
+    }
+    const entries = fs.readdirSync(src, { withFileTypes: true });
+    for (const entry of entries) {
+      const srcPath = path.join(src, entry.name);
+      const destPath = path.join(dest, entry.name);
+      // Skip electron.js and preload.js - they're handled separately
+      if (entry.name === 'electron.js' || entry.name === 'preload.js') {
+        continue;
+      }
+      if (entry.isDirectory()) {
+        copyRecursive(srcPath, destPath);
+      } else {
+        fs.copyFileSync(srcPath, destPath);
+      }
+    }
+  };
+  
+  copyRecursive(publicDir, standalonePublicDirFinal);
+  console.log('✓ Copied public files to standalone');
+} else {
+  console.log('✓ Public files already in standalone');
+}
+
 // Create .env file for production if it doesn't exist
 const envPath = path.join(standaloneDir, '.env');
 if (!fs.existsSync(envPath)) {

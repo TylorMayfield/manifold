@@ -7,14 +7,23 @@ import path from "path";
 // Force dynamic rendering
 export const dynamic = 'force-dynamic';
 
-let db: SimpleSQLiteDB;
+let db: SimpleSQLiteDB | null = null;
+let initPromise: Promise<SimpleSQLiteDB> | null = null;
 
 async function ensureDb() {
-  if (!db) {
-    db = SimpleSQLiteDB.getInstance();
-    await db.initialize();
-  }
-  return db;
+  if (db) return db;
+  if (initPromise) return initPromise;
+  
+  initPromise = (async () => {
+    console.log('[Jobs Stats API] Initializing database...');
+    const instance = SimpleSQLiteDB.getInstance();
+    await instance.initialize();
+    db = instance;
+    console.log('[Jobs Stats API] Database initialized successfully');
+    return instance;
+  })();
+  
+  return initPromise;
 }
 
 export async function GET() {

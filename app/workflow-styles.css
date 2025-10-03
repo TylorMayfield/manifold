@@ -137,33 +137,16 @@
   box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
 }
 
-/* macOS-native titlebar styling */
+/* Native titlebar styling */
 .native-titlebar {
-  background: linear-gradient(180deg, 
-    rgba(255, 255, 255, 0.08) 0%, 
-    rgba(255, 255, 255, 0.04) 100%);
+  background: rgba(26, 26, 26, 0.95);
   backdrop-filter: blur(40px) saturate(180%);
   border-bottom: 1px solid rgba(255, 255, 255, 0.08);
   -webkit-app-region: drag;
   user-select: none;
-  box-shadow: 
-    inset 0 1px 0 rgba(255, 255, 255, 0.1),
-    0 1px 3px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
   height: 52px;
   min-height: 52px;
-}
-
-.native-titlebar::after {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  height: 1px;
-  background: linear-gradient(90deg, 
-    transparent 0%, 
-    rgba(255, 255, 255, 0.3) 50%, 
-    transparent 100%);
 }
 
 .native-titlebar button {
@@ -270,104 +253,48 @@ button:focus {
   animation: fadeIn 0.3s ease-out;
 }
 
-/* macOS-native panel styling */
+/* Native panel styling */
 .native-panel {
-  background: linear-gradient(145deg, 
-    rgba(255, 255, 255, 0.06) 0%,
-    rgba(255, 255, 255, 0.02) 100%);
+  background: rgba(26, 26, 26, 0.8);
   backdrop-filter: blur(20px) saturate(180%);
   border: 1px solid rgba(255, 255, 255, 0.1);
   border-radius: 12px;
-  box-shadow: 
-    0 4px 24px rgba(0, 0, 0, 0.1),
-    0 1px 3px rgba(0, 0, 0, 0.05),
-    inset 0 1px 0 rgba(255, 255, 255, 0.1),
-    inset 0 -1px 0 rgba(0, 0, 0, 0.05);
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.2);
   transition: all 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94);
   position: relative;
   overflow: hidden;
 }
 
-.native-panel::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  height: 1px;
-  background: linear-gradient(90deg, 
-    transparent 0%, 
-    rgba(255, 255, 255, 0.2) 50%, 
-    transparent 100%);
-  z-index: 1;
-}
-
 .native-panel:hover {
-  background: linear-gradient(145deg, 
-    rgba(255, 255, 255, 0.08) 0%,
-    rgba(255, 255, 255, 0.04) 100%);
+  background: rgba(38, 38, 38, 0.9);
   border-color: rgba(255, 255, 255, 0.15);
-  transform: translateY(-2px) scale(1.02);
-  box-shadow: 
-    0 8px 32px rgba(0, 0, 0, 0.15),
-    0 2px 8px rgba(0, 0, 0, 0.08),
-    inset 0 1px 0 rgba(255, 255, 255, 0.15),
-    inset 0 -1px 0 rgba(0, 0, 0, 0.08);
+  transform: translateY(-2px);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
 }
 
-/* macOS-native button card styling */
+/* Native button card styling */
 .native-button-card {
-  background: linear-gradient(145deg, 
-    rgba(255, 255, 255, 0.04) 0%,
-    rgba(255, 255, 255, 0.01) 100%);
+  background: rgba(26, 26, 26, 0.6);
   backdrop-filter: blur(16px) saturate(150%);
   border: 1px solid rgba(255, 255, 255, 0.08);
   border-radius: 10px;
   cursor: pointer;
   transition: all 0.25s cubic-bezier(0.25, 0.46, 0.45, 0.94);
-  box-shadow: 
-    0 2px 8px rgba(0, 0, 0, 0.08),
-    0 1px 2px rgba(0, 0, 0, 0.04),
-    inset 0 1px 0 rgba(255, 255, 255, 0.08),
-    inset 0 -1px 0 rgba(0, 0, 0, 0.02);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
   position: relative;
   overflow: hidden;
 }
 
-.native-button-card::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  height: 1px;
-  background: linear-gradient(90deg, 
-    transparent 0%, 
-    rgba(255, 255, 255, 0.15) 50%, 
-    transparent 100%);
-  z-index: 1;
-}
-
 .native-button-card:hover {
-  background: linear-gradient(145deg, 
-    rgba(255, 255, 255, 0.08) 0%,
-    rgba(255, 255, 255, 0.03) 100%);
+  background: rgba(38, 38, 38, 0.8);
   border-color: rgba(255, 255, 255, 0.15);
-  transform: translateY(-3px) scale(1.03);
-  box-shadow: 
-    0 8px 24px rgba(0, 0, 0, 0.12),
-    0 2px 6px rgba(0, 0, 0, 0.08),
-    inset 0 1px 0 rgba(255, 255, 255, 0.12),
-    inset 0 -1px 0 rgba(0, 0, 0, 0.04);
+  transform: translateY(-3px);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
 }
 
 .native-button-card:active {
-  transform: translateY(-1px) scale(1.01);
-  box-shadow: 
-    0 3px 12px rgba(0, 0, 0, 0.1),
-    0 1px 3px rgba(0, 0, 0, 0.06),
-    inset 0 1px 0 rgba(255, 255, 255, 0.06),
-    inset 0 -1px 0 rgba(0, 0, 0, 0.03);
+  transform: translateY(-1px);
+  box-shadow: 0 3px 12px rgba(0, 0, 0, 0.25);
   transition: all 0.1s ease;
 }
 
@@ -415,17 +342,17 @@ button:focus {
 }
 
 .traffic-light-close {
-  background: linear-gradient(135deg, #ff6b6b 0%, #ff5252 100%);
+  background: #ff5252;
   box-shadow: 0 1px 2px rgba(255, 107, 107, 0.3);
 }
 
 .traffic-light-minimize {
-  background: linear-gradient(135deg, #ffd93d 0%, #ffcd02 100%);
+  background: #ffcd02;
   box-shadow: 0 1px 2px rgba(255, 217, 61, 0.3);
 }
 
 .traffic-light-maximize {
-  background: linear-gradient(135deg, #6bcf7f 0%, #57c267 100%);
+  background: #57c267;
   box-shadow: 0 1px 2px rgba(107, 207, 127, 0.3);
 }
 
@@ -455,14 +382,10 @@ button:focus {
 
 /* macOS sidebar styling */
 .macos-sidebar {
-  background: linear-gradient(180deg, 
-    rgba(255, 255, 255, 0.08) 0%, 
-    rgba(255, 255, 255, 0.04) 100%);
+  background: rgba(26, 26, 26, 0.8);
   backdrop-filter: blur(30px) saturate(150%);
   border-right: 1px solid rgba(255, 255, 255, 0.08);
-  box-shadow: 
-    inset -1px 0 0 rgba(255, 255, 255, 0.05),
-    1px 0 8px rgba(0, 0, 0, 0.08);
+  box-shadow: 1px 0 8px rgba(0, 0, 0, 0.2);
 }
 
 /* macOS content area */
@@ -473,10 +396,7 @@ button:focus {
 
 /* Enhanced separator lines */
 .macos-separator {
-  background: linear-gradient(90deg, 
-    transparent 0%, 
-    rgba(255, 255, 255, 0.15) 50%, 
-    transparent 100%);
+  background: rgba(255, 255, 255, 0.1);
   height: 1px;
   margin: 0 16px;
 }
@@ -500,9 +420,7 @@ button:focus {
 }
 
 .macos-status-indicator.active {
-  background: linear-gradient(135deg, 
-    rgba(107, 207, 127, 0.2) 0%, 
-    rgba(87, 194, 103, 0.2) 100%);
+  background: rgba(87, 194, 103, 0.2);
   border-color: rgba(107, 207, 127, 0.3);
   color: #6bcf7f;
 }

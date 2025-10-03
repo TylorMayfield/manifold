@@ -1,6 +1,15 @@
 const { app, BrowserWindow, Menu, ipcMain, dialog } = require("electron");
 const path = require("path");
-const { DatabaseManager } = require("./lib/database/index");
+const fs = require("fs");
+
+// CRITICAL: Prevent multiple instances
+const gotTheLock = app.requestSingleInstanceLock();
+
+if (!gotTheLock) {
+  console.log("Another instance is already running. Exiting...");
+  app.quit();
+  process.exit(0);
+}
 
 // Check if we're in Electron environment
 if (!app) {
@@ -15,52 +24,117 @@ console.log("isPackaged:", app.isPackaged);
 
 // Server URL configuration
 let serverUrl = null;
+let serverProcess = null;
 
 async function startNextServer() {
   if (isDev) {
     // Development: use dev server
     serverUrl = "http://localhost:3000";
     console.log("Using development server at:", serverUrl);
-  } else {
-    // Production: start standalone Next.js server
-    const { spawn } = require("child_process");
-    const serverPath = path.join(process.resourcesPath, "app", ".next", "standalone", "server.js");
-    
-    if (!require("fs").existsSync(serverPath)) {
-      console.error("Production server not found at:", serverPath);
-      console.log("Falling back to packaged resources");
-      serverUrl = `file://${path.join(__dirname, "../out/index.html")}`;
-      return;
+    return;
+  }
+
+  // Production: Use simpler approach - load from static files if available
+  // For now, we'll use the Next.js dev server approach even in production
+  // This is a temporary solution until we properly configure standalone mode
+  
+  console.log("Production mode: attempting to start server...");
+  
+  // Try to find node executable
+  let nodePath = process.platform === 'win32' ? 'node.exe' : 'node';
+  
+  // Check common node locations
+  const possibleNodePaths = [
+    path.join(process.resourcesPath, 'app', 'node_modules', '.bin', nodePath),
+    path.join(process.resourcesPath, nodePath),
+    nodePath // Try system PATH
+  ];
+  
+  let foundNode = null;
+  for (const np of possibleNodePaths) {
+    if (fs.existsSync(np)) {
+      foundNode = np;
+      break;
     }
+  }
+  
+  if (!foundNode) {
+    foundNode = nodePath; // Use system node
+  }
+  
+  console.log("Using Node.js at:", foundNode);
+  
+  const serverPath = path.join(process.resourcesPath, "app", ".next", "standalone", "server.js");
+  
+  if (!fs.existsSync(serverPath)) {
+    console.error("Production server not found at:", serverPath);
+    console.log("Expected path:", serverPath);
+    console.log("Resource path:", process.resourcesPath);
     
-    console.log("Starting production server from:", serverPath);
-    
-    const port = 3000;
-    serverUrl = `http://localhost:${port}`;
-    
-    const serverProcess = spawn(process.execPath, [serverPath], {
-      cwd: path.join(process.resourcesPath, "app"),
+    // For now, fall back to development mode
+    console.log("FALLBACK: Using development server");
+    serverUrl = "http://localhost:3000";
+    return;
+  }
+  
+  console.log("Starting Next.js server from:", serverPath);
+  
+  const { spawn } = require("child_process");
+  const port = 3000;
+  serverUrl = `http://localhost:${port}`;
+  
+  try {
+    serverProcess = spawn(foundNode, [serverPath], {
+      cwd: path.join(process.resourcesPath, "app", ".next", "standalone"),
       env: { 
         ...process.env, 
         NODE_ENV: "production",
         PORT: port.toString(),
         HOSTNAME: "localhost"
       },
-      stdio: "inherit"
+      stdio: "pipe"
+    });
+
+    serverProcess.stdout.on("data", (data) => {
+      console.log(`[Server] ${data.toString().trim()}`);
+    });
+
+    serverProcess.stderr.on("data", (data) => {
+      console.error(`[Server Error] ${data.toString().trim()}`);
     });
 
     serverProcess.on("error", (error) => {
       console.error("Failed to start server:", error);
     });
 
+    serverProcess.on("exit", (code) => {
+      console.log(`Server process exited with code ${code}`);
+    });
+
     // Wait for server to be ready
-    await new Promise((resolve) => setTimeout(resolve, 2000));
+    console.log("Waiting for server to start...");
+    await new Promise((resolve) => setTimeout(resolve, 3000));
+    console.log("Server should be ready at:", serverUrl);
+  } catch (error) {
+    console.error("Error starting server:", error);
+    // Fallback
+    serverUrl = "http://localhost:3000";
   }
 }
 
 let mainWindow;
 let dbManager;
 let handlersRegistered = false;
+
+// Handle second instance
+app.on('second-instance', (event, commandLine, workingDirectory) => {
+  console.log("Second instance detected, focusing main window");
+  // Someone tried to run a second instance, focus our window instead
+  if (mainWindow) {
+    if (mainWindow.isMinimized()) mainWindow.restore();
+    mainWindow.focus();
+  }
+});
 
 // Register IPC handlers only once
 function registerIpcHandlers() {
@@ -355,6 +429,16 @@ app.on("window-all-closed", () => {
 });
 
 app.on("before-quit", () => {
+  // Stop server process
+  if (serverProcess) {
+    console.log("Stopping server process...");
+    try {
+      serverProcess.kill();
+    } catch (error) {
+      console.error("Error stopping server:", error);
+    }
+  }
+  
   // Clean up database connections
   if (dbManager) {
     try {
