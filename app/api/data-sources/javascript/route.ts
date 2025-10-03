@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { SeparatedDatabaseManager } from "../../../../lib/server/database/SeparatedDatabaseManager";
+import { SeparatedDatabaseManager } from "../../../../lib/database/SeparatedDatabaseManager";
 import { JavaScriptDataSourceService } from "../../../../lib/services/JavaScriptDataSourceService";
 
 const dbManager = SeparatedDatabaseManager.getInstance();

@@ -1,4 +1,4 @@
-import { SeparatedDatabaseManager } from "../server/database/SeparatedDatabaseManager";
+import { SeparatedDatabaseManager } from "../database/SeparatedDatabaseManager";
 import { DataSourceDatabase } from "../server/database/DataSourceDatabase";
 import { CoreDatabase } from "../server/database/CoreDatabase";
 import { logger } from "../utils/logger";

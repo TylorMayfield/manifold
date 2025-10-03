@@ -209,7 +209,7 @@ describe('Performance and Load Testing', () => {
 
   describe('Database Performance Testing', () => {
     it('should handle large database operations efficiently', async () => {
-      const { SeparatedDatabaseManager } = require('../../../lib/server/database/SeparatedDatabaseManager')
+      const { SeparatedDatabaseManager } = require('../../../lib/database/SeparatedDatabaseManager')
       const mockDbManager = {
         createDataVersion: jest.fn(),
         getDataSources: jest.fn(),
@@ -255,7 +255,7 @@ describe('Performance and Load Testing', () => {
     })
 
     it('should handle concurrent database operations', async () => {
-      const { SeparatedDatabaseManager } = require('../../../lib/server/database/SeparatedDatabaseManager')
+      const { SeparatedDatabaseManager } = require('../../../lib/database/SeparatedDatabaseManager')
       const mockDbManager = {
         getDataSources: jest.fn()
       }

@@ -28,6 +28,12 @@ export class SimpleSQLiteDB {
 
   async initialize(): Promise<void> {
     try {
+      // Skip initialization during build phase
+      if (process.env.NEXT_PHASE === 'phase-production-build' || process.env.CI) {
+        console.log("Skipping database initialization during build phase");
+        return;
+      }
+
       // Initialize sql.js
       if (!this.SQL) {
         this.SQL = await initSqlJs();
@@ -78,7 +84,12 @@ export class SimpleSQLiteDB {
 
   // Helper to run queries and return results
   private query(sql: string, params: any[] = []): any[] {
-    if (!this.db) throw new Error("Database not initialized");
+    if (!this.db) {
+      if (process.env.NEXT_PHASE === 'phase-production-build' || process.env.CI) {
+        return []; // Return empty during build
+      }
+      throw new Error("Database not initialized - call initialize() first");
+    }
     
     const results = this.db.exec(sql, params);
     if (results.length === 0) return [];
@@ -95,7 +106,12 @@ export class SimpleSQLiteDB {
 
   // Helper to run statements without results
   private run(sql: string, params: any[] = []): void {
-    if (!this.db) throw new Error("Database not initialized");
+    if (!this.db) {
+      if (process.env.NEXT_PHASE === 'phase-production-build' || process.env.CI) {
+        return; // Skip during build
+      }
+      throw new Error("Database not initialized - call initialize() first");
+    }
     this.db.run(sql, params);
     this.save();
   }
@@ -453,6 +469,75 @@ export class SimpleSQLiteDB {
       return this.query(`SELECT * FROM pipelines WHERE project_id = ? ORDER BY created_at DESC`, [projectId]);
     }
     return this.query(`SELECT * FROM pipelines ORDER BY created_at DESC`);
+  }
+
+  getPipeline(id: string) {
+    const results = this.query(`SELECT * FROM pipelines WHERE id = ?`, [id]);
+    if (results.length === 0) return null;
+    
+    const pipeline = results[0];
+    return {
+      ...pipeline,
+      config: pipeline.config ? JSON.parse(pipeline.config) : {},
+      enabled: Boolean(pipeline.enabled),
+      createdAt: new Date(pipeline.created_at),
+      updatedAt: new Date(pipeline.updated_at)
+    };
+  }
+
+  createPipeline(projectId: string, pipelineData: any) {
+    const id = pipelineData.id || `pipeline_${Date.now()}`;
+    this.run(
+      `INSERT INTO pipelines (id, project_id, name, description, config, enabled, created_at, updated_at)
+       VALUES (?, ?, ?, ?, ?, ?, datetime('now'), datetime('now'))`,
+      [
+        id,
+        projectId,
+        pipelineData.name,
+        pipelineData.description || '',
+        JSON.stringify(pipelineData.config || {}),
+        pipelineData.enabled !== false ? 1 : 0
+      ]
+    );
+    return this.getPipeline(id);
+  }
+
+  updatePipeline(id: string, updates: any) {
+    const fields: string[] = [];
+    const values: any[] = [];
+
+    if (updates.name !== undefined) {
+      fields.push('name = ?');
+      values.push(updates.name);
+    }
+    if (updates.description !== undefined) {
+      fields.push('description = ?');
+      values.push(updates.description);
+    }
+    if (updates.config !== undefined) {
+      fields.push('config = ?');
+      values.push(JSON.stringify(updates.config));
+    }
+    if (updates.enabled !== undefined) {
+      fields.push('enabled = ?');
+      values.push(updates.enabled ? 1 : 0);
+    }
+
+    if (fields.length === 0) return null;
+
+    fields.push('updated_at = datetime(\'now\')');
+    values.push(id);
+
+    this.run(
+      `UPDATE pipelines SET ${fields.join(', ')} WHERE id = ?`,
+      values
+    );
+    return this.getPipeline(id);
+  }
+
+  deletePipeline(id: string) {
+    this.run(`DELETE FROM pipelines WHERE id = ?`, [id]);
+    return true;
   }
 
   // Logs

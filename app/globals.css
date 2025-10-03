@@ -34,8 +34,7 @@
   }
 
   body {
-    background: linear-gradient(135deg, #0a0a0a 0%, #1a1a1a 50%, #0f0f0f 100%);
-    background-attachment: fixed;
+    background: #0a0a0a;
     color: var(--foreground);
     font-feature-settings: "rlig" 1, "calt" 1;
     line-height: 1.5;
@@ -82,28 +81,28 @@
 @layer components {
   /* Dark Cell-shaded card system */
   .cell-card {
-    @apply bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 border-2 border-gray-700 shadow-cell text-white;
+    @apply bg-gray-900 border-2 border-gray-700 shadow-cell text-white;
   }
 
   .cell-card-elevated {
-    @apply bg-gradient-to-br from-gray-800 via-gray-900 to-gray-800 border-2 border-gray-600 shadow-cell-lg text-white;
+    @apply bg-gray-800 border-2 border-gray-600 shadow-cell-lg text-white;
   }
 
   .cell-card-interactive {
-    @apply bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 border-2 border-gray-700 hover:border-gray-500 hover:shadow-cell-lg transition-all duration-200 cursor-pointer text-white;
+    @apply bg-gray-900 border-2 border-gray-700 hover:border-gray-500 hover:shadow-cell-lg transition-all duration-200 cursor-pointer text-white;
   }
 
   .cell-card-accent {
-    @apply bg-gradient-to-br from-blue-900/30 via-blue-800/20 to-blue-900/30 border-2 border-blue-600 shadow-[4px_4px_0px_0px_rgba(37,99,235,0.3)] text-white;
+    @apply bg-blue-900/20 border-2 border-blue-600 shadow-[4px_4px_0px_0px_rgba(37,99,235,0.3)] text-white;
   }
 
-  /* Gradient backgrounds for variety */
+  /* Solid backgrounds for professional look */
   .gradient-bg {
-    @apply bg-gradient-to-br from-gray-900 via-black to-gray-900;
+    @apply bg-black;
   }
 
   .gradient-bg-subtle {
-    @apply bg-gradient-to-br from-gray-800 via-gray-900 to-gray-800;
+    @apply bg-gray-900;
   }
 
   /* Cell-shaded button system */
@@ -235,7 +234,7 @@
 
   /* Dark Cell-shaded modal system */
   .cell-modal {
-    @apply bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 border-4 border-gray-600 shadow-[8px_8px_0px_0px_rgba(0,0,0,0.5)] text-white;
+    @apply bg-gray-900 border-4 border-gray-600 shadow-[8px_8px_0px_0px_rgba(0,0,0,0.5)] text-white;
   }
 
   .cell-modal-backdrop {

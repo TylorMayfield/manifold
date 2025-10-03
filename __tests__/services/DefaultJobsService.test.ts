@@ -1,7 +1,7 @@
 import { DefaultJobsService } from '../../../lib/services/DefaultJobsService'
 
 // Mock the database dependencies
-jest.mock('../../../lib/server/database/SeparatedDatabaseManager', () => ({
+jest.mock('../../../lib/database/SeparatedDatabaseManager', () => ({
   SeparatedDatabaseManager: {
     getInstance: jest.fn(() => ({
       getDataSource: jest.fn(),
@@ -205,7 +205,7 @@ describe('DefaultJobsService', () => {
       }
 
       const { CoreDatabase } = require('../../../lib/server/database/CoreDatabase')
-      const { SeparatedDatabaseManager } = require('../../../lib/server/database/SeparatedDatabaseManager')
+      const { SeparatedDatabaseManager } = require('../../../lib/database/SeparatedDatabaseManager')
       
       CoreDatabase.getInstance.mockReturnValue(mockCoreDb)
       SeparatedDatabaseManager.getInstance.mockReturnValue(mockDbManager)
@@ -240,7 +240,7 @@ describe('DefaultJobsService', () => {
       }
 
       const { CoreDatabase } = require('../../../lib/server/database/CoreDatabase')
-      const { SeparatedDatabaseManager } = require('../../../lib/server/database/SeparatedDatabaseManager')
+      const { SeparatedDatabaseManager } = require('../../../lib/database/SeparatedDatabaseManager')
       
       CoreDatabase.getInstance.mockReturnValue(mockCoreDb)
       SeparatedDatabaseManager.getInstance.mockReturnValue(mockDbManager)
@@ -280,7 +280,7 @@ describe('DefaultJobsService', () => {
       }
 
       const { CoreDatabase } = require('../../../lib/server/database/CoreDatabase')
-      const { SeparatedDatabaseManager } = require('../../../lib/server/database/SeparatedDatabaseManager')
+      const { SeparatedDatabaseManager } = require('../../../lib/database/SeparatedDatabaseManager')
       
       CoreDatabase.getInstance.mockReturnValue(mockCoreDb)
       SeparatedDatabaseManager.getInstance.mockReturnValue(mockDbManager)
@@ -375,7 +375,7 @@ describe('DefaultJobsService', () => {
       }
 
       const { CoreDatabase } = require('../../../lib/server/database/CoreDatabase')
-      const { SeparatedDatabaseManager } = require('../../../lib/server/database/SeparatedDatabaseManager')
+      const { SeparatedDatabaseManager } = require('../../../lib/database/SeparatedDatabaseManager')
       
       CoreDatabase.getInstance.mockReturnValue(mockCoreDb)
       SeparatedDatabaseManager.getInstance.mockReturnValue(mockDbManager)

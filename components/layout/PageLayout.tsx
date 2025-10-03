@@ -57,9 +57,9 @@ export default function PageLayout({
   };
 
   return (
-    <div className={cn("min-h-screen bg-gradient-to-br from-gray-900 via-black to-gray-900", className)}>
+    <div className={cn("min-h-screen bg-black", className)}>
       {/* Header */}
-      <header className="bg-gradient-to-r from-gray-900 via-gray-800 to-gray-900 border-b-2 border-gray-700 shadow-lg">
+      <header className="bg-gray-900 border-b-2 border-gray-700 shadow-lg">
         <div className="flex items-center justify-between p-4">
           <div className="flex items-center space-x-4">
             {showBackButton && (

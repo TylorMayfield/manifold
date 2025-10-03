@@ -8,15 +8,16 @@
   "homepage": "./",
   "scripts": {
     "dev": "concurrently \"npm run dev:next\" \"npm run dev:electron\"",
-    "dev:next": "next dev --turbopack",
+    "dev:next": "next dev",
     "dev:electron": "wait-on http://localhost:3000 && electron .",
-    "build": "next build --turbopack",
-    "build:electron": "npm run build && electron-builder",
+    "build": "next build",
+    "build:standalone": "next build && node scripts/prepare-standalone.js",
+    "build:electron": "npm run build:standalone && electron-builder",
     "start": "next start",
-    "dist": "npm run build && electron-builder --publish=never",
-    "dist:mac": "npm run build && electron-builder --mac",
-    "dist:win": "npm run build && electron-builder --win",
-    "dist:linux": "npm run build && electron-builder --linux",
+    "dist": "npm run build:standalone && electron-builder --publish=never",
+    "dist:mac": "npm run build:standalone && electron-builder --mac",
+    "dist:win": "npm run build:standalone && electron-builder --win",
+    "dist:linux": "npm run build:standalone && electron-builder --linux",
     "electron": "electron .",
     "type-check": "tsc --noEmit",
     "lint": "echo 'No lint script configured' && exit 0",
@@ -125,18 +126,39 @@
     "productName": "Manifold",
     "icon": "icon.png",
     "directories": {
-      "output": "dist"
+      "output": "dist",
+      "buildResources": "public"
     },
     "files": [
-      ".next/**/*",
-      "out/**/*",
+      ".next/standalone/**/*",
+      ".next/static/**/*",
       "public/**/*",
-      "node_modules/**/*",
-      "package.json"
+      "package.json",
+      "node_modules/sql.js/**/*"
     ],
-    "asarUnpack": [],
+    "extraResources": [
+      {
+        "from": ".next/standalone",
+        "to": "app/.next/standalone"
+      },
+      {
+        "from": ".next/static",
+        "to": "app/.next/static"
+      },
+      {
+        "from": "public",
+        "to": "app/public"
+      }
+    ],
+    "asarUnpack": [
+      "**/*.node",
+      "**/sql.js",
+      "public/electron.js",
+      "public/preload.js"
+    ],
     "mac": {
-      "category": "public.app-category.developer-tools"
+      "category": "public.app-category.developer-tools",
+      "target": ["dmg", "zip"]
     },
     "win": {
       "target": "nsis",
@@ -144,7 +166,8 @@
       "verifyUpdateCodeSignature": false
     },
     "linux": {
-      "target": "AppImage"
+      "target": ["AppImage", "deb"],
+      "category": "Development"
     }
   }
 }

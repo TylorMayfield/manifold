@@ -186,7 +186,7 @@ export default async function globalSetup(globalConfig: Config.GlobalConfig, pro
 async function setupTestData() {
   try {
     // Create test projects
-    const { SeparatedDatabaseManager } = require('../../lib/server/database/SeparatedDatabaseManager')
+    const { SeparatedDatabaseManager } = require('../../lib/database/SeparatedDatabaseManager')
     const dbManager = SeparatedDatabaseManager.getInstance()
     
     await dbManager.initialize()

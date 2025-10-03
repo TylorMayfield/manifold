@@ -1,18 +1,29 @@
 import { NextResponse } from "next/server";
-import { CoreDatabase } from "../../../../lib/server/database/CoreDatabase";
+import { SimpleSQLiteDB } from "../../../../lib/server/database/SimpleSQLiteDB";
 import { SeparatedDatabaseManager } from "../../../../lib/database/SeparatedDatabaseManager";
 import fs from "fs";
+import path from "path";
 
 // Force dynamic rendering
 export const dynamic = 'force-dynamic';
 
+let db: SimpleSQLiteDB;
+
+async function ensureDb() {
+  if (!db) {
+    db = SimpleSQLiteDB.getInstance();
+    await db.initialize();
+  }
+  return db;
+}
+
 export async function GET() {
   try {
-    const coreDb = CoreDatabase.getInstance();
+    const database = await ensureDb();
     const separatedDb = SeparatedDatabaseManager.getInstance();
     
     // Get all projects to count data sources
-    const projects = await coreDb.getProjects();
+    const projects = database.getProjects();
     let totalDataSources = 0;
     let totalStorageBytes = 0;
     
@@ -23,11 +34,10 @@ export async function GET() {
         totalDataSources += projectDataSources.length;
         
         // Calculate storage used by checking database files
-        // Note: We construct the path manually since getDataSourceDbPath is private
-        const dataPath = process.cwd() + "/data/datasources";
+        const dataPath = path.join(process.cwd(), "data", "datasources");
         for (const ds of projectDataSources) {
           try {
-            const dbPath = `${dataPath}/${project.id}/${ds.id}.db`;
+            const dbPath = path.join(dataPath, project.id, `${ds.id}.db`);
             if (fs.existsSync(dbPath)) {
               const stats = fs.statSync(dbPath);
               totalStorageBytes += stats.size;
@@ -50,18 +60,38 @@ export async function GET() {
       return Math.round((bytes / Math.pow(k, i)) * 100) / 100 + ' ' + sizes[i];
     };
     
-    // Get jobs from local storage or database
-    // Since we don't have a jobs table yet, we'll show placeholder for now
-    // but count is based on real data
-    const totalJobs = projects.length > 0 ? 2 : 0; // Default jobs per project
+    // Get jobs from database
+    const allJobs = database.getJobs();
+    const totalJobs = allJobs.length;
+    
+    // Count completed and failed jobs today
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    
+    let completedToday = 0;
+    let failedToday = 0;
+    
+    for (const job of allJobs) {
+      if (job.lastRun) {
+        const jobDate = new Date(job.lastRun);
+        if (jobDate >= today) {
+          if (job.status === 'completed') completedToday++;
+          if (job.status === 'failed') failedToday++;
+        }
+      }
+    }
+    
+    const successRate = totalJobs > 0 
+      ? Math.round((completedToday / (completedToday + failedToday || 1)) * 100)
+      : 0;
     
     // Calculate uptime (time since first project was created)
     let uptime = "0m";
     if (projects.length > 0) {
-      const oldestProject = projects.reduce((oldest, project) => {
-        return new Date(project.createdAt) < new Date(oldest.createdAt) ? project : oldest;
+      const oldestProject = projects.reduce((oldest: any, project: any) => {
+        return new Date(project.created_at) < new Date(oldest.created_at) ? project : oldest;
       });
-      const uptimeMs = Date.now() - new Date(oldestProject.createdAt).getTime();
+      const uptimeMs = Date.now() - new Date(oldestProject.created_at).getTime();
       const uptimeHours = Math.floor(uptimeMs / (1000 * 60 * 60));
       const uptimeDays = Math.floor(uptimeHours / 24);
       
@@ -78,17 +108,17 @@ export async function GET() {
     const stats = {
       stats: {
         totalJobs,
-        completedToday: 0, // Would need job execution history
-        failedToday: 0,
-        successRate: totalJobs > 0 ? 100 : 0,
+        completedToday,
+        failedToday,
+        successRate,
       },
       systemStats: {
         dataSources: totalDataSources,
-        activePipelines: 0, // Would need pipeline status tracking
+        activePipelines: 0,
         storageUsed: formatBytes(totalStorageBytes),
         uptime,
       },
-      lastJob: undefined, // Would need job execution history
+      lastJob: allJobs.length > 0 ? allJobs[0] : undefined,
     };
 
     return NextResponse.json(stats);
@@ -97,6 +127,7 @@ export async function GET() {
     return NextResponse.json(
       { 
         error: "Failed to fetch stats",
+        message: error instanceof Error ? error.message : String(error),
         stats: {
           totalJobs: 0,
           completedToday: 0,

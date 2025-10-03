@@ -163,6 +163,7 @@ export { CoreDatabase } from "./CoreDatabase";
 export { ProjectDatabase } from "./ProjectDatabase";
 export { SimpleSQLiteDB } from "./SimpleSQLiteDB";
 export { DataSourceDatabase } from "./DataSourceDatabase";
-export { SeparatedDatabaseManager } from "./SeparatedDatabaseManager";
 export type { DataVersion, DataSourceStats } from "./DataSourceDatabase";
-export type { DataSourceConfig, ImportResult } from "./SeparatedDatabaseManager";
+
+// SeparatedDatabaseManager is now in lib/database/SeparatedDatabaseManager.ts (uses sql.js)
+// Import from there if needed: import { SeparatedDatabaseManager } from "../../database/SeparatedDatabaseManager";

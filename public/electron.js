@@ -13,48 +13,48 @@ console.log("Development mode:", isDev);
 console.log("NODE_ENV:", process.env.NODE_ENV);
 console.log("isPackaged:", app.isPackaged);
 
-// Next.js server for production
-let nextServer = null;
+// Server URL configuration
 let serverUrl = null;
 
 async function startNextServer() {
   if (isDev) {
+    // Development: use dev server
     serverUrl = "http://localhost:3000";
-    return;
-  }
-
-  try {
+    console.log("Using development server at:", serverUrl);
+  } else {
+    // Production: start standalone Next.js server
     const { spawn } = require("child_process");
-    const serverPath = path.join(__dirname, "../out/server.js");
+    const serverPath = path.join(process.resourcesPath, "app", ".next", "standalone", "server.js");
     
-    console.log("Starting Next.js server from:", serverPath);
+    if (!require("fs").existsSync(serverPath)) {
+      console.error("Production server not found at:", serverPath);
+      console.log("Falling back to packaged resources");
+      serverUrl = `file://${path.join(__dirname, "../out/index.html")}`;
+      return;
+    }
     
-    // Start Next.js server on a random available port
+    console.log("Starting production server from:", serverPath);
+    
     const port = 3000;
     serverUrl = `http://localhost:${port}`;
     
-    nextServer = spawn(process.execPath, [
-      path.join(__dirname, "../node_modules/next/dist/bin/next"),
-      "start",
-      "-p",
-      port.toString()
-    ], {
-      cwd: path.join(__dirname, ".."),
-      env: { ...process.env, NODE_ENV: "production" }
+    const serverProcess = spawn(process.execPath, [serverPath], {
+      cwd: path.join(process.resourcesPath, "app"),
+      env: { 
+        ...process.env, 
+        NODE_ENV: "production",
+        PORT: port.toString(),
+        HOSTNAME: "localhost"
+      },
+      stdio: "inherit"
     });
 
-    nextServer.stdout.on("data", (data) => {
-      console.log(`Next.js: ${data}`);
+    serverProcess.on("error", (error) => {
+      console.error("Failed to start server:", error);
     });
 
-    nextServer.stderr.on("data", (data) => {
-      console.error(`Next.js Error: ${data}`);
-    });
-
-    // Wait for server to start
-    await new Promise((resolve) => setTimeout(resolve, 3000));
-  } catch (error) {
-    console.error("Failed to start Next.js server:", error);
+    // Wait for server to be ready
+    await new Promise((resolve) => setTimeout(resolve, 2000));
   }
 }
 
@@ -258,6 +258,7 @@ function createWindow() {
     height: 900,
     minWidth: 1200,
     minHeight: 800,
+    title: "Manifold - Data Integration Platform",
     webPreferences: {
       nodeIntegration: false,
       contextIsolation: true,
@@ -266,11 +267,12 @@ function createWindow() {
       webSecurity: true,
       allowRunningInsecureContent: false,
     },
-    titleBarStyle: "hidden",
-    frame: false,
+    // Use native Windows title bar
+    frame: true,
+    titleBarStyle: "default",
     show: false,
-    vibrancy: "under-window",
-    visualEffectState: "active",
+    backgroundColor: "#0a0a0a",
+    autoHideMenuBar: false, // Show menu bar
   });
 
   // Load the app
@@ -353,16 +355,14 @@ app.on("window-all-closed", () => {
 });
 
 app.on("before-quit", () => {
-  // Stop Next.js server
-  if (nextServer) {
-    console.log("Stopping Next.js server...");
-    nextServer.kill();
-    nextServer = null;
-  }
-  
-  // Save memory store before quitting
+  // Clean up database connections
   if (dbManager) {
-    dbManager.close();
+    try {
+      dbManager.close();
+      console.log("Database connections closed");
+    } catch (error) {
+      console.error("Error closing database:", error);
+    }
   }
 });
 

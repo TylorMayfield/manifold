@@ -9,7 +9,7 @@ import { Database, BarChart3, Settings, Eye, Play, Trash2 } from 'lucide-react'
 import CellCard from '../../components/ui/CellCard'
 import CellButton from '../../components/ui/CellButton'
 import { DataLake } from '../../types/dataLake'
-import { DataSourceConfig } from '../../lib/server/database/SeparatedDatabaseManager'
+import { DataSourceConfig } from '../../lib/database/SeparatedDatabaseManager'
 import { logger } from '../../lib/utils/logger'
 
 export default function DataLakesPage() {
