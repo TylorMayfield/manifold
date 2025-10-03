@@ -43,15 +43,19 @@ export async function GET(
 
     try {
       // Try to get imported data from MongoDB
+      console.log(`[Data API] Fetching data for dataSourceId: ${resolvedParams.id}, version: ${version}`);
       const result = await database.getImportedData({
         dataSourceId: resolvedParams.id,
         version,
         limit,
         offset
       });
+      
+      console.log(`[Data API] getImportedData returned ${result.data.length} records, totalCount: ${result.totalCount}`);
 
       // If we have imported data, return it
       if (result.data.length > 0) {
+        console.log(`[Data API] Returning imported data`);
         return NextResponse.json({
           data: result.data,
           totalCount: result.totalCount,
@@ -61,6 +65,8 @@ export async function GET(
           source: 'imported'
         });
       }
+      
+      console.log(`[Data API] No imported data found, checking for fallback...`);
 
       // Otherwise, return mock data as fallback
       let mockData: any[] = [];

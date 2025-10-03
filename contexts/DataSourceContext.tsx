@@ -131,7 +131,9 @@ export function DataSourceProvider({ children }: DataSourceProviderProps) {
       if (source.type === "mock" && source.config?.mockConfig) {
         try {
           const { templateId, recordCount } = source.config.mockConfig;
+          console.log('[DataSourceContext] Generating mock data with:', { templateId, recordCount });
           const mockSnapshot = generateMockData(templateId, recordCount);
+          console.log('[DataSourceContext] Mock data generated:', mockSnapshot);
 
           // Create snapshot with the data source ID
           const snapshot: Snapshot = {
@@ -143,19 +145,28 @@ export function DataSourceProvider({ children }: DataSourceProviderProps) {
 
           // Add snapshot via API or locally
           try {
+            console.log('[DataSourceContext] Sending snapshot to API with data length:', mockSnapshot.data?.length);
             const snapshotResponse = await fetch("/api/snapshots", {
               method: "POST",
               headers: {
                 "Content-Type": "application/json",
               },
-              body: JSON.stringify(snapshot),
+              body: JSON.stringify({
+                projectId: source.projectId,
+                dataSourceId: newSource.id,
+                data: mockSnapshot.data,
+                schema: mockSnapshot.schema,
+                metadata: mockSnapshot.metadata
+              }),
             });
 
             if (snapshotResponse.ok) {
               const createdSnapshot = await snapshotResponse.json();
-              setSnapshots((prev) => [...prev, createdSnapshot]);
+              console.log('[DataSourceContext] Snapshot created successfully:', createdSnapshot);
+              setSnapshots((prev) => [...prev, snapshot]);
             } else {
-              console.warn("Failed to create snapshot via API, adding locally");
+              const errorText = await snapshotResponse.text();
+              console.warn("Failed to create snapshot via API:", errorText);
               setSnapshots((prev) => [...prev, snapshot]);
             }
           } catch (error) {

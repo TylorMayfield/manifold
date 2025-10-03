@@ -268,7 +268,20 @@ export default function UnifiedDataSourceWorkflow({
   };
 
   const handleCreateDataSource = async () => {
+    console.log('[UnifiedDataSourceWorkflow] handleCreateDataSource called', {
+      selectedType,
+      selectedImportMethod,
+      dataSourceName,
+      dataSourceConfig
+    });
+
     if (!selectedType || !selectedImportMethod || !dataSourceName.trim()) {
+      console.warn('[UnifiedDataSourceWorkflow] Validation failed', {
+        selectedType,
+        selectedImportMethod,
+        dataSourceName
+      });
+      alert('Please fill in all required fields');
       return;
     }
 
@@ -290,7 +303,9 @@ export default function UnifiedDataSourceWorkflow({
         updatedAt: new Date(),
       };
 
+      console.log('[UnifiedDataSourceWorkflow] Creating data source:', dataSource);
       await addDataSource(dataSource);
+      console.log('[UnifiedDataSourceWorkflow] Data source created successfully');
 
       if (onComplete) {
         onComplete(dataSource);

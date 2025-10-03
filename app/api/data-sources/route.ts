@@ -44,12 +44,16 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
+    console.log('[DataSources API POST] Received body:', body);
     const { projectId = 'default', ...dataSourceData } = body;
+    console.log('[DataSources API POST] projectId:', projectId);
+    console.log('[DataSources API POST] dataSourceData:', dataSourceData);
     
     const database = await ensureDb();
     
     // Create data source
     const dataSource = await database.createDataSource(projectId, dataSourceData);
+    console.log('[DataSources API POST] Created data source:', dataSource);
     
     return NextResponse.json(dataSource, { status: 201 });
   } catch (error) {

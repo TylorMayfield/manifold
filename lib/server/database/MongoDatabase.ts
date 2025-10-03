@@ -293,15 +293,28 @@ export class MongoDatabase {
 
   // ==================== DATA SOURCES ====================
 
-  getDataSources(projectId?: string) {
+  async getDataSources(projectId?: string) {
     if (!this.isConnected) throw new Error("Database not connected");
     const query = projectId ? { projectId } : {};
-    return DataSource.find(query).sort({ createdAt: -1 }).lean();
+    const docs = await DataSource.find(query).sort({ createdAt: -1 }).lean();
+    // Map MongoDB's _id to id for frontend compatibility
+    return docs.map(doc => ({
+      ...doc,
+      id: doc._id,
+      _id: undefined
+    }));
   }
 
-  getDataSource(id: string) {
+  async getDataSource(id: string) {
     if (!this.isConnected) throw new Error("Database not connected");
-    return DataSource.findById(id).lean();
+    const doc = await DataSource.findById(id).lean();
+    if (!doc) return null;
+    // Map MongoDB's _id to id for frontend compatibility
+    return {
+      ...doc,
+      id: doc._id,
+      _id: undefined
+    };
   }
 
   async createDataSource(projectId: string, dataSource: any) {
@@ -319,7 +332,13 @@ export class MongoDatabase {
       updatedAt: new Date()
     });
     await doc.save();
-    return doc.toObject();
+    const obj = doc.toObject();
+    // Map MongoDB's _id to id for frontend compatibility
+    return {
+      ...obj,
+      id: obj._id,
+      _id: undefined
+    };
   }
 
   async updateDataSource(id: string, updates: any) {
@@ -507,9 +526,15 @@ export class MongoDatabase {
 
   // ==================== SNAPSHOTS ====================
 
-  getSnapshots(dataSourceId: string) {
+  async getSnapshots(dataSourceId: string) {
     if (!this.isConnected) throw new Error("Database not connected");
-    return Snapshot.find({ dataSourceId }).sort({ version: -1 }).lean();
+    const docs = await Snapshot.find({ dataSourceId }).sort({ version: -1 }).lean();
+    // Map MongoDB's _id to id for frontend compatibility
+    return docs.map(doc => ({
+      ...doc,
+      id: doc._id,
+      _id: undefined
+    }));
   }
 
   async createSnapshot(snapshot: any) {
@@ -527,7 +552,13 @@ export class MongoDatabase {
       createdAt: new Date()
     });
     await doc.save();
-    return doc.toObject();
+    const obj = doc.toObject();
+    // Map MongoDB's _id to id for frontend compatibility
+    return {
+      ...obj,
+      id: obj._id,
+      _id: undefined
+    };
   }
 
   async deleteSnapshot(id: string) {

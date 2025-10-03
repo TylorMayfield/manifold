@@ -25,6 +25,7 @@ import CellInput from '../../components/ui/CellInput';
 import LoadingSpinner from '../../components/ui/LoadingSpinner';
 import { useApi } from '../../hooks/useApi';
 import { DataProvider } from '../../types';
+import { useDataSources } from '../../contexts/DataSourceContext';
 
 interface DataSourceWithData {
   id: string;
@@ -51,16 +52,22 @@ export default function DataBrowserPage() {
   
   const api = useApi();
   const { get } = api;
+  const { removeDataSource: contextRemoveDataSource } = useDataSources();
   
   useEffect(() => {
     loadDataSources();
   }, []);
 
-  const loadSourceData = async (sourceId: string) => {
+  const loadSourceData = async (sourceId: string, page: number = 1) => {
     if (!sourceId) return;
     
     try {
-      const response = await get(`/api/data-sources/${sourceId}/data?limit=1000`);
+      const offset = (page - 1) * pageSize;
+      console.log(`[DataBrowser] Loading data for ${sourceId}: offset=${offset}, limit=${pageSize}`);
+      
+      const response = await get(`/api/data-sources/${sourceId}/data?limit=${pageSize}&offset=${offset}`);
+      console.log(`[DataBrowser] Received ${response?.data?.length} records, totalCount: ${response?.totalCount}`);
+      
       if (response && response.data) {
         // Update the selected source with the loaded data
         setDataSources(prev => prev.map(source => 
@@ -92,17 +99,38 @@ export default function DataBrowserPage() {
       
       // Fetch data sources
       const response = await get('/api/data-sources?projectId=default');
+      console.log('[DataBrowserPage] Loaded data sources:', response);
+      
       if (response && Array.isArray(response)) {
-        // Just load data sources without fetching data yet
-        const sourcesWithData = response.map((source: DataProvider) => ({
-          id: source.id,
-          name: source.name,
-          type: source.type,
-          status: source.status,
-          data: [],
-          totalCount: 0,
-          error: null
-        }));
+        // Fetch snapshots to get record counts
+        const snapshotsResponse = await get('/api/snapshots?projectId=default');
+        console.log('[DataBrowserPage] Loaded snapshots:', snapshotsResponse);
+        
+        const snapshots = Array.isArray(snapshotsResponse) ? snapshotsResponse : [];
+        
+        // Map data sources with their record counts from snapshots
+        const sourcesWithData = response.map((source: DataProvider) => {
+          // Find the latest snapshot for this data source
+          const dataSourceSnapshots = snapshots.filter((s: any) => s.dataSourceId === source.id);
+          const latestSnapshot = dataSourceSnapshots.length > 0 
+            ? dataSourceSnapshots.sort((a: any, b: any) => 
+                new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+              )[0]
+            : null;
+          
+          const totalCount = latestSnapshot?.recordCount || latestSnapshot?.data?.length || 0;
+          console.log(`[DataBrowserPage] Source ${source.name} (${source.id}): ${totalCount} records`);
+          
+          return {
+            id: source.id,
+            name: source.name,
+            type: source.type,
+            status: source.status,
+            data: [],
+            totalCount,
+            error: null
+          };
+        });
         setDataSources(sourcesWithData);
       } else {
         setDataSources([]);
@@ -136,28 +164,14 @@ export default function DataBrowserPage() {
     console.log('Starting deletion for:', dataSourceToDelete);
     
     try {
-      console.log('Making DELETE request to:', `/api/data-sources?dataSourceId=${dataSourceToDelete}`);
+      console.log('Calling context removeDataSource for:', dataSourceToDelete);
       
-      const response = await fetch(`/api/data-sources?dataSourceId=${dataSourceToDelete}`, {
-        method: 'DELETE',
-        headers: {
-          'Content-Type': 'application/json'
-        }
-      });
+      // Use the context's removeDataSource which will update all consumers including home page
+      await contextRemoveDataSource(dataSourceToDelete);
       
-      console.log('Response status:', response.status);
-      console.log('Response ok:', response.ok);
+      console.log('Delete successful via context!');
       
-      if (!response.ok) {
-        const errorText = await response.text();
-        console.error('Delete failed with error:', errorText);
-        throw new Error(`Failed to delete: ${errorText}`);
-      }
-      
-      const result = await response.json();
-      console.log('Delete successful, result:', result);
-      
-      // Remove from list
+      // Remove from local list
       setDataSources(prev => {
         const filtered = prev.filter(ds => ds.id !== dataSourceToDelete);
         console.log('Removed from list, remaining count:', filtered.length);
@@ -188,15 +202,21 @@ export default function DataBrowserPage() {
     }
   };
 
-  const filteredData = selectedSource?.data.filter(row => 
-    Object.values(row).some(value => 
-      String(value).toLowerCase().includes(searchTerm.toLowerCase())
-    )
-  ) || [];
-
-  const totalPages = Math.ceil(filteredData.length / pageSize);
+  // For server-side pagination, we don't slice the data - it's already paginated
+  const displayData = selectedSource?.data || [];
+  
+  // Client-side search filtering (optional - could be moved to server)
+  const filteredData = searchTerm 
+    ? displayData.filter(row =>
+        Object.values(row).some(value =>
+          String(value).toLowerCase().includes(searchTerm.toLowerCase())
+        )
+      )
+    : displayData;
+  
+  const totalRecords = selectedSource?.totalCount || 0;
+  const totalPages = Math.ceil(totalRecords / pageSize);
   const startIndex = (currentPage - 1) * pageSize;
-  const paginatedData = filteredData.slice(startIndex, startIndex + pageSize);
 
   const getColumns = (data: any[]) => {
     if (data.length === 0) return [];
@@ -324,7 +344,9 @@ export default function DataBrowserPage() {
                       }`}
                       onClick={() => {
                         setSelectedSource(source);
-                        loadSourceData(source.id);
+                        setCurrentPage(1);
+                        setSearchTerm('');
+                        loadSourceData(source.id, 1);
                       }}
                     >
                       <div className="flex items-center justify-between mb-1">
@@ -420,7 +442,7 @@ export default function DataBrowserPage() {
                     <table className="cell-table w-full">
                       <thead>
                         <tr>
-                          {getColumns(paginatedData).map((column) => (
+                          {getColumns(filteredData).map((column) => (
                             <th key={column}>
                               {column}
                             </th>
@@ -428,9 +450,9 @@ export default function DataBrowserPage() {
                         </tr>
                       </thead>
                       <tbody>
-                        {paginatedData.map((row, index) => (
+                        {filteredData.map((row, index) => (
                           <tr key={index}>
-                            {getColumns(paginatedData).map((column) => (
+                            {getColumns(filteredData).map((column) => (
                               <td key={column}>
                                 {String(row[column] || '')}
                               </td>
@@ -445,27 +467,35 @@ export default function DataBrowserPage() {
                   {totalPages > 1 && (
                     <div className="flex items-center justify-between">
                       <div className="text-caption text-gray-700 font-mono">
-                        Showing {startIndex + 1} to {Math.min(startIndex + pageSize, filteredData.length)} of {filteredData.length} results
+                        Showing {startIndex + 1} to {Math.min(startIndex + pageSize, totalRecords)} of {totalRecords.toLocaleString()} records
                       </div>
                       
                       <div className="flex items-center space-x-2">
                         <CellButton
                           variant="secondary"
                           size="sm"
-                          onClick={() => setCurrentPage(Math.max(1, currentPage - 1))}
+                          onClick={() => {
+                            const newPage = Math.max(1, currentPage - 1);
+                            setCurrentPage(newPage);
+                            if (selectedSource) loadSourceData(selectedSource.id, newPage);
+                          }}
                           disabled={currentPage === 1}
                         >
                           <ChevronLeft className="w-4 h-4" />
                         </CellButton>
                         
                         <span className="font-mono text-sm px-3 py-1 border border-gray-300 bg-white text-gray-900 rounded">
-                          {currentPage} / {totalPages}
+                          Page {currentPage} of {totalPages}
                         </span>
                         
                         <CellButton
                           variant="secondary"
                           size="sm"
-                          onClick={() => setCurrentPage(Math.min(totalPages, currentPage + 1))}
+                          onClick={() => {
+                            const newPage = Math.min(totalPages, currentPage + 1);
+                            setCurrentPage(newPage);
+                            if (selectedSource) loadSourceData(selectedSource.id, newPage);
+                          }}
                           disabled={currentPage === totalPages}
                         >
                           <ChevronRight className="w-4 h-4" />

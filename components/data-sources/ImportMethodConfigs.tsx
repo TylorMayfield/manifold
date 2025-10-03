@@ -440,8 +440,8 @@ function MockDataConfig({
   onConfigChange,
   onNext,
 }: ImportMethodConfigProps) {
-  const [template, setTemplate] = useState("user-data");
-  const [recordCount, setRecordCount] = useState(100);
+  const [template, setTemplate] = useState(config.mockConfig?.templateId || "user-data");
+  const [recordCount, setRecordCount] = useState(config.mockConfig?.recordCount || 100);
 
   const templates = [
     {
@@ -462,13 +462,15 @@ function MockDataConfig({
   ];
 
   const handleNext = () => {
-    onConfigChange({
+    const newConfig = {
       ...config,
       mockConfig: {
-        template,
+        templateId: template,
         recordCount,
       },
-    });
+    };
+    console.log('[MockDataConfig] Config updated:', newConfig);
+    onConfigChange(newConfig);
     onNext();
   };
 
@@ -522,11 +524,15 @@ function MockDataConfig({
           <input
             type="number"
             value={recordCount}
-            onChange={(e) => setRecordCount(parseInt(e.target.value))}
+            onChange={(e) => {
+              const val = parseInt(e.target.value);
+              setRecordCount(isNaN(val) ? 1 : val);
+            }}
             className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
             min="1"
             max="10000"
           />
+          <p className="text-sm text-gray-500 mt-1">Current: {recordCount} records</p>
         </div>
       </div>
 
