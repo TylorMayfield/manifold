@@ -30,7 +30,7 @@ export async function POST(
     const dataSourceId = resolvedParams.id;
 
     // Get data source to verify it exists
-    const dataSource = await database.getDataSource(dataSourceId);
+    const dataSource: any = await database.getDataSource(dataSourceId);
     
     if (!dataSource) {
       return NextResponse.json(

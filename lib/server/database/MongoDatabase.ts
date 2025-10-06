@@ -62,6 +62,22 @@ const LogSchema = new Schema({
   createdAt: { type: Date, default: Date.now }
 });
 
+const PipelineExecutionSchema = new Schema({
+  _id: { type: String, required: true },
+  pipelineId: { type: String, required: true, index: true },
+  projectId: { type: String, required: true, index: true },
+  status: { type: String, required: true },
+  startTime: { type: Date, required: true },
+  endTime: Date,
+  duration: Number,
+  inputRecords: { type: Number, default: 0 },
+  outputRecords: { type: Number, default: 0 },
+  recordsProcessed: { type: Number, default: 0 },
+  steps: [Schema.Types.Mixed],
+  error: String,
+  createdAt: { type: Date, default: Date.now }
+});
+
 const WebhookSchema = new Schema({
   _id: { type: String, required: true },
   projectId: { type: String, required: true, index: true },
@@ -117,6 +133,7 @@ let Log: Model<any>;
 let Webhook: Model<any>;
 let Snapshot: Model<any>;
 let ImportedData: Model<any>;
+let PipelineExecution: Model<any>;
 
 // ==================== DATABASE CLASS ====================
 
@@ -183,6 +200,7 @@ export class MongoDatabase {
       Webhook = mongoose.models.Webhook || mongoose.model('Webhook', WebhookSchema);
       Snapshot = mongoose.models.Snapshot || mongoose.model('Snapshot', SnapshotSchema);
       ImportedData = mongoose.models.ImportedData || mongoose.model('ImportedData', ImportedDataSchema);
+      PipelineExecution = mongoose.models.PipelineExecution || mongoose.model('PipelineExecution', PipelineExecutionSchema);
 
       logger.success(
         "MongoDB connected successfully",
@@ -307,7 +325,7 @@ export class MongoDatabase {
 
   async getDataSource(id: string) {
     if (!this.isConnected) throw new Error("Database not connected");
-    const doc = await DataSource.findById(id).lean();
+    const doc: any = await DataSource.findById(id).lean();
     if (!doc) return null;
     // Map MongoDB's _id to id for frontend compatibility
     return {
@@ -589,7 +607,7 @@ export class MongoDatabase {
     const latestSnapshot = await Snapshot.findOne({ projectId, dataSourceId })
       .sort({ version: -1 })
       .lean();
-    const version = (latestSnapshot?.version || 0) + 1;
+    const version = ((latestSnapshot as any)?.version || 0) + 1;
 
     // Infer schema if not provided
     const inferredSchema = schema || this.inferSchema(data);
@@ -744,6 +762,93 @@ export class MongoDatabase {
     logger.info(`Archived ${idsToArchive.length} old versions for data source ${dataSourceId}`, 'database');
 
     return idsToArchive.length;
+  }
+
+  // ==================== PIPELINE EXECUTION METHODS ====================
+
+  async storePipelineExecution(execution: any): Promise<void> {
+    try {
+      await PipelineExecution.create({
+        _id: execution.id,
+        pipelineId: execution.pipelineId,
+        projectId: execution.projectId,
+        status: execution.status,
+        startTime: execution.startTime,
+        endTime: execution.endTime,
+        duration: execution.duration,
+        inputRecords: execution.inputRecords,
+        outputRecords: execution.outputRecords,
+        recordsProcessed: execution.recordsProcessed,
+        steps: execution.steps,
+        error: execution.error,
+      });
+      
+      logger.info('Pipeline execution stored', 'database', { executionId: execution.id });
+    } catch (error) {
+      logger.error('Failed to store pipeline execution', 'database', { error, executionId: execution.id });
+      throw error;
+    }
+  }
+
+  async getPipelineExecutions(projectId: string, pipelineId?: string): Promise<any[]> {
+    try {
+      const query: any = { projectId };
+      if (pipelineId) {
+        query.pipelineId = pipelineId;
+      }
+
+      const executions = await PipelineExecution.find(query)
+        .sort({ startTime: -1 })
+        .lean();
+
+      return executions.map((exec: any) => ({
+        id: exec._id,
+        pipelineId: exec.pipelineId,
+        projectId: exec.projectId,
+        status: exec.status,
+        startTime: exec.startTime,
+        endTime: exec.endTime,
+        duration: exec.duration,
+        inputRecords: exec.inputRecords,
+        outputRecords: exec.outputRecords,
+        recordsProcessed: exec.recordsProcessed,
+        steps: exec.steps,
+        error: exec.error,
+        createdAt: exec.createdAt,
+      }));
+    } catch (error) {
+      logger.error('Failed to get pipeline executions', 'database', { error, projectId });
+      throw error;
+    }
+  }
+
+  async getPipelineExecution(executionId: string): Promise<any | null> {
+    try {
+      const execution: any = await PipelineExecution.findById(executionId).lean();
+      
+      if (!execution) {
+        return null;
+      }
+
+      return {
+        id: execution._id,
+        pipelineId: execution.pipelineId,
+        projectId: execution.projectId,
+        status: execution.status,
+        startTime: execution.startTime,
+        endTime: execution.endTime,
+        duration: execution.duration,
+        inputRecords: execution.inputRecords,
+        outputRecords: execution.outputRecords,
+        recordsProcessed: execution.recordsProcessed,
+        steps: execution.steps,
+        error: execution.error,
+        createdAt: execution.createdAt,
+      };
+    } catch (error) {
+      logger.error('Failed to get pipeline execution', 'database', { error, executionId });
+      throw error;
+    }
   }
 }
 

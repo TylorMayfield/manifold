@@ -126,11 +126,36 @@ function PipelinesPageContent() {
                     </p>
                   </div>
                   <div className="flex space-x-1">
-                    <CellButton variant="ghost" size="sm">
-                      <Settings className="w-4 h-4" />
+                    <CellButton 
+                      variant="ghost" 
+                      size="sm"
+                      onClick={async (e) => {
+                        e.stopPropagation();
+                        try {
+                          const response = await fetch(`/api/pipelines/${pipeline.id}/execute`, {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({
+                              sourceIds: pipeline.inputSourceIds,
+                            }),
+                          });
+                          
+                          if (response.ok) {
+                            alert('Pipeline executed successfully!');
+                          } else {
+                            const error = await response.json();
+                            alert(`Execution failed: ${error.message || error.error}`);
+                          }
+                        } catch (error) {
+                          alert('Failed to execute pipeline');
+                        }
+                      }}
+                      title="Execute Pipeline"
+                    >
+                      <Play className="w-4 h-4" />
                     </CellButton>
                     <CellButton variant="ghost" size="sm">
-                      <Play className="w-4 h-4" />
+                      <Settings className="w-4 h-4" />
                     </CellButton>
                   </div>
                 </div>

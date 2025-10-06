@@ -8,6 +8,7 @@ import CellButton from "../../components/ui/CellButton";
 import CellCard from "../../components/ui/CellCard";
 import CellModal from "../../components/ui/CellModal";
 import CellInput from "../../components/ui/CellInput";
+import SnapshotDiffViewer from "../../components/data/SnapshotDiffViewer";
 import {
   FileText,
   Plus,
@@ -94,6 +95,9 @@ export default function SnapshotsPage() {
     return { id, name: snapshot?.dataSourceName || "Unknown" };
   });
 
+  const [comparisonResult, setComparisonResult] = useState<any>(null);
+  const [isComparing, setIsComparing] = useState(false);
+
   const handleSnapshotSelect = (snapshotId: string) => {
     setSelectedSnapshots((prev) =>
       prev.includes(snapshotId)
@@ -102,9 +106,40 @@ export default function SnapshotsPage() {
     );
   };
 
-  const handleCompareSnapshots = () => {
-    if (selectedSnapshots.length === 2) {
-      setShowCompareModal(true);
+  const handleCompareSnapshots = async () => {
+    if (selectedSnapshots.length !== 2) return;
+
+    try {
+      setIsComparing(true);
+      
+      const response = await fetch('/api/snapshots/compare', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          fromSnapshotId: selectedSnapshots[0],
+          toSnapshotId: selectedSnapshots[1],
+          comparisonKey: 'id',
+          options: {
+            includeUnchanged: false,
+            trimStrings: true,
+            caseSensitive: false,
+          },
+        }),
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        setComparisonResult(data.comparison);
+        setShowCompareModal(true);
+      } else {
+        const error = await response.json();
+        alert(`Comparison failed: ${error.message || error.error}`);
+      }
+    } catch (error) {
+      console.error('Comparison error:', error);
+      alert('Failed to compare snapshots');
+    } finally {
+      setIsComparing(false);
     }
   };
 
@@ -142,9 +177,14 @@ export default function SnapshotsPage() {
       headerActions={
         <div className="flex items-center space-x-2">
           {selectedSnapshots.length === 2 && (
-            <CellButton variant="primary" onClick={handleCompareSnapshots}>
+            <CellButton 
+              variant="primary" 
+              onClick={handleCompareSnapshots}
+              disabled={isComparing}
+              isLoading={isComparing}
+            >
               <GitBranch className="w-4 h-4 mr-2" />
-              Compare Selected
+              {isComparing ? 'Comparing...' : 'Compare Selected'}
             </CellButton>
           )}
           <CellButton variant="ghost" size="sm">
@@ -414,12 +454,24 @@ export default function SnapshotsPage() {
       {/* Compare Snapshots Modal */}
       <CellModal
         isOpen={showCompareModal}
-        onClose={() => setShowCompareModal(false)}
+        onClose={() => {
+          setShowCompareModal(false);
+          setComparisonResult(null);
+        }}
         title="Compare Snapshots"
         size="xl"
       >
-        <div className="space-y-6">
-          {selectedSnapshots.length === 2 && (
+        {comparisonResult ? (
+          <SnapshotDiffViewer
+            comparison={comparisonResult}
+            onClose={() => {
+              setShowCompareModal(false);
+              setComparisonResult(null);
+            }}
+          />
+        ) : (
+          <div className="space-y-6">
+            {selectedSnapshots.length === 2 && (
             <>
               <div className="grid grid-cols-2 gap-6">
                 {selectedSnapshots.map((snapshotId, index) => {
@@ -512,9 +564,16 @@ export default function SnapshotsPage() {
             >
               Close
             </CellButton>
-            <CellButton variant="primary">View Detailed Diff</CellButton>
+            <CellButton 
+              variant="primary"
+              onClick={handleCompareSnapshots}
+              disabled={isComparing}
+            >
+              {isComparing ? 'Comparing...' : 'View Detailed Diff'}
+            </CellButton>
           </div>
         </div>
+        )}
       </CellModal>
 
       {/* Snapshot Details Modal */}

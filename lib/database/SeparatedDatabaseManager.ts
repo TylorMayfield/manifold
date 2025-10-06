@@ -234,7 +234,8 @@ export class SeparatedDatabaseManager {
       // Get latest snapshot
       const latest = snapshots.sort((a: any, b: any) => b.version - a.version)[0];
       
-      return latest.data || [];
+      // Snapshots don't directly contain data in new structure, would need to query ImportedData
+      return [];
     } catch (error) {
       logger.error("Failed to get data source data", "database", {
         projectId,
@@ -297,7 +298,7 @@ export class SeparatedDatabaseManager {
         totalRecords,
         latestVersion,
         oldestVersion,
-        lastImportAt: lastImport ? new Date(lastImport.createdAt) : null,
+        lastImportAt: lastImport ? new Date((lastImport as any).createdAt) : null,
         dataSizeBytes: 0 // Not applicable for MongoDB
       };
     } catch (error) {
