@@ -8,6 +8,7 @@ import CellCard from "../components/ui/CellCard";
 import CellModal from "../components/ui/CellModal";
 import StatusBadge from "../components/ui/StatusBadge";
 import { useDataSources } from "../contexts/DataSourceContext";
+import { clientLogger } from "../lib/utils/ClientLogger";
 import { Database, FileText, Zap, Settings, Plus, Play, Home, ArrowRight } from "lucide-react";
 
 function HomePageContent() {
@@ -27,7 +28,11 @@ function HomePageContent() {
     setCreatingSnapshots(true);
     try {
       for (const source of sourcesWithoutSnapshots) {
-        console.log('[HomePage] Creating snapshot for source:', source.name, source.id);
+        clientLogger.info('Creating auto-snapshot for data source', 'data-processing', {
+          sourceName: source.name,
+          sourceId: source.id,
+          sourceType: source.type
+        });
         
         // Generate mock data for the source
         const { generateMockData } = await import("../lib/utils/mockDataGenerator");
@@ -38,14 +43,22 @@ function HomePageContent() {
           ? (source.config?.mockConfig?.recordCount || 1000)
           : 100;
         
-        console.log('[HomePage] Generating mock data:', { templateId, recordCount });
         const mockSnapshot = generateMockData(templateId, recordCount);
-        console.log('[HomePage] Generated data length:', mockSnapshot.data?.length);
         
         if (!mockSnapshot.data || mockSnapshot.data.length === 0) {
-          console.error('[HomePage] Generated data is empty for source:', source.name);
+          clientLogger.error('Generated data is empty, skipping snapshot', 'data-processing', {
+            sourceName: source.name,
+            templateId,
+            recordCount
+          });
           continue;
         }
+        
+        clientLogger.info('Mock data generated for snapshot', 'data-processing', {
+          sourceName: source.name,
+          recordCount: mockSnapshot.data.length,
+          templateId
+        });
         
         // Create snapshot via API
         const response = await fetch("/api/snapshots", {
@@ -67,21 +80,34 @@ function HomePageContent() {
         
         if (!response.ok) {
           const errorText = await response.text();
-          console.error('[HomePage] Snapshot creation failed:', response.status, errorText);
+          clientLogger.error('Snapshot creation API failed', 'data-processing', {
+            sourceName: source.name,
+            httpStatus: response.status,
+            error: errorText
+          });
           // Continue with other sources even if one fails
           continue;
         }
         
         const result = await response.json();
-        console.log('[HomePage] Snapshot created successfully:', result);
+        clientLogger.success('Auto-snapshot created successfully', 'data-processing', {
+          sourceName: source.name,
+          snapshotId: result.id,
+          version: result.version,
+          recordCount: result.recordCount
+        });
       }
       
       // Reload page to show new snapshots
-      console.log('[HomePage] All snapshots created, reloading page...');
+      clientLogger.info('All auto-snapshots created, reloading page', 'data-processing', {
+        count: sourcesWithoutSnapshots.length
+      });
       window.location.reload();
     } catch (error) {
-      console.error('[HomePage] Error in createMissingSnapshots:', error);
-      alert(`Failed to create snapshots: ${error instanceof Error ? error.message : 'Unknown error'}. Check console for details.`);
+      clientLogger.error('Auto-snapshot creation failed', 'data-processing', {
+        error: error instanceof Error ? error.message : String(error)
+      });
+      alert(`Failed to create snapshots: ${error instanceof Error ? error.message : 'Unknown error'}. Check Observability logs for details.`);
     } finally {
       setCreatingSnapshots(false);
     }

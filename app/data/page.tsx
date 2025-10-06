@@ -28,6 +28,7 @@ import ProgressBar from '../../components/ui/ProgressBar';
 import { useApi } from '../../hooks/useApi';
 import { DataProvider } from '../../types';
 import { useDataSources } from '../../contexts/DataSourceContext';
+import { clientLogger } from '../../lib/utils/ClientLogger';
 
 interface DataSourceWithData {
   id: string;
@@ -71,14 +72,18 @@ export default function DataBrowserPage() {
     try {
       const effectivePageSize = customPageSize || pageSize;
       const offset = (page - 1) * effectivePageSize;
-      console.log(`[DataBrowser] Loading VERSIONED data for ${sourceId}: offset=${offset}, limit=${effectivePageSize}`);
+      clientLogger.info('Loading versioned data for source', 'data-processing', {
+        sourceId,
+        offset,
+        limit: effectivePageSize
+      });
       
       // First, get the latest snapshot for this data source
       const snapshotsResponse = await get(`/api/snapshots?projectId=default&dataSourceId=${sourceId}`);
       const snapshots = Array.isArray(snapshotsResponse) ? snapshotsResponse : [];
       
       if (snapshots.length === 0) {
-        console.log(`[DataBrowser] No snapshots found for ${sourceId}, falling back to mock data`);
+        clientLogger.warn('No snapshots found, falling back to mock data', 'data-processing', { sourceId });
         // Fallback to mock data endpoint if no snapshots exist
         const response = await get(`/api/data-sources/${sourceId}/data?limit=${effectivePageSize}&offset=${offset}`);
         if (response && response.data) {
@@ -99,14 +104,22 @@ export default function DataBrowserPage() {
         (b.version || 0) - (a.version || 0)
       )[0];
       
-      console.log(`[DataBrowser] Loading from snapshot ${latestSnapshot.id}, version ${latestSnapshot.version}`);
+      clientLogger.info('Loading data from snapshot', 'data-processing', {
+        snapshotId: latestSnapshot.id,
+        version: latestSnapshot.version,
+        sourceId
+      });
       
       // Load data from the snapshot (stored in ImportedData collection)
       const response = await fetch(`/api/snapshots/${latestSnapshot.id}/data?limit=${effectivePageSize}&offset=${offset}`);
       
       if (response.ok) {
         const data = await response.json();
-        console.log(`[DataBrowser] Loaded ${data.data?.length} records from snapshot, version ${latestSnapshot.version}`);
+        clientLogger.success('Snapshot data loaded successfully', 'data-processing', {
+          recordCount: data.data?.length,
+          version: latestSnapshot.version,
+          sourceId
+        });
         
         setDataSources(prev => prev.map(source => 
           source.id === sourceId 
@@ -130,7 +143,10 @@ export default function DataBrowserPage() {
           } : null);
         }
       } else {
-        console.error('Failed to load snapshot data');
+        clientLogger.error('Failed to load snapshot data, using fallback', 'data-processing', {
+          httpStatus: response.status,
+          sourceId
+        });
         // Fallback to generating mock data
         const mockResponse = await get(`/api/data-sources/${sourceId}/data?limit=${effectivePageSize}&offset=${offset}`);
         if (mockResponse && mockResponse.data) {
@@ -145,7 +161,7 @@ export default function DataBrowserPage() {
         }
       }
     } catch (error) {
-      console.error('Error loading source data:', error);
+      clientLogger.error('Error loading source data', 'data-processing', { error, sourceId });
       setDataSources(prev => prev.map(source => 
         source.id === sourceId 
           ? { ...source, error: 'Failed to load data' }

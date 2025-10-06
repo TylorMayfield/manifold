@@ -3,6 +3,7 @@
 import React, { createContext, useContext, useState, useEffect } from "react";
 import { DataProvider, Snapshot } from "../types";
 import { generateMockData } from "../lib/utils/mockDataGenerator";
+import { clientLogger } from "../lib/utils/ClientLogger";
 
 interface DataSourceContextType {
   dataSources: DataProvider[];
@@ -49,7 +50,7 @@ export function DataSourceProvider({ children }: DataSourceProviderProps) {
         try {
           await fetch("/api/projects", { method: "PATCH" });
         } catch (error) {
-          console.warn("Failed to initialize default project:", error);
+          clientLogger.warn("Failed to initialize default project", "system", { error });
         }
 
         // Load data sources
@@ -60,14 +61,16 @@ export function DataSourceProvider({ children }: DataSourceProviderProps) {
           if (sourcesResponse.ok) {
             const sourcesData = await sourcesResponse.json();
             setDataSources(sourcesData);
+            clientLogger.info("Data sources loaded", "data-processing", { 
+              count: sourcesData.length 
+            });
           } else {
-            console.warn(
-              "Failed to load data sources:",
-              sourcesResponse.status
-            );
+            clientLogger.warn("Failed to load data sources", "api", { 
+              httpStatus: sourcesResponse.status 
+            });
           }
         } catch (error) {
-          console.warn("Failed to load data sources:", error);
+          clientLogger.error("Error loading data sources", "api", { error });
         }
 
         // Load snapshots
@@ -78,14 +81,19 @@ export function DataSourceProvider({ children }: DataSourceProviderProps) {
           if (snapshotsResponse.ok) {
             const snapshotsData = await snapshotsResponse.json();
             setSnapshots(snapshotsData);
+            clientLogger.info("Snapshots loaded", "data-processing", { 
+              count: snapshotsData.length 
+            });
           } else {
-            console.warn("Failed to load snapshots:", snapshotsResponse.status);
+            clientLogger.warn("Failed to load snapshots", "api", { 
+              httpStatus: snapshotsResponse.status 
+            });
           }
         } catch (error) {
-          console.warn("Failed to load snapshots:", error);
+          clientLogger.error("Error loading snapshots", "api", { error });
         }
       } catch (error) {
-        console.error("Failed to load data from API:", error);
+        clientLogger.error("Failed to load data from API", "system", { error });
       } finally {
         setLoading(false);
       }
@@ -96,7 +104,10 @@ export function DataSourceProvider({ children }: DataSourceProviderProps) {
 
   const addDataSource = async (source: DataProvider) => {
     try {
-      console.log('[DataSourceContext] Creating data source:', source);
+      clientLogger.info('Creating data source', 'data-processing', {
+        sourceName: source.name,
+        sourceType: source.type
+      });
       
       const response = await fetch("/api/data-sources", {
         method: "POST",
@@ -109,10 +120,16 @@ export function DataSourceProvider({ children }: DataSourceProviderProps) {
       let newSource: DataProvider;
       if (response.ok) {
         newSource = await response.json();
-        console.log('[DataSourceContext] Data source created successfully:', newSource);
+        clientLogger.success('Data source created successfully', 'data-processing', {
+          sourceId: newSource.id,
+          sourceName: newSource.name
+        });
       } else {
         const errorText = await response.text();
-        console.error("API Error creating data source:", response.status, errorText);
+        clientLogger.error('Data source creation failed', 'api', {
+          httpStatus: response.status,
+          error: errorText
+        });
         
         // Try to parse error
         try {
@@ -131,9 +148,12 @@ export function DataSourceProvider({ children }: DataSourceProviderProps) {
       if (source.type === "mock" && source.config?.mockConfig) {
         try {
           const { templateId, recordCount } = source.config.mockConfig;
-          console.log('[DataSourceContext] Generating mock data with:', { templateId, recordCount });
+          clientLogger.info('Generating mock data for new source', 'data-processing', {
+            templateId,
+            recordCount,
+            sourceName: newSource.name
+          });
           const mockSnapshot = generateMockData(templateId, recordCount);
-          console.log('[DataSourceContext] Mock data generated:', mockSnapshot);
 
           // Create snapshot with the data source ID
           const snapshot: Snapshot = {
@@ -145,7 +165,6 @@ export function DataSourceProvider({ children }: DataSourceProviderProps) {
 
           // Add snapshot via API or locally
           try {
-            console.log('[DataSourceContext] Sending snapshot to API with data length:', mockSnapshot.data?.length);
             const snapshotResponse = await fetch("/api/snapshots", {
               method: "POST",
               headers: {
@@ -162,28 +181,32 @@ export function DataSourceProvider({ children }: DataSourceProviderProps) {
 
             if (snapshotResponse.ok) {
               const createdSnapshot = await snapshotResponse.json();
-              console.log('[DataSourceContext] Snapshot created successfully:', createdSnapshot);
+              clientLogger.success('Snapshot created for mock source', 'data-processing', {
+                snapshotId: createdSnapshot.id,
+                sourceName: newSource.name,
+                recordCount: createdSnapshot.recordCount
+              });
               setSnapshots((prev) => [...prev, snapshot]);
             } else {
               const errorText = await snapshotResponse.text();
-              console.warn("Failed to create snapshot via API:", errorText);
+              clientLogger.warn("Snapshot API failed, adding locally", "data-processing", {
+                httpStatus: snapshotResponse.status,
+                error: errorText
+              });
               setSnapshots((prev) => [...prev, snapshot]);
             }
           } catch (error) {
-            console.warn(
-              "Error creating snapshot via API, adding locally:",
-              error
-            );
+            clientLogger.warn("Error creating snapshot, adding locally", "data-processing", { error });
             setSnapshots((prev) => [...prev, snapshot]);
           }
         } catch (error) {
-          console.error("Failed to generate mock data:", error);
+          clientLogger.error("Failed to generate mock data", "data-processing", { error });
         }
       }
 
       return newSource;
     } catch (error) {
-      console.warn("Error adding data source via API, adding locally:", error);
+      clientLogger.error("Error adding data source, falling back to local", "data-processing", { error });
       // Fallback: add locally if API fails
       const localSource = {
         ...source,
@@ -223,7 +246,7 @@ export function DataSourceProvider({ children }: DataSourceProviderProps) {
         throw new Error("Failed to update data source");
       }
     } catch (error) {
-      console.error("Error updating data source:", error);
+      clientLogger.error("Error updating data source", "data-processing", { error, dataSourceId: id });
       throw error;
     }
   };
@@ -243,11 +266,12 @@ export function DataSourceProvider({ children }: DataSourceProviderProps) {
         setSnapshots((prev) =>
           prev.filter((snapshot) => snapshot.dataSourceId !== id)
         );
+        clientLogger.success("Data source deleted", "data-processing", { dataSourceId: id });
       } else {
         throw new Error("Failed to delete data source");
       }
     } catch (error) {
-      console.error("Error deleting data source:", error);
+      clientLogger.error("Error deleting data source", "data-processing", { error, dataSourceId: id });
       throw error;
     }
   };
@@ -265,9 +289,15 @@ export function DataSourceProvider({ children }: DataSourceProviderProps) {
       if (response.ok) {
         const newSnapshot = await response.json();
         setSnapshots((prev) => [...prev, newSnapshot]);
+        clientLogger.success("Snapshot created", "data-processing", {
+          snapshotId: newSnapshot.id,
+          dataSourceId: snapshot.dataSourceId
+        });
         return newSnapshot;
       } else {
-        console.warn("Failed to create snapshot via API, adding locally");
+        clientLogger.warn("Snapshot API failed, adding locally", "data-processing", {
+          httpStatus: response.status
+        });
         // Fallback: add locally if API fails
         const localSnapshot = {
           ...snapshot,
@@ -277,7 +307,7 @@ export function DataSourceProvider({ children }: DataSourceProviderProps) {
         return localSnapshot;
       }
     } catch (error) {
-      console.warn("Error adding snapshot via API, adding locally:", error);
+      clientLogger.warn("Error creating snapshot, adding locally", "data-processing", { error });
       // Fallback: add locally if API fails
       const localSnapshot = {
         ...snapshot,

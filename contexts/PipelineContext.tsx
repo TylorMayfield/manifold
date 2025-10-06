@@ -2,6 +2,7 @@
 
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { Pipeline, TransformStep } from '../types';
+import { clientLogger } from '../lib/utils/ClientLogger';
 
 interface PipelineContextType {
   pipelines: Pipeline[];
@@ -45,8 +46,9 @@ export function PipelineProvider({ children }: PipelineProviderProps) {
       
       const data = await response.json();
       setPipelines(data);
+      clientLogger.info('Pipelines loaded', 'data-transformation', { count: data.length });
     } catch (err) {
-      console.error('Error fetching pipelines:', err);
+      clientLogger.error('Error fetching pipelines', 'data-transformation', { error: err });
       setError(err instanceof Error ? err.message : 'Unknown error');
     } finally {
       setLoading(false);
@@ -74,9 +76,13 @@ export function PipelineProvider({ children }: PipelineProviderProps) {
 
       const newPipeline = await response.json();
       setPipelines(prev => [newPipeline, ...prev]);
+      clientLogger.success('Pipeline created', 'data-transformation', {
+        pipelineId: newPipeline.id,
+        pipelineName: newPipeline.name
+      });
       return newPipeline;
     } catch (err) {
-      console.error('Error creating pipeline:', err);
+      clientLogger.error('Error creating pipeline', 'data-transformation', { error: err });
       const errorMessage = err instanceof Error ? err.message : 'Unknown error';
       setError(errorMessage);
       throw new Error(errorMessage);
@@ -105,9 +111,10 @@ export function PipelineProvider({ children }: PipelineProviderProps) {
           pipeline.id === id ? updatedPipeline : pipeline
         )
       );
+      clientLogger.success('Pipeline updated', 'data-transformation', { pipelineId: id });
       return updatedPipeline;
     } catch (err) {
-      console.error('Error updating pipeline:', err);
+      clientLogger.error('Error updating pipeline', 'data-transformation', { error: err, pipelineId: id });
       const errorMessage = err instanceof Error ? err.message : 'Unknown error';
       setError(errorMessage);
       return null;
@@ -127,9 +134,10 @@ export function PipelineProvider({ children }: PipelineProviderProps) {
       }
 
       setPipelines(prev => prev.filter(pipeline => pipeline.id !== id));
+      clientLogger.success('Pipeline deleted', 'data-transformation', { pipelineId: id });
       return true;
     } catch (err) {
-      console.error('Error deleting pipeline:', err);
+      clientLogger.error('Error deleting pipeline', 'data-transformation', { error: err, pipelineId: id });
       const errorMessage = err instanceof Error ? err.message : 'Unknown error';
       setError(errorMessage);
       return false;
