@@ -73,10 +73,10 @@ const defaultNavItems: NavItem[] = [
     description: 'Notifications and integrations'
   },
   {
-    href: '/logs',
-    label: 'Logs',
+    href: '/observability',
+    label: 'Observability',
     icon: FileText,
-    description: 'Activity and monitoring'
+    description: 'Logs, metrics, and monitoring'
   }
 ];
 
