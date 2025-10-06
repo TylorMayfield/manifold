@@ -398,6 +398,8 @@ export class MongoDatabase {
       projectId,
       name: pipelineData.name,
       description: pipelineData.description || '',
+      steps: pipelineData.steps || [],
+      inputSourceIds: pipelineData.inputSourceIds || [],
       config: pipelineData.config || {},
       enabled: pipelineData.enabled !== false,
       createdAt: new Date(),
