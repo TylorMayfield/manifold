@@ -17,6 +17,8 @@ import {
 import CellButton from '../ui/CellButton';
 import CellCard from '../ui/CellCard';
 import StatusBadge from '../ui/StatusBadge';
+import ProgressBar from '../ui/ProgressBar';
+import LoadingOverlay from '../ui/LoadingOverlay';
 
 interface CDCWatermark {
   dataSourceId: string;
@@ -39,6 +41,7 @@ export default function CDCSyncPanel({
   const [watermark, setWatermark] = useState<CDCWatermark | null>(null);
   const [loading, setLoading] = useState(false);
   const [syncing, setSyncing] = useState(false);
+  const [syncProgress, setSyncProgress] = useState(0);
   const [lastSyncResult, setLastSyncResult] = useState<any>(null);
   const [showConfig, setShowConfig] = useState(false);
 
@@ -94,8 +97,11 @@ export default function CDCSyncPanel({
         }),
       });
 
+      setSyncProgress(70);
+
       if (response.ok) {
         const result = await response.json();
+        setSyncProgress(100);
         setLastSyncResult(result.syncResult);
         setWatermark(result.syncResult.watermark);
         
@@ -119,6 +125,7 @@ export default function CDCSyncPanel({
       alert('Failed to perform incremental sync');
     } finally {
       setSyncing(false);
+      setSyncProgress(0);
     }
   };
 
@@ -156,8 +163,14 @@ export default function CDCSyncPanel({
 
   return (
     <div className="space-y-4">
-      {/* CDC Status Card */}
-      <CellCard className="p-6">
+      <LoadingOverlay
+        isLoading={syncing}
+        message="Syncing data..."
+        progress={syncProgress}
+        showProgress={true}
+      >
+        {/* CDC Status Card */}
+        <CellCard className="p-6">
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center space-x-3">
             <Activity className="w-6 h-6 text-blue-600" />
@@ -420,6 +433,7 @@ export default function CDCSyncPanel({
           </div>
         </div>
       </CellCard>
+      </LoadingOverlay>
     </div>
   );
 }

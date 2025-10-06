@@ -632,29 +632,56 @@ export class ETLPipelineManager {
     source: ETLSource,
     executionId: string
   ): Promise<any[]> {
-    // Mock implementation - in real scenario, this would connect to actual data sources
-    switch (source.type) {
-      case "data_source":
-        // Simulate data extraction from data source
-        return [
-          { id: 1, name: "Record 1", value: 100, date: new Date() },
-          { id: 2, name: "Record 2", value: 200, date: new Date() },
-          { id: 3, name: "Record 3", value: 300, date: new Date() },
-        ];
-      case "api":
-        // Simulate API data extraction
-        return [
-          { id: 4, name: "API Record 1", value: 400, date: new Date() },
-          { id: 5, name: "API Record 2", value: 500, date: new Date() },
-        ];
-      case "file":
-        // Simulate file data extraction
-        return [
-          { id: 6, name: "File Record 1", value: 600, date: new Date() },
-          { id: 7, name: "File Record 2", value: 700, date: new Date() },
-        ];
-      default:
-        throw new Error(`Unsupported source type: ${source.type}`);
+    try {
+      // Connect to actual data sources
+      switch (source.type) {
+        case "data_source":
+          // Load from MongoDB data source
+          if (source.config.dataSourceId) {
+            const { MongoDatabase } = await import('../server/database/MongoDatabase');
+            const db = MongoDatabase.getInstance();
+            await db.initialize();
+
+            const snapshots = await db.getSnapshots(source.config.dataSourceId);
+            if (snapshots.length > 0) {
+              const latest: any = snapshots[0];
+              const result = await db.getImportedData({
+                dataSourceId: source.config.dataSourceId,
+                snapshotId: latest.id as string,
+                limit: 100000,
+              });
+              return result.data.map(d => d.data);
+            }
+          }
+          throw new Error('No data available for data source');
+
+        case "api":
+          // Make real API call
+          if (source.config.url) {
+            const response = await fetch(source.config.url, {
+              method: source.config.method || 'GET',
+              headers: source.config.headers || {},
+            });
+            
+            if (!response.ok) {
+              throw new Error(`API request failed: ${response.statusText}`);
+            }
+
+            const data = await response.json();
+            return Array.isArray(data) ? data : [data];
+          }
+          throw new Error('API URL not configured');
+
+        case "file":
+          // File extraction would be handled by file upload
+          throw new Error('File extraction not yet supported in ETL pipelines. Use data sources instead.');
+
+        default:
+          throw new Error(`Unsupported source type: ${source.type}`);
+      }
+    } catch (error) {
+      clientLogger.error('Data extraction failed', 'data-processing', { error, sourceType: source.type });
+      throw error;
     }
   }
 

@@ -15,6 +15,7 @@ import {
 import CellButton from '../ui/CellButton';
 import CellCard from '../ui/CellCard';
 import StatusBadge from '../ui/StatusBadge';
+import ProgressBar, { SegmentedProgressBar } from '../ui/ProgressBar';
 
 interface StepResult {
   stepId: string;
@@ -50,6 +51,13 @@ interface PipelineExecutionViewerProps {
 
 export default function PipelineExecutionViewer({ execution, onClose }: PipelineExecutionViewerProps) {
   const [expandedSteps, setExpandedSteps] = useState<Set<string>>(new Set());
+
+  // Calculate progress metrics
+  const completedSteps = execution.steps.filter(s => s.status === 'completed').length;
+  const runningStepIndex = execution.steps.findIndex(s => s.status === 'running');
+  const currentStepIndex = runningStepIndex >= 0 ? runningStepIndex : completedSteps;
+  const totalSteps = execution.steps.length;
+  const progressPercentage = totalSteps > 0 ? (completedSteps / totalSteps) * 100 : 0;
 
   const toggleStep = (stepId: string) => {
     setExpandedSteps(prev => {
@@ -129,6 +137,29 @@ export default function PipelineExecutionViewer({ execution, onClose }: Pipeline
           label={execution.status.toUpperCase()}
         />
       </div>
+
+      {/* Overall Progress */}
+      {execution.status === 'running' && totalSteps > 0 && (
+        <div className="mb-6">
+          <ProgressBar
+            progress={progressPercentage}
+            label={`Step ${currentStepIndex + 1} of ${totalSteps}`}
+            color="blue"
+            size="lg"
+            animated={true}
+          />
+        </div>
+      )}
+
+      {/* Segmented Step Progress */}
+      {totalSteps > 0 && (
+        <div className="mb-6">
+          <SegmentedProgressBar
+            segments={execution.steps.map(s => s.stepName)}
+            currentSegment={currentStepIndex}
+          />
+        </div>
+      )}
 
       {/* Summary Stats */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">

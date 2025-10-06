@@ -4,6 +4,7 @@ import "./globals.css";
 import { LogProvider } from "../contexts/LogContext";
 import { DataSourceProvider } from "../contexts/DataSourceContext";
 import { SettingsProvider } from "../contexts/SettingsContext";
+import TopLoadingBar from "../components/ui/TopLoadingBar";
 import ClientOnly from "../components/providers/ClientOnly";
 import TransitionProvider from "../components/providers/TransitionProvider";
 import StatusFooter from "../components/layout/StatusFooter";
@@ -46,6 +47,7 @@ export default function RootLayout({
             <LogProvider>
               <DataSourceProvider>
                 <TransitionProvider>
+                  <TopLoadingBar />
                   {children}
                   <StatusFooter />
                 </TransitionProvider>

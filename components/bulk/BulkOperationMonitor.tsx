@@ -13,6 +13,7 @@ import {
 import CellCard from '../ui/CellCard';
 import CellButton from '../ui/CellButton';
 import StatusBadge from '../ui/StatusBadge';
+import ProgressBar from '../ui/ProgressBar';
 
 interface BulkOperation {
   id: string;
@@ -173,18 +174,13 @@ export default function BulkOperationMonitor() {
 
                 {/* Progress Bar */}
                 <div className="space-y-1">
-                  <div className="flex justify-between text-xs">
-                    <span>
-                      {operation.progress.completed} / {operation.progress.total}
-                    </span>
-                    <span className="font-bold">{operation.progress.percentage}%</span>
-                  </div>
-                  <div className="w-full bg-gray-200 rounded-full h-2">
-                    <div
-                      className="bg-blue-600 h-2 rounded-full transition-all duration-300"
-                      style={{ width: `${operation.progress.percentage}%` }}
-                    />
-                  </div>
+                  <ProgressBar
+                    progress={operation.progress.percentage}
+                    label={`${operation.progress.completed} / ${operation.progress.total} items`}
+                    color={operation.progress.failed > 0 ? 'orange' : 'blue'}
+                    size="md"
+                    showPercentage={true}
+                  />
                   {operation.progress.failed > 0 && (
                     <p className="text-xs text-red-600">
                       {operation.progress.failed} failed

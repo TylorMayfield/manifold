@@ -1,57 +1,40 @@
-"use client";
-
 import React from 'react';
-import { cn } from '../../lib/utils/cn';
-import { Loader2 } from 'lucide-react';
+import ProgressBar from './ProgressBar';
 
-export interface LoadingSpinnerProps {
-  className?: string;
+interface LoadingSpinnerProps {
   size?: 'sm' | 'md' | 'lg';
-  text?: string;
-  variant?: 'primary' | 'secondary' | 'accent';
+  className?: string;
+  message?: string;
+  progress?: number;
+  showProgress?: boolean;
 }
 
-export default function LoadingSpinner({
-  className,
-  size = 'md',
-  text,
-  variant = 'primary'
+export default function LoadingSpinner({ 
+  size = 'md', 
+  className = '',
+  message,
+  progress,
+  showProgress = false,
 }: LoadingSpinnerProps) {
   const sizeClasses = {
-    sm: 'w-4 h-4',
-    md: 'w-6 h-6',
-    lg: 'w-8 h-8'
+    sm: 'w-4 h-4 border-2',
+    md: 'w-8 h-8 border-3',
+    lg: 'w-12 h-12 border-4',
   };
-
-  const colorClasses = {
-    primary: 'text-gray-600',
-    secondary: 'text-gray-400',
-    accent: 'text-accent'
-  };
-
-  if (text) {
-    return (
-      <div className={cn("flex items-center justify-center space-x-2", className)}>
-        <Loader2 
-          className={cn(
-            "animate-spin",
-            sizeClasses[size],
-            colorClasses[variant]
-          )} 
-        />
-        <span className="text-sm font-medium text-gray-600">{text}</span>
-      </div>
-    );
-  }
 
   return (
-    <Loader2 
-      className={cn(
-        "animate-spin",
-        sizeClasses[size],
-        colorClasses[variant],
-        className
-      )} 
-    />
+    <div className={`flex flex-col items-center justify-center gap-3 ${className}`}>
+      <div className={`${sizeClasses[size]} border-blue-600 border-t-transparent rounded-full animate-spin`}></div>
+      
+      {message && (
+        <p className="text-sm text-gray-600 animate-pulse">{message}</p>
+      )}
+      
+      {showProgress && progress !== undefined && (
+        <div className="w-48">
+          <ProgressBar progress={progress} showPercentage={true} />
+        </div>
+      )}
+    </div>
   );
 }

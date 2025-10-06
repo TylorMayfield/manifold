@@ -260,29 +260,36 @@ export class JavaScriptDataSourceService {
   private createSafeFetch(): Function {
     return async (url: string, options: any = {}) => {
       try {
-        // In a real implementation, this would use node-fetch or similar
-        // For now, we'll create a mock implementation
         logger.info(
-          "Mock fetch request",
+          "JavaScript fetch request",
           "javascript",
           { url, method: options.method || "GET" },
           "JavaScriptDataSourceService"
         );
-        
-        // Return a mock response
+
+        // Use native fetch (available in Node 18+)
+        if (typeof fetch === 'undefined') {
+          throw new Error('Fetch API not available. Please use Node.js 18 or higher.');
+        }
+
+        const response = await fetch(url, {
+          ...options,
+          // Add timeout
+          signal: AbortSignal.timeout(30000), // 30 second timeout
+        });
+
+        // Convert Response to a simpler object for script use
         return {
-          ok: true,
-          status: 200,
-          json: async () => ({
-            message: "This is a mock response. In production, this would make a real HTTP request.",
-            url,
-            timestamp: new Date().toISOString()
-          }),
-          text: async () => "Mock response",
-          headers: new Map()
+          ok: response.ok,
+          status: response.status,
+          statusText: response.statusText,
+          json: async () => await response.json(),
+          text: async () => await response.text(),
+          headers: Object.fromEntries(response.headers.entries()),
         };
       } catch (error) {
-        throw new Error(`Fetch failed: ${error}`);
+        logger.error('Fetch failed', 'javascript', { error, url });
+        throw new Error(`Fetch failed: ${error instanceof Error ? error.message : String(error)}`);
       }
     };
   }

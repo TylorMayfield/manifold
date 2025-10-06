@@ -459,13 +459,40 @@ export class PipelinePreviewService {
     inputDataOverride?: Record<string, any[]>,
     sampleSize: number = 100
   ): Promise<any[]> {
-    // If override provided, use it
     if (inputDataOverride) {
-      const combined = Object.values(inputDataOverride).flat();
-      return combined.slice(0, sampleSize);
+      return Object.values(inputDataOverride).flat().slice(0, sampleSize);
     }
 
-    // Generate mock sample data
+    // Load actual data from pipeline's input sources
+    try {
+      const { MongoDatabase } = await import('../server/database/MongoDatabase');
+      const db = MongoDatabase.getInstance();
+      await db.initialize();
+
+      const allData: any[] = [];
+      const sourceIds = (pipeline as any).inputSourceIds || [];
+
+      for (const sourceId of sourceIds.slice(0, 3)) { // Limit to 3 sources for preview
+        const snapshots = await db.getSnapshots(sourceId);
+        if (snapshots.length > 0) {
+          const latest: any = snapshots[0];
+          const data = await db.getImportedData({
+            dataSourceId: sourceId,
+            snapshotId: latest.id as string,
+            limit: Math.ceil(sampleSize / sourceIds.length),
+          });
+          allData.push(...data.data.map(d => d.data));
+        }
+      }
+
+      if (allData.length > 0) {
+        return allData.slice(0, sampleSize);
+      }
+    } catch (error) {
+      console.error('Failed to load real data for preview:', error);
+    }
+
+    // Fallback to mock data if real data unavailable
     return this.generateMockData(sampleSize);
   }
 

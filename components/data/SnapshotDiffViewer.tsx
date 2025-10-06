@@ -20,6 +20,7 @@ import {
 import CellButton from '../ui/CellButton';
 import CellCard from '../ui/CellCard';
 import StatusBadge from '../ui/StatusBadge';
+import ProgressBar from '../ui/ProgressBar';
 
 interface FieldChange {
   field: string;

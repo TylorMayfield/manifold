@@ -23,6 +23,8 @@ import CellButton from '../../components/ui/CellButton';
 import CellCard from '../../components/ui/CellCard';
 import CellInput from '../../components/ui/CellInput';
 import LoadingSpinner from '../../components/ui/LoadingSpinner';
+import LoadingOverlay from '../../components/ui/LoadingOverlay';
+import ProgressBar from '../../components/ui/ProgressBar';
 import { useApi } from '../../hooks/useApi';
 import { DataProvider } from '../../types';
 import { useDataSources } from '../../contexts/DataSourceContext';
@@ -49,6 +51,9 @@ export default function DataBrowserPage() {
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [dataSourceToDelete, setDataSourceToDelete] = useState<string | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [importData, setImportData] = useState('');
+  const [isImporting, setIsImporting] = useState(false);
+  const [importProgress, setImportProgress] = useState(0);
   
   const api = useApi();
   const { get } = api;
@@ -221,6 +226,73 @@ export default function DataBrowserPage() {
   const getColumns = (data: any[]) => {
     if (data.length === 0) return [];
     return Object.keys(data[0]);
+  };
+
+  const handleImportData = async () => {
+    if (!importData.trim()) {
+      alert('Please enter JSON data to import');
+      return;
+    }
+
+    setIsImporting(true);
+    setImportProgress(0);
+
+    try {
+      // Parse JSON data
+      setImportProgress(20);
+      const parsedData = JSON.parse(importData);
+      
+      if (!Array.isArray(parsedData)) {
+        throw new Error('Data must be an array of objects');
+      }
+
+      setImportProgress(40);
+
+      // Create a new data source for the imported data
+      const newDataSourceId = `imported_${Date.now()}`;
+      const dataSourceName = `Imported Data ${new Date().toLocaleString()}`;
+
+      // Import via API
+      const response = await fetch(`/api/data-sources/${newDataSourceId}/import`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          data: parsedData,
+          schema: null, // Auto-infer
+          metadata: {
+            importType: 'manual',
+            importSource: 'data-browser',
+            originalName: dataSourceName,
+          },
+        }),
+      });
+
+      setImportProgress(80);
+
+      if (response.ok) {
+        const result = await response.json();
+        setImportProgress(100);
+        
+        alert(`✅ Successfully imported ${result.snapshot.recordCount} records!`);
+        
+        // Reload data sources
+        await loadDataSources();
+        
+        // Close modal and reset
+        setShowImportModal(false);
+        setImportData('');
+        setImportProgress(0);
+      } else {
+        const error = await response.json();
+        throw new Error(error.message || 'Import failed');
+      }
+    } catch (error) {
+      console.error('Import error:', error);
+      alert(`❌ Import failed: ${error instanceof Error ? error.message : 'Invalid JSON data'}`);
+    } finally {
+      setIsImporting(false);
+      setImportProgress(0);
+    }
   };
 
   const getTypeIcon = (type: string) => {
@@ -591,6 +663,8 @@ export default function DataBrowserPage() {
                   Or paste JSON data:
                 </label>
                 <textarea
+                  value={importData}
+                  onChange={(e) => setImportData(e.target.value)}
                   className="w-full h-40 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 font-mono text-sm"
                   placeholder='[
   {"column1": "value1", "column2": 123},
@@ -598,6 +672,19 @@ export default function DataBrowserPage() {
 ]'
                 />
               </div>
+
+              {/* Import Progress */}
+              {isImporting && (
+                <div className="mt-4">
+                  <ProgressBar
+                    progress={importProgress}
+                    label="Importing data..."
+                    color="green"
+                    showPercentage={true}
+                    animated={true}
+                  />
+                </div>
+              )}
 
               <div className="flex justify-end space-x-3 pt-4">
                 <CellButton
@@ -608,13 +695,11 @@ export default function DataBrowserPage() {
                 </CellButton>
                 <CellButton
                   variant="primary"
-                  onClick={() => {
-                    alert('Import functionality will be implemented next');
-                    setShowImportModal(false);
-                  }}
+                  onClick={handleImportData}
+                  disabled={isImporting || !importData.trim()}
                 >
                   <Upload className="w-4 h-4 mr-2" />
-                  Import Data
+                  {isImporting ? 'Importing...' : 'Import Data'}
                 </CellButton>
               </div>
             </div>

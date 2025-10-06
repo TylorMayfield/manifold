@@ -242,10 +242,8 @@ export default function DataSourcesPage() {
           }
           onRunSource={handleRunDataSource}
           onEditSource={(dataSource) => {
-            // TODO: Implement edit functionality with unified workflow
-            alert(
-              "Edit functionality will be implemented with the unified workflow"
-            );
+            // Navigate to unified workflow for editing
+            router.push(`/project/${projectId}/add-data-source-unified?edit=${dataSource.id}`);
           }}
           onDeleteSource={(dataSource) => {
             router.push(
