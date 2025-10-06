@@ -27,6 +27,8 @@ function HomePageContent() {
     setCreatingSnapshots(true);
     try {
       for (const source of sourcesWithoutSnapshots) {
+        console.log('[HomePage] Creating snapshot for source:', source.name, source.id);
+        
         // Generate mock data for the source
         const { generateMockData } = await import("../lib/utils/mockDataGenerator");
         const templateId = source.type === 'mock' 
@@ -36,10 +38,17 @@ function HomePageContent() {
           ? (source.config?.mockConfig?.recordCount || 1000)
           : 100;
         
+        console.log('[HomePage] Generating mock data:', { templateId, recordCount });
         const mockSnapshot = generateMockData(templateId, recordCount);
+        console.log('[HomePage] Generated data length:', mockSnapshot.data?.length);
+        
+        if (!mockSnapshot.data || mockSnapshot.data.length === 0) {
+          console.error('[HomePage] Generated data is empty for source:', source.name);
+          continue;
+        }
         
         // Create snapshot via API
-        await fetch("/api/snapshots", {
+        const response = await fetch("/api/snapshots", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
@@ -55,13 +64,24 @@ function HomePageContent() {
             }
           }),
         });
+        
+        if (!response.ok) {
+          const errorText = await response.text();
+          console.error('[HomePage] Snapshot creation failed:', response.status, errorText);
+          // Continue with other sources even if one fails
+          continue;
+        }
+        
+        const result = await response.json();
+        console.log('[HomePage] Snapshot created successfully:', result);
       }
       
       // Reload page to show new snapshots
+      console.log('[HomePage] All snapshots created, reloading page...');
       window.location.reload();
     } catch (error) {
-      console.error('Failed to create snapshots:', error);
-      alert('Failed to create snapshots. Please try again.');
+      console.error('[HomePage] Error in createMissingSnapshots:', error);
+      alert(`Failed to create snapshots: ${error instanceof Error ? error.message : 'Unknown error'}. Check console for details.`);
     } finally {
       setCreatingSnapshots(false);
     }
