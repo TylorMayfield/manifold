@@ -30,7 +30,7 @@ import {
 interface WebhookConfig {
   id: string;
   name: string;
-  type: 'slack' | 'discord' | 'webhook';
+  type: 'slack' | 'discord' | 'teams' | 'webhook';
   url: string;
   events: string[];
   isEnabled: boolean;
@@ -144,6 +144,8 @@ export default function WebhooksPage() {
         return '💬';
       case 'discord':
         return '🎮';
+      case 'teams':
+        return '👥';
       case 'webhook':
         return '🔗';
       default:
@@ -517,6 +519,7 @@ function WebhookCreateModal({ isOpen, onClose, onSuccess }: {
             <option value="webhook">Generic Webhook</option>
             <option value="slack">Slack</option>
             <option value="discord">Discord</option>
+            <option value="teams">Microsoft Teams</option>
           </select>
         </div>
 
