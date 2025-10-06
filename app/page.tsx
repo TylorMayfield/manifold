@@ -119,9 +119,14 @@ function HomePageContent() {
             </p>
           </div>
 
-          <CellButton className="w-full" variant="secondary" disabled>
-            Build Pipeline
-            <span className="text-caption ml-2 text-gray-500">(Add data sources first)</span>
+          <CellButton 
+            className="w-full" 
+            variant={dataSources.length > 0 ? "primary" : "secondary"}
+            disabled={dataSources.length === 0}
+            onClick={() => router.push('/pipelines')}
+          >
+            <Plus className="w-4 h-4 mr-2" />
+            {dataSources.length > 0 ? 'Build Pipeline' : 'Build Pipeline (Add data sources first)'}
           </CellButton>
         </CellCard>
 
