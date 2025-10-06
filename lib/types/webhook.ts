@@ -4,7 +4,7 @@ export interface WebhookConfig {
   projectId?: string;
   pipelineId?: string;
   name: string;
-  type: 'slack' | 'discord' | 'webhook';
+  type: 'slack' | 'discord' | 'teams' | 'webhook';
   url: string;
   secret?: string;
   headers: Record<string, string>;
