@@ -319,39 +319,135 @@ export class MonitoringService extends EventEmitter {
 
     const checks: HealthCheck[] = [];
 
+    // Check MongoDB connection
+    checks.push(await this.checkMongoDB());
+    
+    // Check API endpoints
+    checks.push(await this.checkAPIEndpoint('Data Sources API', '/api/data-sources?projectId=default'));
+    checks.push(await this.checkAPIEndpoint('Pipelines API', '/api/pipelines?projectId=default'));
+    checks.push(await this.checkAPIEndpoint('Logs API', '/api/logs?limit=1'));
+    
+    // Check system resources
+    checks.push(await this.checkSystemResources());
+
+    // Add any manually registered health checks
     for (const [name, check] of this.healthChecks.entries()) {
-      const startTime = Date.now();
-
-      try {
-        // Simulate health check
-        const isHealthy = Math.random() > 0.05; // 95% healthy
-
-        const updated: HealthCheck = {
-          ...check,
-          status: isHealthy ? 'healthy' : 'degraded',
-          lastCheck: new Date(),
-          responseTime: Date.now() - startTime,
-          message: isHealthy ? 'Service operational' : 'Service degraded',
-        };
-
-        this.updateHealthCheck(name, updated);
-        checks.push(updated);
-
-      } catch (error) {
-        const updated: HealthCheck = {
-          ...check,
-          status: 'unhealthy',
-          lastCheck: new Date(),
-          responseTime: Date.now() - startTime,
-          message: error instanceof Error ? error.message : 'Health check failed',
-        };
-
-        this.updateHealthCheck(name, updated);
-        checks.push(updated);
+      if (!checks.find(c => c.name === name)) {
+        checks.push(check);
       }
     }
 
     return checks;
+  }
+
+  private async checkMongoDB(): Promise<HealthCheck> {
+    const startTime = Date.now();
+    try {
+      const { MongoDatabase } = await import('../server/database/MongoDatabase');
+      const db = MongoDatabase.getInstance();
+      await db.initialize();
+      
+      // Try a simple query
+      await db.getDataSources('default');
+      
+      return {
+        name: 'MongoDB',
+        status: 'healthy',
+        lastCheck: new Date(),
+        responseTime: Date.now() - startTime,
+        message: 'Database connection healthy',
+      };
+    } catch (error) {
+      return {
+        name: 'MongoDB',
+        status: 'unhealthy',
+        lastCheck: new Date(),
+        responseTime: Date.now() - startTime,
+        message: error instanceof Error ? error.message : 'Database connection failed',
+      };
+    }
+  }
+
+  private async checkAPIEndpoint(name: string, endpoint: string): Promise<HealthCheck> {
+    const startTime = Date.now();
+    try {
+      // Use relative URL for server-side fetch
+      const response = await fetch(`http://localhost:3000${endpoint}`, {
+        method: 'GET',
+        headers: { 'Content-Type': 'application/json' },
+      });
+      
+      const responseTime = Date.now() - startTime;
+      
+      if (response.ok) {
+        return {
+          name,
+          status: 'healthy',
+          lastCheck: new Date(),
+          responseTime,
+          message: `API responding in ${responseTime}ms`,
+        };
+      } else {
+        return {
+          name,
+          status: 'degraded',
+          lastCheck: new Date(),
+          responseTime,
+          message: `API returned ${response.status}`,
+        };
+      }
+    } catch (error) {
+      return {
+        name,
+        status: 'unhealthy',
+        lastCheck: new Date(),
+        responseTime: Date.now() - startTime,
+        message: error instanceof Error ? error.message : 'API unreachable',
+      };
+    }
+  }
+
+  private async checkSystemResources(): Promise<HealthCheck> {
+    try {
+      // Get latest system metrics
+      const cpuMetric = this.getLatestMetric('system.cpu_usage');
+      const memoryMetric = this.getLatestMetric('system.memory_usage');
+      
+      let status: 'healthy' | 'degraded' | 'unhealthy' = 'healthy';
+      let message = 'System resources normal';
+      
+      if (memoryMetric && memoryMetric.value > 90) {
+        status = 'unhealthy';
+        message = `Critical memory usage: ${memoryMetric.value.toFixed(1)}%`;
+      } else if (memoryMetric && memoryMetric.value > 80) {
+        status = 'degraded';
+        message = `High memory usage: ${memoryMetric.value.toFixed(1)}%`;
+      } else if (cpuMetric && cpuMetric.value > 90) {
+        status = 'unhealthy';
+        message = `Critical CPU usage: ${cpuMetric.value.toFixed(1)}%`;
+      } else if (cpuMetric && cpuMetric.value > 80) {
+        status = 'degraded';
+        message = `High CPU usage: ${cpuMetric.value.toFixed(1)}%`;
+      }
+      
+      return {
+        name: 'System Resources',
+        status,
+        lastCheck: new Date(),
+        message,
+        details: {
+          cpu: cpuMetric?.value,
+          memory: memoryMetric?.value,
+        },
+      };
+    } catch (error) {
+      return {
+        name: 'System Resources',
+        status: 'degraded',
+        lastCheck: new Date(),
+        message: 'Unable to check system resources',
+      };
+    }
   }
 
   // ==================== ALERT RULES ====================
@@ -738,7 +834,7 @@ export class MonitoringService extends EventEmitter {
       version: '1.0.0',
       timestamp: new Date(),
       services: await this.runHealthChecks(),
-      metrics: this.getPerformanceMetrics(),
+      metrics: await this.getPerformanceMetrics(),
       activeAlerts: this.activeAlerts.size,
       recentAlerts: this.getAlertHistory(10),
     };
@@ -759,7 +855,7 @@ export class MonitoringService extends EventEmitter {
   /**
    * Get performance metrics
    */
-  getPerformanceMetrics(): PerformanceMetrics {
+  async getPerformanceMetrics(): Promise<PerformanceMetrics> {
     const cpuMetric = this.getLatestMetric('system.cpu_usage');
     const memoryMetric = this.getLatestMetric('system.memory_usage');
     const diskMetric = this.getLatestMetric('system.disk_usage');
@@ -774,22 +870,57 @@ export class MonitoringService extends EventEmitter {
       ? executionTimeMetrics.reduce((sum, m) => sum + m.value, 0) / executionTimeMetrics.length
       : 0;
 
+    // Fetch real data from MongoDB
+    let realDataSources = 0;
+    let realSnapshots = 0;
+    let realPipelines = 0;
+    let realJobs = 0;
+
+    try {
+      const { MongoDatabase } = await import('../server/database/MongoDatabase');
+      const db = MongoDatabase.getInstance();
+      await db.initialize();
+
+      // Get real counts from database
+      const dataSources = await db.getDataSources('default');
+      realDataSources = dataSources.length;
+
+      const pipelines = await db.getPipelines('default');
+      realPipelines = pipelines.length;
+
+      const snapshots = await db.getSnapshots('');
+      realSnapshots = snapshots.length;
+
+      // Get jobs from API
+      try {
+        const jobsResponse = await fetch('http://localhost:3000/api/jobs');
+        if (jobsResponse.ok) {
+          const jobsData = await jobsResponse.json();
+          realJobs = Array.isArray(jobsData) ? jobsData.length : 0;
+        }
+      } catch (error) {
+        // Jobs service might not be running
+      }
+    } catch (error) {
+      logger.warn('Failed to fetch real metrics from database', 'monitoring', { error });
+    }
+
     return {
       cpuUsage: cpuMetric?.value,
       memoryUsage: memoryMetric?.value,
       diskUsage: diskMetric?.value,
-      activePipelines: 0, // Would track active pipeline count
-      activeStreams: 0,
-      activeJobs: 0,
-      recordsProcessedPerSecond: 0,
+      activePipelines: realPipelines,
+      activeStreams: 0, // TODO: Track from streaming service
+      activeJobs: realJobs,
+      recordsProcessedPerSecond: 0, // TODO: Calculate from execution metrics
       pipelinesExecutedPerHour: totalExecutions,
       avgPipelineExecutionTime: avgExecTime,
-      avgAPIResponseTime: 0,
+      avgAPIResponseTime: 0, // TODO: Track API response times
       errorRate: totalExecutions > 0 ? (totalFailures / totalExecutions) * 100 : 0,
       failedPipelines: totalFailures,
-      totalDataSources: 0,
-      totalSnapshots: 0,
-      totalStorageUsed: 0,
+      totalDataSources: realDataSources,
+      totalSnapshots: realSnapshots,
+      totalStorageUsed: 0, // TODO: Calculate from snapshot sizes
     };
   }
 
