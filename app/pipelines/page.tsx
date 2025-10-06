@@ -137,7 +137,7 @@ function PipelinesPageContent() {
                             method: 'POST',
                             headers: { 'Content-Type': 'application/json' },
                             body: JSON.stringify({
-                              sourceIds: pipeline.inputSourceIds,
+                              sourceIds: pipeline.inputSourceIds || [],
                             }),
                           });
                           
@@ -164,23 +164,23 @@ function PipelinesPageContent() {
                 <div className="space-y-3">
                   <div className="flex items-center space-x-2">
                     <span className="text-caption font-bold">Steps:</span>
-                    <span className="font-mono">{pipeline.steps.length}</span>
+                    <span className="font-mono">{pipeline.steps?.length || 0}</span>
                   </div>
                   <div className="flex items-center space-x-2">
                     <span className="text-caption font-bold">Sources:</span>
                     <span className="font-mono">
-                      {pipeline.inputSourceIds.length}
+                      {pipeline.inputSourceIds?.length || 0}
                     </span>
                   </div>
                   <div className="flex items-center space-x-2">
                     <span className="text-caption font-bold">Updated:</span>
                     <span className="font-mono text-xs">
-                      {pipeline.updatedAt.toLocaleDateString()}
+                      {new Date(pipeline.updatedAt).toLocaleDateString()}
                     </span>
                   </div>
                 </div>
 
-                {pipeline.steps.length > 0 && (
+                {pipeline.steps && pipeline.steps.length > 0 && (
                   <div className="mt-4 pt-4 border-t-2 border-gray-100">
                     <p className="text-caption font-bold mb-2">
                       Transform Steps:
