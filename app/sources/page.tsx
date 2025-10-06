@@ -121,18 +121,18 @@ export default function DataSourcesPage() {
       {sources.length === 0 ? (
         // Empty State
         <CellCard className="p-12 text-center">
-            <Database className="w-20 h-20 mx-auto mb-6 text-gray-600" />
-            <h2 className="text-heading mb-4 text-white">No Data Sources Connected</h2>
-            <p className="text-body text-gray-400 mb-8 max-w-2xl mx-auto">
+            <Database className="w-20 h-20 mx-auto mb-6 text-gray-400" />
+            <h2 className="text-heading mb-4 text-gray-900">No Data Sources Connected</h2>
+            <p className="text-body text-gray-600 mb-8 max-w-2xl mx-auto">
               Connect your data sources to start building ETL pipelines. Import
               files, connect databases, or generate mock data for testing.
             </p>
 
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
               <CellCard className="p-6">
-                <Upload className="w-10 h-10 mx-auto mb-4 text-blue-400" />
-                <h3 className="font-mono font-bold mb-2 text-white">Upload Files</h3>
-                <p className="text-caption mb-4 text-gray-400">
+                <Upload className="w-10 h-10 mx-auto mb-4 text-blue-500" />
+                <h3 className="font-mono font-bold mb-2 text-gray-900">Upload Files</h3>
+                <p className="text-caption mb-4 text-gray-600">
                   CSV, JSON, and other structured data files
                 </p>
                 <CellButton size="sm" variant="accent" className="w-full">
@@ -141,9 +141,9 @@ export default function DataSourcesPage() {
               </CellCard>
 
               <CellCard className="p-6">
-                <Database className="w-10 h-10 mx-auto mb-4 text-green-400" />
-                <h3 className="font-mono font-bold mb-2 text-white">Connect Database</h3>
-                <p className="text-caption mb-4 text-gray-400">
+                <Database className="w-10 h-10 mx-auto mb-4 text-green-500" />
+                <h3 className="font-mono font-bold mb-2 text-gray-900">Connect Database</h3>
+                <p className="text-caption mb-4 text-gray-600">
                   MySQL, PostgreSQL, SQLite connections
                 </p>
                 <CellButton size="sm" variant="success" className="w-full">

@@ -164,10 +164,10 @@ export default function JobsPage() {
         <CellCard className="p-4">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-caption font-bold text-gray-400">Total Jobs</p>
-              <p className="text-heading font-mono text-white">{jobs.length}</p>
+              <p className="text-caption font-bold text-gray-600">Total Jobs</p>
+              <p className="text-heading font-mono text-gray-900">{jobs.length}</p>
             </div>
-            <Play className="w-8 h-8 text-blue-400" />
+            <Play className="w-8 h-8 text-blue-500" />
           </div>
         </CellCard>
         <CellCard className="p-4">
@@ -195,10 +195,10 @@ export default function JobsPage() {
         <CellCard className="p-4">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-caption font-bold text-gray-400">Last 24h Runs</p>
-              <p className="text-heading font-mono text-white">{executions.length}</p>
+              <p className="text-caption font-bold text-gray-600">Last 24h Runs</p>
+              <p className="text-heading font-mono text-gray-900">{executions.length}</p>
             </div>
-            <RefreshCw className="w-8 h-8 text-blue-400" />
+            <RefreshCw className="w-8 h-8 text-blue-500" />
           </div>
         </CellCard>
       </div>
@@ -213,8 +213,8 @@ export default function JobsPage() {
         <CellCard className="p-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-4">
-              <Filter className="w-4 h-4 text-blue-400" />
-              <span className="text-sm font-mono font-bold text-white">
+              <Filter className="w-4 h-4 text-blue-500" />
+              <span className="text-sm font-mono font-bold text-gray-900">
                 Filter by status:
               </span>
               <div className="flex space-x-2">

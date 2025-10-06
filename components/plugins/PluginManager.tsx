@@ -145,8 +145,8 @@ export default function PluginManager({ className }: PluginManagerProps) {
       <CellCard padding="lg">
         <div className="flex justify-between items-center mb-6">
           <div>
-            <h2 className="text-2xl font-bold text-white font-mono">Plugin Manager</h2>
-            <p className="text-gray-400">Manage your Manifold plugins</p>
+            <h2 className="text-2xl font-bold text-gray-900 font-mono">Plugin Manager</h2>
+            <p className="text-gray-600">Manage your Manifold plugins</p>
           </div>
           
           <CellStack direction="horizontal" spacing="sm">
@@ -216,9 +216,9 @@ export default function PluginManager({ className }: PluginManagerProps) {
         {/* Plugin List */}
         {filteredPlugins.length === 0 ? (
           <div className="text-center py-8">
-            <Database className="w-12 h-12 mx-auto mb-4 text-gray-600" />
-            <h3 className="text-lg font-semibold mb-2 text-white font-mono">No plugins found</h3>
-            <p className="text-gray-400">
+            <Database className="w-12 h-12 mx-auto mb-4 text-gray-400" />
+            <h3 className="text-lg font-semibold mb-2 text-gray-900 font-mono">No plugins found</h3>
+            <p className="text-gray-600">
               {searchTerm || selectedCategory !== 'all' || showEnabledOnly
                 ? 'Try adjusting your search criteria'
                 : 'No plugins are installed. Click "Discover" to find available plugins.'}
@@ -231,7 +231,7 @@ export default function PluginManager({ className }: PluginManagerProps) {
                 <div className="flex justify-between items-start">
                   <div className="flex-1">
                     <div className="flex items-center space-x-3 mb-2">
-                      <h3 className="text-lg font-semibold text-white font-mono">
+                      <h3 className="text-lg font-semibold text-gray-900 font-mono">
                         {plugin.name}
                       </h3>
                       
@@ -253,20 +253,20 @@ export default function PluginManager({ className }: PluginManagerProps) {
                       )}
                     </div>
                     
-                    <p className="text-gray-400 mb-2">{plugin.description}</p>
+                    <p className="text-gray-600 mb-2">{plugin.description}</p>
                     
                     <div className="flex flex-wrap gap-2 mb-3">
                       {plugin.tags?.map(tag => (
                         <span
                           key={tag}
-                          className="px-2 py-1 bg-gray-800 text-gray-300 border border-gray-700 text-xs rounded font-mono"
+                          className="px-2 py-1 bg-gray-100 text-gray-700 border border-gray-300 text-xs rounded font-mono"
                         >
                           {tag}
                         </span>
                       )) || []}
                     </div>
                     
-                    <div className="flex items-center space-x-4 text-sm text-gray-500 font-mono">
+                    <div className="flex items-center space-x-4 text-sm text-gray-600 font-mono">
                       <span>By {plugin.author}</span>
                       <span>•</span>
                       <span className="text-purple-400">{plugin.category}</span>
