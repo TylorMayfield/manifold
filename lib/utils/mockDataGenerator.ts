@@ -13,6 +13,20 @@ export interface MockTemplate {
 }
 
 const mockTemplates: { [key: string]: MockTemplate } = {
+  "generic": {
+    id: "generic",
+    name: "Generic Data",
+    description: "Generic sample data for any data source",
+    fields: [
+      { name: "id", type: "number", generator: "autoIncrement" },
+      { name: "name", type: "string", generator: "productName" },
+      { name: "category", type: "string", generator: "category" },
+      { name: "value", type: "number", generator: "amount" },
+      { name: "status", type: "string", generator: "orderStatus" },
+      { name: "created_at", type: "date", generator: "pastDate" },
+    ],
+    recordCount: 100,
+  },
   "user-data": {
     id: "user-data",
     name: "User Data",
