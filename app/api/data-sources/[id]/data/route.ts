@@ -74,48 +74,71 @@ export async function GET(
       
       switch (dataSource.type) {
         case 'csv':
-          mockData = [
-            { id: 1, name: 'Sample CSV Data', value: 100, date: '2024-01-15' },
-            { id: 2, name: 'Another CSV Row', value: 250, date: '2024-01-16' },
-            { id: 3, name: 'Third CSV Entry', value: 75, date: '2024-01-17' },
-          ];
           totalCount = 100;
+          mockData = Array.from({ length: totalCount }, (_, i) => ({
+            id: i + 1,
+            name: `CSV Record ${i + 1}`,
+            value: Math.floor(Math.random() * 1000),
+            date: new Date(Date.now() - Math.random() * 365 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+            category: ['A', 'B', 'C', 'D'][i % 4],
+          }));
           break;
           
         case 'mysql':
-          mockData = [
-            { user_id: 1, username: 'john_doe', email: 'john@example.com', created_at: '2024-01-10' },
-            { user_id: 2, username: 'jane_smith', email: 'jane@example.com', created_at: '2024-01-11' },
-            { user_id: 3, username: 'bob_wilson', email: 'bob@example.com', created_at: '2024-01-12' },
-          ];
           totalCount = 500;
+          const usernames = ['john_doe', 'jane_smith', 'bob_wilson', 'alice_brown', 'charlie_davis', 'eve_miller', 'frank_moore', 'grace_taylor'];
+          mockData = Array.from({ length: totalCount }, (_, i) => ({
+            user_id: i + 1,
+            username: `${usernames[i % usernames.length]}_${i}`,
+            email: `${usernames[i % usernames.length]}${i}@example.com`,
+            created_at: new Date(Date.now() - Math.random() * 365 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+            is_active: i % 2 === 0,
+          }));
           break;
           
         case 'json':
-          mockData = [
-            { product_id: 1, product_name: 'Laptop', category: 'Electronics', price: 999.99 },
-            { product_id: 2, product_name: 'Chair', category: 'Furniture', price: 199.99 },
-            { product_id: 3, product_name: 'Book', category: 'Education', price: 29.99 },
-          ];
           totalCount = 200;
+          const products = ['Laptop', 'Chair', 'Book', 'Desk', 'Monitor', 'Keyboard', 'Mouse', 'Tablet', 'Phone', 'Headphones'];
+          const categories = ['Electronics', 'Furniture', 'Education', 'Office', 'Audio'];
+          mockData = Array.from({ length: totalCount }, (_, i) => ({
+            product_id: i + 1,
+            product_name: `${products[i % products.length]} ${Math.floor(i / products.length) + 1}`,
+            category: categories[i % categories.length],
+            price: (Math.random() * 1000 + 10).toFixed(2),
+            in_stock: i % 3 !== 0,
+          }));
           break;
           
         case 'api_script':
-          mockData = [
-            { api_id: 1, endpoint: '/users', method: 'GET', status_code: 200, response_time: 150 },
-            { api_id: 2, endpoint: '/orders', method: 'POST', status_code: 201, response_time: 320 },
-            { api_id: 3, endpoint: '/products', method: 'GET', status_code: 200, response_time: 85 },
-          ];
           totalCount = 50;
+          const endpoints = ['/users', '/orders', '/products', '/inventory', '/customers', '/analytics'];
+          const methods = ['GET', 'POST', 'PUT', 'DELETE'];
+          mockData = Array.from({ length: totalCount }, (_, i) => ({
+            api_id: i + 1,
+            endpoint: endpoints[i % endpoints.length],
+            method: methods[i % methods.length],
+            status_code: i % 10 === 0 ? 500 : i % 20 === 0 ? 404 : 200,
+            response_time: Math.floor(Math.random() * 500) + 50,
+            timestamp: new Date(Date.now() - Math.random() * 24 * 60 * 60 * 1000).toISOString(),
+          }));
           break;
           
         case 'mock':
-          mockData = [
-            { customer_id: 1, first_name: 'Alice', last_name: 'Johnson', city: 'New York' },
-            { customer_id: 2, first_name: 'Bob', last_name: 'Smith', city: 'Los Angeles' },
-            { customer_id: 3, first_name: 'Charlie', last_name: 'Brown', city: 'Chicago' },
-          ];
+          // Generate realistic mock data based on the requested limit
           totalCount = 1000;
+          const cities = ['New York', 'Los Angeles', 'Chicago', 'Houston', 'Phoenix', 'Philadelphia', 'San Antonio', 'San Diego', 'Dallas', 'San Jose'];
+          const firstNames = ['Alice', 'Bob', 'Charlie', 'Diana', 'Edward', 'Fiona', 'George', 'Hannah', 'Ian', 'Julia', 'Kevin', 'Laura', 'Michael', 'Nancy', 'Oliver', 'Patricia', 'Quinn', 'Rachel', 'Steve', 'Tina'];
+          const lastNames = ['Johnson', 'Smith', 'Brown', 'Davis', 'Miller', 'Wilson', 'Moore', 'Taylor', 'Anderson', 'Thomas', 'Jackson', 'White', 'Harris', 'Martin', 'Thompson', 'Garcia', 'Martinez', 'Robinson', 'Clark', 'Rodriguez'];
+          
+          mockData = Array.from({ length: totalCount }, (_, i) => ({
+            customer_id: i + 1,
+            first_name: firstNames[i % firstNames.length],
+            last_name: lastNames[Math.floor(i / firstNames.length) % lastNames.length],
+            city: cities[i % cities.length],
+            email: `${firstNames[i % firstNames.length].toLowerCase()}.${lastNames[Math.floor(i / firstNames.length) % lastNames.length].toLowerCase()}@example.com`,
+            registration_date: new Date(Date.now() - Math.random() * 365 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+            status: i % 3 === 0 ? 'active' : i % 3 === 1 ? 'inactive' : 'pending',
+          }));
           break;
           
         default:

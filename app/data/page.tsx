@@ -44,7 +44,7 @@ export default function DataBrowserPage() {
   const [selectedSource, setSelectedSource] = useState<DataSourceWithData | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
-  const [pageSize] = useState(10);
+  const [pageSize, setPageSize] = useState(50); // Increased default from 10 to 50
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [showImportModal, setShowImportModal] = useState(false);
@@ -63,14 +63,15 @@ export default function DataBrowserPage() {
     loadDataSources();
   }, []);
 
-  const loadSourceData = async (sourceId: string, page: number = 1) => {
+  const loadSourceData = async (sourceId: string, page: number = 1, customPageSize?: number) => {
     if (!sourceId) return;
     
     try {
-      const offset = (page - 1) * pageSize;
-      console.log(`[DataBrowser] Loading data for ${sourceId}: offset=${offset}, limit=${pageSize}`);
+      const effectivePageSize = customPageSize || pageSize;
+      const offset = (page - 1) * effectivePageSize;
+      console.log(`[DataBrowser] Loading data for ${sourceId}: offset=${offset}, limit=${effectivePageSize}`);
       
-      const response = await get(`/api/data-sources/${sourceId}/data?limit=${pageSize}&offset=${offset}`);
+      const response = await get(`/api/data-sources/${sourceId}/data?limit=${effectivePageSize}&offset=${offset}`);
       console.log(`[DataBrowser] Received ${response?.data?.length} records, totalCount: ${response?.totalCount}`);
       
       if (response && response.data) {
@@ -146,6 +147,21 @@ export default function DataBrowserPage() {
       setDataSources([]);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handlePageChange = (newPage: number) => {
+    setCurrentPage(newPage);
+    if (selectedSource) {
+      loadSourceData(selectedSource.id, newPage, pageSize);
+    }
+  };
+
+  const handlePageSizeChange = (newSize: number) => {
+    setPageSize(newSize);
+    setCurrentPage(1);
+    if (selectedSource) {
+      loadSourceData(selectedSource.id, 1, newSize);
     }
   };
 
@@ -536,21 +552,36 @@ export default function DataBrowserPage() {
                   </div>
 
                   {/* Pagination */}
-                  {totalPages > 1 && (
-                    <div className="flex items-center justify-between">
+                  <div className="flex items-center justify-between pt-4 border-t border-gray-300">
+                    <div className="flex items-center space-x-4">
                       <div className="text-caption text-gray-700 font-mono">
                         Showing {startIndex + 1} to {Math.min(startIndex + pageSize, totalRecords)} of {totalRecords.toLocaleString()} records
                       </div>
                       
+                      {/* Page Size Selector */}
+                      <div className="flex items-center space-x-2">
+                        <label className="text-sm text-gray-600">Rows:</label>
+                        <select
+                          value={pageSize}
+                          onChange={(e) => handlePageSizeChange(parseInt(e.target.value))}
+                          className="px-2 py-1 border border-gray-300 rounded bg-white text-gray-900 text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        >
+                          <option value="10">10</option>
+                          <option value="25">25</option>
+                          <option value="50">50</option>
+                          <option value="100">100</option>
+                          <option value="500">500</option>
+                          <option value="1000">1000</option>
+                        </select>
+                      </div>
+                    </div>
+                    
+                    {totalPages > 1 && (
                       <div className="flex items-center space-x-2">
                         <CellButton
                           variant="secondary"
                           size="sm"
-                          onClick={() => {
-                            const newPage = Math.max(1, currentPage - 1);
-                            setCurrentPage(newPage);
-                            if (selectedSource) loadSourceData(selectedSource.id, newPage);
-                          }}
+                          onClick={() => handlePageChange(Math.max(1, currentPage - 1))}
                           disabled={currentPage === 1}
                         >
                           <ChevronLeft className="w-4 h-4" />
@@ -563,18 +594,14 @@ export default function DataBrowserPage() {
                         <CellButton
                           variant="secondary"
                           size="sm"
-                          onClick={() => {
-                            const newPage = Math.min(totalPages, currentPage + 1);
-                            setCurrentPage(newPage);
-                            if (selectedSource) loadSourceData(selectedSource.id, newPage);
-                          }}
+                          onClick={() => handlePageChange(Math.min(totalPages, currentPage + 1))}
                           disabled={currentPage === totalPages}
                         >
                           <ChevronRight className="w-4 h-4" />
                         </CellButton>
                       </div>
-                    </div>
-                  )}
+                    )}
+                  </div>
                 </div>
               )}
             </CellCard>
