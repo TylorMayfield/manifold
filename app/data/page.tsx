@@ -37,6 +37,8 @@ interface DataSourceWithData {
   data: any[];
   totalCount: number;
   error?: string;
+  currentVersion?: number;
+  snapshotId?: string;
 }
 
 export default function DataBrowserPage() {
@@ -69,27 +71,81 @@ export default function DataBrowserPage() {
     try {
       const effectivePageSize = customPageSize || pageSize;
       const offset = (page - 1) * effectivePageSize;
-      console.log(`[DataBrowser] Loading data for ${sourceId}: offset=${offset}, limit=${effectivePageSize}`);
+      console.log(`[DataBrowser] Loading VERSIONED data for ${sourceId}: offset=${offset}, limit=${effectivePageSize}`);
       
-      const response = await get(`/api/data-sources/${sourceId}/data?limit=${effectivePageSize}&offset=${offset}`);
-      console.log(`[DataBrowser] Received ${response?.data?.length} records, totalCount: ${response?.totalCount}`);
+      // First, get the latest snapshot for this data source
+      const snapshotsResponse = await get(`/api/snapshots?projectId=default&dataSourceId=${sourceId}`);
+      const snapshots = Array.isArray(snapshotsResponse) ? snapshotsResponse : [];
       
-      if (response && response.data) {
-        // Update the selected source with the loaded data
+      if (snapshots.length === 0) {
+        console.log(`[DataBrowser] No snapshots found for ${sourceId}, falling back to mock data`);
+        // Fallback to mock data endpoint if no snapshots exist
+        const response = await get(`/api/data-sources/${sourceId}/data?limit=${effectivePageSize}&offset=${offset}`);
+        if (response && response.data) {
+          setDataSources(prev => prev.map(source => 
+            source.id === sourceId 
+              ? { ...source, data: response.data, totalCount: response.totalCount || response.data.length }
+              : source
+          ));
+          if (selectedSource?.id === sourceId) {
+            setSelectedSource(prev => prev ? { ...prev, data: response.data, totalCount: response.totalCount || response.data.length } : null);
+          }
+        }
+        return;
+      }
+      
+      // Get the latest snapshot (sorted by version desc)
+      const latestSnapshot = snapshots.sort((a: any, b: any) => 
+        (b.version || 0) - (a.version || 0)
+      )[0];
+      
+      console.log(`[DataBrowser] Loading from snapshot ${latestSnapshot.id}, version ${latestSnapshot.version}`);
+      
+      // Load data from the snapshot (stored in ImportedData collection)
+      const response = await fetch(`/api/snapshots/${latestSnapshot.id}/data?limit=${effectivePageSize}&offset=${offset}`);
+      
+      if (response.ok) {
+        const data = await response.json();
+        console.log(`[DataBrowser] Loaded ${data.data?.length} records from snapshot, version ${latestSnapshot.version}`);
+        
         setDataSources(prev => prev.map(source => 
           source.id === sourceId 
-            ? { ...source, data: response.data, totalCount: response.totalCount || response.data.length }
+            ? { 
+                ...source, 
+                data: data.data || [], 
+                totalCount: data.totalCount || (latestSnapshot.recordCount || 0),
+                currentVersion: latestSnapshot.version,
+                snapshotId: latestSnapshot.id
+              }
             : source
         ));
         
-        // Update selected source
         if (selectedSource?.id === sourceId) {
-          setSelectedSource(prev => prev ? { ...prev, data: response.data, totalCount: response.totalCount || response.data.length } : null);
+          setSelectedSource(prev => prev ? { 
+            ...prev, 
+            data: data.data || [], 
+            totalCount: data.totalCount || (latestSnapshot.recordCount || 0),
+            currentVersion: latestSnapshot.version,
+            snapshotId: latestSnapshot.id
+          } : null);
+        }
+      } else {
+        console.error('Failed to load snapshot data');
+        // Fallback to generating mock data
+        const mockResponse = await get(`/api/data-sources/${sourceId}/data?limit=${effectivePageSize}&offset=${offset}`);
+        if (mockResponse && mockResponse.data) {
+          setDataSources(prev => prev.map(source => 
+            source.id === sourceId 
+              ? { ...source, data: mockResponse.data, totalCount: mockResponse.totalCount || mockResponse.data.length }
+              : source
+          ));
+          if (selectedSource?.id === sourceId) {
+            setSelectedSource(prev => prev ? { ...prev, data: mockResponse.data, totalCount: mockResponse.totalCount || mockResponse.data.length } : null);
+          }
         }
       }
     } catch (error) {
       console.error('Error loading source data:', error);
-      // Mark the source with an error
       setDataSources(prev => prev.map(source => 
         source.id === sourceId 
           ? { ...source, error: 'Failed to load data' }
@@ -482,6 +538,11 @@ export default function DataBrowserPage() {
                     <h2 className="text-subheading font-bold text-gray-900 font-mono">{selectedSource.name}</h2>
                     <p className="text-caption text-gray-700">
                       Type: {selectedSource.type.toUpperCase()} • {selectedSource.totalCount.toLocaleString()} total records
+                      {selectedSource.currentVersion && (
+                        <span className="ml-2 px-2 py-0.5 bg-blue-100 text-blue-800 rounded text-xs font-mono">
+                          v{selectedSource.currentVersion}
+                        </span>
+                      )}
                     </p>
                     {selectedSource.error && (
                       <p className="text-caption text-red-400 mt-1">
