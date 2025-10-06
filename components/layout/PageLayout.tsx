@@ -58,8 +58,8 @@ export default function PageLayout({
 
   return (
     <div className={cn("min-h-screen bg-gray-100", className)}>
-      {/* Header - stays dark */}
-      <header className="bg-gray-900 border-b border-gray-700 shadow-sm">
+      {/* Header - stays dark and sticky */}
+      <header className="sticky top-0 z-50 bg-gray-900 border-b border-gray-700 shadow-sm">
         <div className="flex items-center justify-between p-4">
           <div className="flex items-center space-x-4">
             {showBackButton && (
@@ -89,9 +89,9 @@ export default function PageLayout({
         </div>
       </header>
 
-      {/* Breadcrumbs */}
+      {/* Breadcrumbs - sticky below header */}
       {breadcrumbs && breadcrumbs.length > 0 && (
-        <div className="border-b border-gray-300 px-4 py-2 bg-white">
+        <div className="sticky top-[73px] z-40 border-b border-gray-300 px-4 py-2 bg-white">
           <nav className="flex" aria-label="Breadcrumb">
             {breadcrumbs.map((crumb, index) => (
               <div key={index} className="flex items-center">
@@ -116,16 +116,21 @@ export default function PageLayout({
         </div>
       )}
 
-      {/* Navigation */}
+      {/* Navigation - sticky below header/breadcrumbs */}
       {showNavigation && (
-        <AppNav 
-          className="mb-8" 
-          variant={navigationProps.variant}
-          showDescriptions={navigationProps.showDescriptions}
-        />
+        <div className={cn(
+          "sticky z-30 bg-gray-100",
+          breadcrumbs && breadcrumbs.length > 0 ? "top-[115px]" : "top-[73px]"
+        )}>
+          <AppNav 
+            className="mb-0 shadow-sm" 
+            variant={navigationProps.variant}
+            showDescriptions={navigationProps.showDescriptions}
+          />
+        </div>
       )}
 
-      {/* Main Content */}
+      {/* Main Content - scrollable */}
       <main className={cn("p-6", contentClassName)}>
         {children}
       </main>
