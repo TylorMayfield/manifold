@@ -24,6 +24,7 @@ import LoadingState from "../../components/ui/LoadingState";
 import EmptyState from "../../components/ui/EmptyState";
 import { PipelineProvider, usePipelines } from "../../contexts/PipelineContext";
 import { Pipeline, TransformType } from "../../types";
+import { clientLogger } from "../../lib/utils/ClientLogger";
 
 const transformIcons: Record<TransformType, React.ComponentType<any>> = {
   filter: Filter,
@@ -51,8 +52,8 @@ function PipelinesPageContent() {
       setNewPipelineName("");
       setShowCreateModal(false);
     } catch (error) {
-      console.error("Failed to create pipeline:", error);
-      // You could show a toast notification here
+      clientLogger.error("Failed to create pipeline", "data-transformation", { error });
+      alert('Failed to create pipeline. Check Observability logs for details.');
     } finally {
       setIsCreating(false);
     }

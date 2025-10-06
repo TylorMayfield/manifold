@@ -10,6 +10,7 @@ import CellInput from "../../components/ui/CellInput";
 import LoadingSpinner from "../../components/ui/LoadingSpinner";
 import StatusBadge from "../../components/ui/StatusBadge";
 import { useApi } from "../../hooks/useApi";
+import { clientLogger } from "../../lib/utils/ClientLogger";
 import {
   Webhook,
   MessageSquare,
@@ -75,9 +76,10 @@ export default function WebhooksPage() {
       const response = await get('/api/webhooks');
       if (response.success) {
         setWebhooks(response.data || []);
+        clientLogger.info('Webhooks loaded', 'api', { count: response.data?.length || 0 });
       }
     } catch (error) {
-      console.error('Failed to load webhooks:', error);
+      clientLogger.error('Failed to load webhooks', 'api', { error });
     } finally {
       setLoading(false);
     }
@@ -88,9 +90,10 @@ export default function WebhooksPage() {
       const response = await get('/api/webhooks/deliveries?limit=10');
       if (response.success) {
         setDeliveries(response.data || []);
+        clientLogger.info('Webhook deliveries loaded', 'api', { count: response.data?.length || 0 });
       }
     } catch (error) {
-      console.error('Failed to load deliveries:', error);
+      clientLogger.error('Failed to load webhook deliveries', 'api', { error });
     }
   };
 
@@ -101,9 +104,13 @@ export default function WebhooksPage() {
       });
       if (response.success) {
         await loadWebhooks();
+        clientLogger.success(`Webhook ${webhook.isEnabled ? 'disabled' : 'enabled'}`, 'user-action', {
+          webhookId: webhook.id,
+          webhookName: webhook.name
+        });
       }
     } catch (error) {
-      console.error('Failed to toggle webhook:', error);
+      clientLogger.error('Failed to toggle webhook', 'api', { error, webhookId: webhook.id });
     }
   };
 
@@ -114,9 +121,10 @@ export default function WebhooksPage() {
       const response = await del(`/api/webhooks/${webhookId}`);
       if (response.success) {
         await loadWebhooks();
+        clientLogger.success('Webhook deleted', 'user-action', { webhookId });
       }
     } catch (error) {
-      console.error('Failed to delete webhook:', error);
+      clientLogger.error('Failed to delete webhook', 'api', { error, webhookId });
     }
   };
 
@@ -132,8 +140,12 @@ export default function WebhooksPage() {
       const response = await post(`/api/webhooks/${selectedWebhook.id}/test`, testData);
       setTestResults(response.data);
       await loadRecentDeliveries(); // Refresh deliveries
+      clientLogger.success('Webhook test completed', 'api', {
+        webhookId: selectedWebhook.id,
+        webhookName: selectedWebhook.name
+      });
     } catch (error) {
-      console.error('Failed to test webhook:', error);
+      clientLogger.error('Webhook test failed', 'api', { error, webhookId: selectedWebhook.id });
       setTestResults({ error: 'Test failed' });
     }
   };

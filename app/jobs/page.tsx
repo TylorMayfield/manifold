@@ -11,6 +11,7 @@ import CellModal from "../../components/ui/CellModal";
 import CellInput from "../../components/ui/CellInput";
 import StatusBadge from "../../components/ui/StatusBadge";
 import DefaultJobsManager from "../../components/jobs/DefaultJobsManager";
+import { clientLogger } from "../../lib/utils/ClientLogger";
 import {
   Play,
   Plus,
@@ -116,7 +117,7 @@ export default function JobsPage() {
   };
 
   const handleRunJob = (jobId: string) => {
-    console.log("Running job:", jobId);
+    clientLogger.info("Manual job execution triggered", "job-management", { jobId });
     // Implementation would trigger job execution
   };
 
