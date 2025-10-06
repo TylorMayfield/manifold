@@ -61,7 +61,7 @@ function PipelinesPageContent() {
   return (
     <PageLayout
       title="Data Pipelines"
-      subtitle="Transform and process your data"
+      subtitle="Define HOW to transform your data • Run manually or schedule with Jobs"
       icon={Zap}
       showNavigation={true}
       showBackButton={true}
@@ -101,7 +101,7 @@ function PipelinesPageContent() {
           <EmptyState
             icon={Zap}
             title="No Pipelines Created"
-            description="Pipelines let you transform, filter, and combine data from multiple sources. Create your first pipeline to start processing data."
+            description="Pipelines define HOW to transform your data. They contain transformation steps (filter, map, aggregate, join) and can be executed manually or automated with Jobs. Think of pipelines as recipes - they define what to do with your data."
             action={{
               label: "Create Your First Pipeline",
               onClick: () => setShowCreateModal(true),

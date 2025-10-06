@@ -138,7 +138,7 @@ export default function JobsPage() {
   return (
     <PageLayout
       title="Scheduled Jobs"
-      subtitle="Automate your data processing"
+      subtitle="Define WHEN to execute • Automate pipelines, syncs, and backups with schedules"
       icon={Play}
       showNavigation={true}
       showBackButton={true}
@@ -249,16 +249,21 @@ export default function JobsPage() {
         <CellCard className="p-12">
           <div className="text-center">
             <Clock className="w-16 h-16 mx-auto mb-4 text-gray-600" />
-            <h2 className="text-subheading mb-2 text-white font-mono">
+            <h2 className="text-subheading mb-2 text-gray-900 font-mono">
               {filterStatus === "all"
                 ? "No jobs scheduled"
                 : `No ${filterStatus} jobs`}
             </h2>
-            <p className="text-caption text-gray-400 mb-8 max-w-md mx-auto">
-              Schedule jobs to automate your data processing workflows. Jobs can
-              run pipelines, sync data sources, or execute custom scripts on a
-              schedule.
+            <p className="text-caption text-gray-600 mb-4 max-w-2xl mx-auto">
+              Jobs define WHEN to execute automation tasks. Schedule pipelines to run automatically, 
+              sync data sources on intervals, or trigger backups. Think of jobs as your automation 
+              calendar - they handle the scheduling while pipelines handle the transformation logic.
             </p>
+            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-8 max-w-2xl mx-auto">
+              <p className="text-sm text-blue-900 font-mono">
+                💡 <strong>Tip:</strong> Create a Pipeline first (define HOW), then create a Job to automate it (define WHEN).
+              </p>
+            </div>
             <CellButton
               variant="accent"
               onClick={() => setShowCreateModal(true)}
