@@ -1,7 +1,15 @@
-type LogLevel = 'debug' | 'info' | 'warn' | 'error' | 'success';
-type LogCategory = 'database' | 'system' | 'etl' | 'user' | 'security' | 'job' | 'api';
+type LogLevel = "debug" | "info" | "warn" | "error" | "success";
+type LogCategory =
+  | "database"
+  | "system"
+  | "etl"
+  | "user"
+  | "security"
+  | "job"
+  | "api";
 
 interface LogEntry {
+  id: string;
   timestamp: Date;
   level: LogLevel;
   category: LogCategory;
@@ -14,25 +22,35 @@ class Logger {
   private logs: LogEntry[] = [];
   private maxLogs: number = 1000;
 
-  private log(level: LogLevel, message: string, category: LogCategory, details?: any, source?: string) {
+  private log(
+    level: LogLevel,
+    message: string,
+    category: LogCategory,
+    details?: any,
+    source?: string
+  ) {
     const entry: LogEntry = {
+      id: `log_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
       timestamp: new Date(),
       level,
       category,
       message,
       details,
-      source
+      source,
     };
 
     // Console output for development
-    const logFn = level === 'error' ? console.error : 
-                  level === 'warn' ? console.warn : 
-                  console.log;
-    
+    const logFn =
+      level === "error"
+        ? console.error
+        : level === "warn"
+        ? console.warn
+        : console.log;
+
     const prefix = `[${entry.timestamp.toISOString()}] [${level.toUpperCase()}] [${category}]`;
-    const sourceInfo = source ? ` (${source})` : '';
-    
-    logFn(`${prefix}${sourceInfo}: ${message}`, details || '');
+    const sourceInfo = source ? ` (${source})` : "";
+
+    logFn(`${prefix}${sourceInfo}: ${message}`, details || "");
 
     // Store in memory (could be extended to store in database)
     this.logs.unshift(entry);
@@ -41,24 +59,39 @@ class Logger {
     }
   }
 
-  debug(message: string, category: LogCategory, details?: any, source?: string) {
-    this.log('debug', message, category, details, source);
+  debug(
+    message: string,
+    category: LogCategory,
+    details?: any,
+    source?: string
+  ) {
+    this.log("debug", message, category, details, source);
   }
 
   info(message: string, category: LogCategory, details?: any, source?: string) {
-    this.log('info', message, category, details, source);
+    this.log("info", message, category, details, source);
   }
 
   warn(message: string, category: LogCategory, details?: any, source?: string) {
-    this.log('warn', message, category, details, source);
+    this.log("warn", message, category, details, source);
   }
 
-  error(message: string, category: LogCategory, details?: any, source?: string) {
-    this.log('error', message, category, details, source);
+  error(
+    message: string,
+    category: LogCategory,
+    details?: any,
+    source?: string
+  ) {
+    this.log("error", message, category, details, source);
   }
 
-  success(message: string, category: LogCategory, details?: any, source?: string) {
-    this.log('success', message, category, details, source);
+  success(
+    message: string,
+    category: LogCategory,
+    details?: any,
+    source?: string
+  ) {
+    this.log("success", message, category, details, source);
   }
 
   getLogs(): LogEntry[] {
