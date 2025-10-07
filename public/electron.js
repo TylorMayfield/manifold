@@ -40,19 +40,19 @@ async function startNextServer() {
   // Production: Use simpler approach - load from static files if available
   // For now, we'll use the Next.js dev server approach even in production
   // This is a temporary solution until we properly configure standalone mode
-  
+
   console.log("Production mode: attempting to start server...");
-  
+
   // Try to find node executable
-  let nodePath = process.platform === 'win32' ? 'node.exe' : 'node';
-  
+  let nodePath = process.platform === "win32" ? "node.exe" : "node";
+
   // Check common node locations
   const possibleNodePaths = [
-    path.join(process.resourcesPath, 'app', 'node_modules', '.bin', nodePath),
+    path.join(process.resourcesPath, "app", "node_modules", ".bin", nodePath),
     path.join(process.resourcesPath, nodePath),
-    nodePath // Try system PATH
+    nodePath, // Try system PATH
   ];
-  
+
   let foundNode = null;
   for (const np of possibleNodePaths) {
     if (fs.existsSync(np)) {
@@ -60,42 +60,48 @@ async function startNextServer() {
       break;
     }
   }
-  
+
   if (!foundNode) {
     foundNode = nodePath; // Use system node
   }
-  
+
   console.log("Using Node.js at:", foundNode);
-  
-  const serverPath = path.join(process.resourcesPath, "app", ".next", "standalone", "server.js");
-  
+
+  const serverPath = path.join(
+    process.resourcesPath,
+    "app",
+    ".next",
+    "standalone",
+    "server.js"
+  );
+
   if (!fs.existsSync(serverPath)) {
     console.error("Production server not found at:", serverPath);
     console.log("Expected path:", serverPath);
     console.log("Resource path:", process.resourcesPath);
-    
+
     // For now, fall back to development mode
     console.log("FALLBACK: Using development server");
     serverUrl = "http://localhost:3000";
     return;
   }
-  
+
   console.log("Starting Next.js server from:", serverPath);
-  
+
   const { spawn } = require("child_process");
   const port = 3000;
   serverUrl = `http://localhost:${port}`;
-  
+
   try {
     serverProcess = spawn(foundNode, [serverPath], {
       cwd: path.join(process.resourcesPath, "app", ".next", "standalone"),
-      env: { 
-        ...process.env, 
+      env: {
+        ...process.env,
         NODE_ENV: "production",
         PORT: port.toString(),
-        HOSTNAME: "localhost"
+        HOSTNAME: "localhost",
       },
-      stdio: "pipe"
+      stdio: "pipe",
     });
 
     serverProcess.stdout.on("data", (data) => {
@@ -129,7 +135,7 @@ let mainWindow;
 let handlersRegistered = false;
 
 // Handle second instance
-app.on('second-instance', (event, commandLine, workingDirectory) => {
+app.on("second-instance", (event, commandLine, workingDirectory) => {
   console.log("Second instance detected, focusing main window");
   if (mainWindow) {
     if (mainWindow.isMinimized()) mainWindow.restore();
@@ -209,7 +215,7 @@ function createWindow() {
       allowRunningInsecureContent: false,
     },
     // Use native Windows title bar
-    frame: true,
+    frame: false,
     titleBarStyle: "default",
     show: false,
     backgroundColor: "#0a0a0a",
@@ -219,7 +225,7 @@ function createWindow() {
   // Load the app
   console.log("Loading app from:", serverUrl);
   mainWindow.loadURL(serverUrl);
-  
+
   // Open DevTools in development
   if (isDev) {
     mainWindow.webContents.openDevTools();
@@ -271,7 +277,7 @@ function createWindow() {
 app.whenReady().then(async () => {
   // Start Next.js server first
   await startNextServer();
-  
+
   // Register IPC handlers first (only once)
   registerIpcHandlers();
 
@@ -305,7 +311,7 @@ app.on("before-quit", () => {
       console.error("Error stopping server:", error);
     }
   }
-  
+
   // MongoDB connections are managed by the Next.js server
   // They will be cleaned up when the server stops
   console.log("Application shutting down cleanly");
