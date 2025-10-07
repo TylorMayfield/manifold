@@ -1,4 +1,65 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { MongoDatabase } from '../../../../../lib/server/database/MongoDatabase';
+import { webhookService } from '../../../../../lib/services/WebhookService';
+
+let db: MongoDatabase | null = null;
+let initPromise: Promise<MongoDatabase> | null = null;
+
+async function ensureDb() {
+  if (db) return db;
+  if (initPromise) return initPromise;
+  initPromise = (async () => {
+    const instance = MongoDatabase.getInstance();
+    await instance.initialize();
+    db = instance;
+    return instance;
+  })();
+  return initPromise;
+}
+
+interface RouteContext {
+  params: Promise<{ id: string }>;
+}
+
+// POST /api/webhooks/[id]/test
+export async function POST(
+  request: NextRequest,
+  context: RouteContext
+) {
+  try {
+    const params = await context.params;
+    const webhookId = params.id;
+    const database = await ensureDb();
+    if (!database.isHealthy()) {
+      return NextResponse.json({ success: false, error: 'Database not ready' }, { status: 503 });
+    }
+
+    const webhook = await database.getWebhook(webhookId);
+    if (!webhook) {
+      return NextResponse.json({ success: false, error: 'Webhook not found' }, { status: 404 });
+    }
+
+    const result = await webhookService.testWebhook({
+      id: webhook._id || webhook.id,
+      name: webhook.name,
+      type: webhook.type,
+      url: webhook.url,
+      events: webhook.events || [],
+      isEnabled: webhook.enabled !== false,
+      projectId: webhook.projectId,
+      pipelineId: webhook.pipelineId,
+      createdAt: webhook.createdAt?.toISOString?.() || new Date().toISOString(),
+      updatedAt: webhook.updatedAt?.toISOString?.() || new Date().toISOString(),
+    } as any);
+
+    return NextResponse.json({ success: true, deliveryResult: result });
+  } catch (error) {
+    console.error('Error testing webhook:', error);
+    return NextResponse.json({ success: false, error: 'Failed to test webhook' }, { status: 500 });
+  }
+}
+
+import { NextRequest, NextResponse } from 'next/server';
 import { 
   TestWebhookSchema,
   type TestWebhookRequest,

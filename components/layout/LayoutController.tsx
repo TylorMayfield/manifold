@@ -184,7 +184,7 @@ const LayoutController: React.FC<LayoutControllerProps> = ({
         <TitleBar title={`${currentPageConfig.title} - Manifold`} />
 
         {/* Page Header */}
-        <div className="border-b border-dark_cyan-200 border-opacity-10 bg-dark_cyan-100 bg-opacity-20">
+        <div className="border-b border-dark_cyan-200 border-opacity-10 bg-dark_cyan-100 bg-opacity-20 sticky top-8 z-[50]">
           <div className="px-8 py-6">
             <div className="flex items-center justify-between">
               <div className="flex items-center space-x-4">
@@ -210,7 +210,7 @@ const LayoutController: React.FC<LayoutControllerProps> = ({
         </div>
 
         {/* Page Content */}
-        <div className="flex-1 p-8 overflow-hidden">
+        <div className="flex-1 p-8">
           <div
             key={navigationState.currentPage}
             className="h-full page-transition"

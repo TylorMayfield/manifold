@@ -9,10 +9,12 @@ export default function PluginsPage() {
   return (
     <PageLayout
       title="Plugin Manager"
-      subtitle="Manage and configure your Manifold plugins"
+      subtitle="This section is coming soon"
       icon={Settings}
     >
-      <PluginManager />
+      <div className="p-12 text-center">
+        <p className="text-gray-600">Plugins are not available in this build.</p>
+      </div>
     </PageLayout>
   )
 }

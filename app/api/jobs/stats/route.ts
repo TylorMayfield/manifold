@@ -80,6 +80,22 @@ export async function GET() {
       }
     }
     
+    // Try to estimate storage used via MongoDB dbStats
+    let storageUsed = "N/A";
+    try {
+      // eslint-disable-next-line @typescript-eslint/no-var-requires
+      const mongoose = require('mongoose');
+      if (mongoose?.connection?.db?.admin) {
+        const admin = mongoose.connection.db.admin();
+        const mongoStats = await admin.command({ dbStats: 1 });
+        const bytes = mongoStats?.dataSize || 0;
+        const units = ['B','KB','MB','GB','TB'];
+        let idx = 0; let val = bytes;
+        while (val >= 1024 && idx < units.length - 1) { val /= 1024; idx++; }
+        storageUsed = `${val.toFixed(1)} ${units[idx]}`;
+      }
+    } catch {}
+
     const stats = {
       stats: {
         totalJobs,
@@ -90,7 +106,7 @@ export async function GET() {
       systemStats: {
         dataSources: totalDataSources,
         activePipelines: 0,
-        storageUsed: "N/A", // MongoDB storage not directly accessible
+        storageUsed,
         uptime,
       },
       lastJob: allJobs.length > 0 ? allJobs[0] : undefined,

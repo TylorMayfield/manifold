@@ -146,6 +146,38 @@ export default function DataSourcesPanel({
                       >
                         Run
                       </Button>
+                      <Button
+                        onClick={async () => {
+                          const keep = prompt('Keep last N snapshots (leave blank to skip):', '5');
+                          const keepNum = keep === null || keep === '' ? undefined : Number(keep);
+                          if (keepNum !== undefined && (Number.isNaN(keepNum) || keepNum < 0)) {
+                            alert('Please enter a valid non-negative number');
+                            return;
+                          }
+                          try {
+                            const resp = await fetch(`/api/snapshots/policy?dataSourceId=${encodeURIComponent(source.id)}`, {
+                              method: 'PUT',
+                              headers: { 'Content-Type': 'application/json' },
+                              body: JSON.stringify({ keepLast: keepNum })
+                            });
+                            if (resp.ok) {
+                              alert('Snapshot retention policy updated');
+                            } else {
+                              const err = await resp.json().catch(() => ({}));
+                              alert(`Failed to update policy: ${err.error || resp.statusText}`);
+                            }
+                          } catch (e) {
+                            alert('Failed to update policy');
+                            console.error(e);
+                          }
+                        }}
+                        size="sm"
+                        variant="ghost"
+                        icon={<Edit3 className="h-4 w-4" />}
+                        className="text-purple-400 hover:text-purple-300 hover:bg-purple-500/10"
+                      >
+                        Retention
+                      </Button>
                       {onEditSource && (
                         <Button
                           onClick={() => onEditSource(source)}

@@ -63,7 +63,7 @@ export default function WebhookDeliveriesPage() {
     hasMore: false
   });
 
-  const { get } = useApi();
+  const { get, post } = useApi();
 
   useEffect(() => {
     loadWebhooks();
@@ -105,6 +105,16 @@ export default function WebhookDeliveriesPage() {
   const handleViewDetails = (delivery: WebhookDelivery) => {
     setSelectedDelivery(delivery);
     setShowDetailsModal(true);
+  };
+  const handleRetry = async (delivery: WebhookDelivery) => {
+    try {
+      const resp = await post('/api/webhooks/deliveries/retry', { deliveryId: delivery.id });
+      if (resp.success) {
+        await loadDeliveries();
+      }
+    } catch (e) {
+      console.error('Retry failed', e);
+    }
   };
 
   const handleFilterChange = (key: string, value: any) => {

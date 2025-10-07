@@ -1,0 +1,133 @@
+Manifold Product Wiring Audit and Improvement Proposal
+
+Scope
+- Review the app for areas not fully wired to back-end logic, places using filler/placeholder content, and opportunities for product improvement.
+- Propose a prioritized set of implementation tasks to move the product toward production readiness.
+
+Findings: Not Fully Wired or Using Filler
+1) Jobs scheduling and execution
+- Observation: Jobs page supports listing and creating, but creation flow in some UIs appears partially wired and can 500 if DB not ready. Execution orchestration and status updates are basic.
+- Example indicators:
+  - Early-load DB errors previously bubbled; fixed to return [] but execution remains minimal.
+  - Job type values vary across components ("pipeline", "data_sync", etc.).
+- Impact: Inconsistent UX and uncertain job execution lifecycle.
+
+2) SQL execution / query features
+- Observation: Client-side SqlEditor uses a mocked executor in the browser. No end-to-end server-backed SQL execution connected by default.
+- Impact: Demo-only capability; needs production path for querying snapshot data.
+
+3) Snapshot management
+- Observation: Previously auto-generating snapshots; now corrected. Snapshot details and compare exist; export/delete are basic.
+- Impact: Good baseline but lifecycle policies, bulk actions, and governance are limited.
+
+4) Pipelines
+- Observation: Pipelines list and creation exist; execution endpoint present; step visualizations are basic; no templates, validation, or promotion flows.
+- Impact: Difficult to scale complex transformations; onboarding friction.
+
+5) Data sources
+- Observation: Mock data sources supported; real sources present but some provider paths are stubs or simplified; no end-to-end credential validation UI beyond DB.
+- Impact: Incomplete enterprise connectors and onboarding checks.
+ - Recommended Actions:
+   • Add a unified credential flow (masked inputs, secure storage, test connection button, inline errors)
+   • Implement provider-specific validators (MySQL/Postgres reachability, schema listing; API auth/OAuth handshake with scopes)
+   • Provide a connector capability matrix (full vs incremental, CDC support, schema inference) surfaced in the UI
+   • Add onboarding wizards per connector with preflight checks and sample ingestion
+
+6) Settings
+- Observation: Database status previously required manual test; improved with refresh. Other settings exist but not all drive behavior (e.g., some appearance toggles are not global or persisted to layout styling).
+- Impact: Users may not see expected system-wide effects.
+
+7) Navigation/Layout polish
+- Observation: Sticky header/nav spacing fixed; still opportunities for responsive polish and keyboard accessibility.
+- Impact: UX friction in longer sessions and smaller screens.
+
+8) Webhooks & integrations
+- Observation: Webhook framework present; limited UI for webhook registration, health, retries, and logs.
+- Impact: Hard to operationalize integrations.
+
+9) Observability
+- Observation: Logs present; limited metrics, tracing, and alerting wiring in the UI.
+- Impact: Hard to diagnose pipeline and job behavior at scale.
+
+10) Authorization & tenancy
+- Observation: No visible RBAC/tenancy toggles; project selection exists but no auth gates.
+- Impact: Blocks multi-user deployments.
+
+Opportunities: High-Value Product Improvements
+A) Snapshot lifecycle & governance
+- Add retention policies per data source (UI + server policies) and background cleanup jobs.
+- Enhance compare: key selection, fuzzy matching, column mapping memory, download diffs.
+- Add snapshot labels/tags, immutability flag, approval gates for promotion to “golden”.
+ - Implement a scheduled Snapshot Checker job that enforces per–data source policies (e.g., keep-last-N, max-age, size caps) and cleans up stale snapshots automatically.
+
+B) Pipeline UX and execution
+- Pipeline templates (CSV ingest, DB extract, API ingestion), wizards, and validation.
+- Visual step editor with inline preview and schema inference.
+- Draft/published versions, run history with metrics, and promotion flows across environments.
+
+C) Jobs & scheduling
+- Job templates bound to pipelines (created disabled by default) with human-friendly schedule presets.
+- Execution dashboard with live status, retries, and per-run logs/metrics.
+- Backoff/retry policies and calendar view of schedules.
+
+E) Data quality & profiling
+- Declarative rules (null %, regex, ranges), rule sets per source, alert routes.
+- Automatic profiling on snapshot import and basic anomaly detection.
+
+F) Lineage & catalog
+- End-to-end lineage from source → pipeline steps → outputs.
+- Data catalog entries with ownership, SLAs, and documentation.
+
+G) Observability & audit
+- Unified telemetry: request metrics, queue depth, run durations, error rates, alerts.
+- Audit log of configuration changes (who/when/what), RBAC roles and permissions.
+
+H) UX polish
+- Global loading skeletons for all list pages (avoids empty-state flash).
+- Consistent light theme styles, accessible focus rings, keyboard shortcuts.
+
+Concrete Work Proposal (Prioritized)
+1) Stabilize core flows (1–2 sprints)
+- Jobs API: unify job types (enum), add input validation, return consistent shapes; ensure DB-ready fallback across all endpoints.
+- Snapshots: add bulk delete + retention API; finalize cleanup endpoint (project-aware), and wire batch UI.
+- Loading states: add skeletons to Pipelines, Jobs, Data Sources pages using shared components.
+ - Add server-side policy model for snapshots (per data source: keepLast, maxAgeDays, maxTotalSizeMB) and expose via settings/UI on the data source detail.
+ - Create a disabled-by-default "Snapshot Checker" job per project that, when enabled, runs on a schedule to apply the policies and remove stale snapshots; include a dry-run mode and reporting.
+
+2) Pipeline & job usability (2–3 sprints)
+- Pipeline templates (+create-from-template UX), pipeline validation (required fields, steps), inline schema inference.
+- Job template auto-creation (done) + UI to enable/disable and set presets; add run-now with modal and last N runs list.
+- Pipeline run history page with status, duration, records processed, and logs.
+
+3) Data quality & governance (2–3 sprints)
+- Add DQ rules UI + execution on import; surface failures in snapshots page.
+- Snapshot labeling/tags; add “promote” action; add API to lock snapshots (immutable flag).
+
+4) Connectors & credentials (2–3 sprints)
+- Credential form components with masked fields, test buttons, and secrets storage.
+- Connector capability flags and onboarding assistant (guided setup).
+
+5) Observability & RBAC (2–4 sprints)
+- Metrics endpoint + charts for pipeline/job throughput and error rates.
+- Audit log for config changes; roles (Admin, Operator, Viewer) with guarded routes and UI states.
+
+Quick Wins (1–2 weeks)
+- Add page-level skeletons to avoid flash of empty state (snapshots improved; repeat pattern).
+- Normalize light theme styles across remaining dark artifacts.
+- Add “View logs” action to pipeline/job cards linking to filtered logs.
+- Add inline toasts for success/failure on execute/cleanup actions.
+
+Risks & Dependencies
+- DB state readiness: ensure all API routes guard on connection health (pattern used in /api/jobs).
+- Back-end workload: adding DQ profiling and metrics can increase ingestion time; plan async jobs.
+- Secrets handling: pick a secrets backend early to avoid rework.
+
+Acceptance Criteria (examples)
+- Retention policy keeps last N snapshots per source via server policy + UI, with success/failure surfaced.
+- Pipeline template creation produces a runnable draft with at least one step; validation prevents save on missing fields.
+- Job creation: type enum aligned across UI and API; schedule validator with presets; disabled by default until explicitly enabled.
+- Skeletons render on initial load for Pipelines, Jobs, Data Sources, Snapshots.
+- Light theme consistency score: 95%+ pages pass manual visual QA with defined style tokens.
+
+Summary
+This proposal targets wiring gaps (DB readiness, jobs consistency), removes demo-only paths (mock SQL executor), and adds governance, usability, and observability needed for production. The roadmap sequences stability, usability, and then scale features (DQ, lineage, RBAC) while delivering quick wins for immediate UX gains.

@@ -10,12 +10,18 @@ export default function SettingsDatabase() {
   const [connectionString, setConnectionString] = useState('mongodb://127.0.0.1:27017/manifold');
   const [type, setType] = useState<'local' | 'remote'>('local');
   const [isConnected, setIsConnected] = useState(false);
+  const [isRefreshing, setIsRefreshing] = useState(false);
   const [isTesting, setIsTesting] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [testResult, setTestResult] = useState<{ success: boolean; message: string } | null>(null);
 
   useEffect(() => {
     loadCurrentConfig();
+    // Auto-refresh shortly after mount to reflect latest server connection
+    const t = setTimeout(() => {
+      loadCurrentConfig();
+    }, 1500);
+    return () => clearTimeout(t);
   }, []);
 
   const loadCurrentConfig = async () => {
@@ -29,6 +35,15 @@ export default function SettingsDatabase() {
       }
     } catch (error) {
       console.error('Error loading database config:', error);
+    }
+  };
+
+  const refreshStatus = async () => {
+    try {
+      setIsRefreshing(true);
+      await loadCurrentConfig();
+    } finally {
+      setIsRefreshing(false);
     }
   };
 
@@ -122,6 +137,21 @@ export default function SettingsDatabase() {
                   Disconnected
                 </span>
               )}
+              <CellButton
+                variant="secondary"
+                size="sm"
+                onClick={refreshStatus}
+                disabled={isRefreshing}
+              >
+                {isRefreshing ? (
+                  <>
+                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                    Refreshing
+                  </>
+                ) : (
+                  'Refresh'
+                )}
+              </CellButton>
             </div>
           </div>
 

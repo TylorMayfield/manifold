@@ -51,7 +51,7 @@
     "127.0.0.1"
   ],
   "maxSnapshotSize": 100,
-  "autoCleanupEnabled": true,
+  "autoCleanupEnabled": false,
   "cleanupThreshold": 80,
   "cleanupSchedule": "0 2 * * *",
   "dataRetentionDays": 365,

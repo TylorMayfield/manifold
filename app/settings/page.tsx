@@ -188,7 +188,7 @@ export default function SettingsPage() {
           onChange={(e) =>
             handleSettingChange("maxConcurrentJobs", parseInt(e.target.value))
           }
-          className="w-full px-3 py-2 bg-gray-800 border border-gray-600 rounded-md text-gray-900"
+          className="w-full px-3 py-2 bg-white border border-gray-300 rounded-md text-gray-900 focus:ring-2 focus:ring-blue-200 focus:border-blue-500"
         />
         <p className="text-xs text-dark_cyan-400 mt-1">
           Maximum number of jobs that can run simultaneously
@@ -287,7 +287,7 @@ export default function SettingsPage() {
           onChange={(e) =>
             handleSettingChange("sessionTimeout", parseInt(e.target.value))
           }
-          className="w-full px-3 py-2 bg-gray-800 border border-gray-600 rounded-md text-gray-900"
+          className="w-full px-3 py-2 bg-white border border-gray-300 rounded-md text-gray-900 focus:ring-2 focus:ring-blue-200 focus:border-blue-500"
         />
         <p className="text-xs text-dark_cyan-400 mt-1">
           Automatically log out after inactivity
@@ -351,7 +351,7 @@ export default function SettingsPage() {
         <select
           value={settings.logLevel}
           onChange={(e) => handleSettingChange("logLevel", e.target.value)}
-          className="px-3 py-2 bg-gray-800 border border-gray-600 rounded-md text-gray-900"
+          className="px-3 py-2 bg-white border border-gray-300 rounded-md text-gray-900 focus:ring-2 focus:ring-blue-200 focus:border-blue-500"
         >
           <option value="debug">Debug</option>
           <option value="info">Info</option>
@@ -379,7 +379,7 @@ export default function SettingsPage() {
           onChange={(e) =>
             handleSettingChange("maxSnapshotSize", parseInt(e.target.value))
           }
-          className="w-full px-3 py-2 bg-gray-800 border border-gray-600 rounded-md text-gray-900"
+          className="w-full px-3 py-2 bg-white border border-gray-300 rounded-md text-gray-900 focus:ring-2 focus:ring-blue-200 focus:border-blue-500"
         />
         <p className="text-xs text-dark_cyan-400 mt-1">
           Maximum size for individual data snapshots
@@ -421,7 +421,7 @@ export default function SettingsPage() {
                   parseInt(e.target.value)
                 )
               }
-              className="w-full px-3 py-2 bg-gray-800 border border-gray-600 rounded-md text-gray-900"
+              className="w-full px-3 py-2 bg-white border border-gray-300 rounded-md text-gray-900 focus:ring-2 focus:ring-blue-200 focus:border-blue-500"
             />
             <p className="text-xs text-dark_cyan-400 mt-1">
               Start cleanup when disk usage exceeds this percentage
@@ -516,7 +516,7 @@ export default function SettingsPage() {
         <select
           value={settings.fontSize}
           onChange={(e) => handleSettingChange("fontSize", e.target.value)}
-          className="px-3 py-2 bg-gray-800 border border-gray-600 rounded-md text-gray-900"
+          className="px-3 py-2 bg-white border border-gray-300 rounded-md text-gray-900 focus:ring-2 focus:ring-blue-200 focus:border-blue-500"
         >
           <option value="small">Small</option>
           <option value="medium">Medium</option>
@@ -606,7 +606,7 @@ export default function SettingsPage() {
                     onClick={() => setActiveSection(section.id)}
                     className={`w-full text-left p-3 border border-gray-300 rounded transition-colors ${
                       activeSection === section.id
-                        ? "bg-blue-600 text-gray-900 shadow-sm"
+                        ? "bg-blue-600 text-white shadow-sm"
                         : "bg-white hover:bg-gray-50 text-gray-900"
                     }`}
                   >

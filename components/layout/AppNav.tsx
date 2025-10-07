@@ -138,10 +138,12 @@ export default function AppNav({
     );
   }
 
+  const navItems = defaultNavItems.filter(item => item.href !== '/plugins');
+
   return (
     <nav className={cn("cell-nav", className)}>
       <div className="flex">
-        {defaultNavItems.map((item) => {
+        {navItems.map((item) => {
           const Icon = item.icon;
           const active = isActive(item.href);
 

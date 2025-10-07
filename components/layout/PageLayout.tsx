@@ -58,9 +58,10 @@ export default function PageLayout({
 
   return (
     <div className={cn("min-h-screen bg-gray-100", className)}>
-      {/* Header - stays dark and sticky */}
-      <header className="sticky top-0 z-50 bg-gray-900 border-b border-gray-700 shadow-sm">
-        <div className="flex items-center justify-between p-4">
+      {/* Header (sticky): title, optional breadcrumbs, and nav */}
+      <header className="sticky top-0 z-50 shadow-sm">
+        {/* Top Title Bar - dark */}
+        <div className="flex items-center justify-between p-4 bg-gray-900 border-b border-gray-700">
           <div className="flex items-center space-x-4">
             {showBackButton && (
               <CellButton
@@ -87,48 +88,44 @@ export default function PageLayout({
             {headerActions}
           </div>
         </div>
+        {/* Breadcrumbs - light bar under title (within sticky header) */}
+        {breadcrumbs && breadcrumbs.length > 0 && (
+          <div className="border-b border-gray-300 px-4 py-2 bg-white">
+            <nav className="flex" aria-label="Breadcrumb">
+              {breadcrumbs.map((crumb, index) => (
+                <div key={index} className="flex items-center">
+                  {index > 0 && (
+                    <span className="mx-2 text-gray-600">/</span>
+                  )}
+                  {crumb.href ? (
+                    <button
+                      onClick={() => router.push(crumb.href!)}
+                      className="text-sm font-mono hover:underline text-gray-700 hover:text-gray-900 transition-colors"
+                    >
+                      {crumb.label}
+                    </button>
+                  ) : (
+                    <span className="text-sm font-mono text-gray-900">
+                      {crumb.label}
+                    </span>
+                  )}
+                </div>
+              ))}
+            </nav>
+          </div>
+        )}
+
+        {/* Navigation - part of sticky header */}
+        {showNavigation && (
+          <div className="bg-gray-100 border-b border-gray-200">
+            <AppNav 
+              className="mb-0 shadow-sm" 
+              variant={navigationProps.variant}
+              showDescriptions={navigationProps.showDescriptions}
+            />
+          </div>
+        )}
       </header>
-
-      {/* Breadcrumbs - sticky below header */}
-      {breadcrumbs && breadcrumbs.length > 0 && (
-        <div className="sticky top-[73px] z-40 border-b border-gray-300 px-4 py-2 bg-white">
-          <nav className="flex" aria-label="Breadcrumb">
-            {breadcrumbs.map((crumb, index) => (
-              <div key={index} className="flex items-center">
-                {index > 0 && (
-                  <span className="mx-2 text-gray-600">/</span>
-                )}
-                {crumb.href ? (
-                  <button
-                    onClick={() => router.push(crumb.href!)}
-                    className="text-sm font-mono hover:underline text-gray-400 hover:text-white transition-colors"
-                  >
-                    {crumb.label}
-                  </button>
-                ) : (
-                  <span className="text-sm font-mono text-white">
-                    {crumb.label}
-                  </span>
-                )}
-              </div>
-            ))}
-          </nav>
-        </div>
-      )}
-
-      {/* Navigation - sticky below header/breadcrumbs */}
-      {showNavigation && (
-        <div className={cn(
-          "sticky z-30 bg-gray-100",
-          breadcrumbs && breadcrumbs.length > 0 ? "top-[115px]" : "top-[73px]"
-        )}>
-          <AppNav 
-            className="mb-0 shadow-sm" 
-            variant={navigationProps.variant}
-            showDescriptions={navigationProps.showDescriptions}
-          />
-        </div>
-      )}
 
       {/* Main Content - scrollable */}
       <main className={cn("p-6", contentClassName)}>

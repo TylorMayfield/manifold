@@ -169,6 +169,7 @@ export default function CreateJobPage() {
                   }
                   className="w-full px-3 py-2 bg-white border border-gray-300 rounded-md text-gray-900 focus:ring-2 focus:ring-dark_cyan-500 focus:border-dark_cyan-500"
                 >
+                  <option value="pipeline">Pipeline</option>
                   <option value="data_sync">Data Sync</option>
                   <option value="backup">Backup</option>
                   <option value="cleanup">Cleanup</option>

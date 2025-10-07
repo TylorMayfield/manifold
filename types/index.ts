@@ -19,6 +19,7 @@ export interface DataProvider {
   status?: "idle" | "running" | "completed" | "error";
   enabled?: boolean;
   syncInterval?: number;
+  snapshotPolicy?: SnapshotRetentionPolicy;
 }
 
 export type DataProviderType =
@@ -158,6 +159,13 @@ export interface Snapshot {
   recordCount?: number;
 }
 
+export interface SnapshotRetentionPolicy {
+  keepLast?: number; // keep last N snapshots
+  maxAgeDays?: number; // delete snapshots older than N days
+  maxTotalSizeMB?: number; // optional total size cap per data source
+  dryRun?: boolean; // if true, report only without deleting
+}
+
 export interface TableSchema {
   columns: ColumnSchema[];
   primaryKeys?: string[];
@@ -280,9 +288,19 @@ export interface TransformConfig {
 }
 
 // Job Scheduling Types
+export type JobType =
+  | "pipeline"
+  | "data_sync"
+  | "backup"
+  | "cleanup"
+  | "custom_script"
+  | "api_poll"
+  | "workflow";
+
 export interface Job {
   id: string;
   name: string;
+  type: JobType;
   pipelineId: string;
   schedule: string; // cron expression
   enabled: boolean;

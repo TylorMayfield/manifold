@@ -112,10 +112,11 @@ function PipelinesPageContent() {
         ) : (
           // Pipeline List
           <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
-            {pipelines.map((pipeline) => (
+            {pipelines.map((pipeline, idx) => (
               <CellCard
-                key={pipeline.id}
+                key={pipeline.id || `pipeline-${idx}`}
                 className="p-6 hover:bg-gray-50 cursor-pointer"
+                onClick={() => router.push(`/pipelines/${pipeline.id}`)}
               >
                 <div className="flex items-start justify-between mb-4">
                   <div className="flex-1">
@@ -190,7 +191,7 @@ function PipelinesPageContent() {
                         const Icon = transformIcons[step.type];
                         return (
                           <div
-                            key={index}
+                            key={step.id || `${pipeline.id || 'pipeline'}-step-${step.type}-${index}`}
                             className="status-info px-2 py-1 flex items-center"
                           >
                             <Icon className="w-3 h-3 mr-1" />

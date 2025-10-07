@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { MongoDatabase } from '../../../lib/server/database/MongoDatabase';
-import { Job, JobStatus } from '../../../types';
+import { Job, JobStatus, JobType } from '../../../types';
 
 // Force dynamic rendering
 export const dynamic = 'force-dynamic';
@@ -31,6 +31,10 @@ export async function GET(request: NextRequest) {
     const status = searchParams.get('status');
     
     const database = await ensureDb();
+    // Gracefully handle not-yet-connected database
+    if (!database.isHealthy()) {
+      return NextResponse.json([]);
+    }
     let jobs = await database.getJobs(projectId);
     
     // Filter by status if provided
@@ -54,12 +58,28 @@ export async function POST(request: NextRequest) {
     const { projectId = 'default', ...jobData } = body;
     
     const database = await ensureDb();
+    if (!database.isHealthy()) {
+      return NextResponse.json({ error: 'Database not ready' }, { status: 503 });
+    }
+    // Validate job type
+    const allowedTypes: JobType[] = [
+      'pipeline',
+      'data_sync',
+      'backup',
+      'cleanup',
+      'custom_script',
+      'api_poll',
+      'workflow',
+    ];
+    if (jobData.type && !allowedTypes.includes(jobData.type)) {
+      return NextResponse.json({ error: 'Invalid job type' }, { status: 400 });
+    }
     
     // Create job
     const job = await database.createJob({
       projectId,
       name: jobData.name,
-      type: jobData.type,
+      type: jobData.type || 'pipeline',
       pipelineId: jobData.pipelineId,
       dataSourceId: jobData.dataSourceId,
       schedule: jobData.schedule,

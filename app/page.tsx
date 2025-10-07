@@ -98,11 +98,10 @@ function HomePageContent() {
         });
       }
       
-      // Reload page to show new snapshots
-      clientLogger.info('All auto-snapshots created, reloading page', 'data-processing', {
+      // Snapshots created; prefer letting context refresh update UI without reloading
+      clientLogger.info('All auto-snapshots created', 'data-processing', {
         count: sourcesWithoutSnapshots.length
       });
-      window.location.reload();
     } catch (error) {
       clientLogger.error('Auto-snapshot creation failed', 'data-processing', {
         error: error instanceof Error ? error.message : String(error)
@@ -113,12 +112,7 @@ function HomePageContent() {
     }
   };
 
-  // Auto-create snapshots on mount if needed
-  useEffect(() => {
-    if (sourcesWithoutSnapshots.length > 0 && !creatingSnapshots) {
-      createMissingSnapshots();
-    }
-  }, [dataSources.length, snapshots.length]);
+  // Removed auto-create on mount to avoid unexpected background imports
 
   return (
     <PageLayout
@@ -282,7 +276,7 @@ function HomePageContent() {
                 return (
                   <div
                     key={snapshot.id}
-                    className="p-4 border-2 border-gray-700 bg-gradient-to-br from-gray-800 via-gray-900 to-gray-800 rounded-md hover:border-blue-500 hover:shadow-[2px_2px_0px_0px_rgba(59,130,246,0.2)] transition-all cursor-pointer"
+                    className="p-4 border border-gray-300 bg-white rounded-lg hover:border-blue-500 hover:shadow-md transition-all cursor-pointer"
                   >
                     <div className="flex items-start justify-between mb-2">
                       <div>
@@ -293,7 +287,7 @@ function HomePageContent() {
                           v{snapshot.version}
                         </p>
                       </div>
-                      <span className="px-2 py-1 text-xs font-mono bg-blue-500/20 text-blue-300 border border-blue-600/30 rounded">
+                      <span className="px-2 py-1 text-xs font-mono bg-blue-50 text-blue-700 border border-blue-300 rounded">
                         {snapshot.recordCount} rows
                       </span>
                     </div>
@@ -305,9 +299,14 @@ function HomePageContent() {
               })}
             </div>
             {snapshots.length > 6 && (
-              <p className="text-caption text-center text-gray-500 hover:text-blue-400 transition-colors">
-                +{snapshots.length - 6} more snapshots
-              </p>
+              <div className="text-center">
+                <button
+                  onClick={() => router.push('/snapshots')}
+                  className="px-4 py-2 border border-gray-300 bg-white text-gray-900 hover:border-blue-500 hover:text-blue-600 rounded-md font-mono text-sm transition-colors"
+                >
+                  View all {snapshots.length} snapshots
+                </button>
+              </div>
             )}
           </div>
         )}

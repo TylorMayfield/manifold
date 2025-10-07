@@ -5,8 +5,7 @@ import PageLayout from "../../components/layout/PageLayout";
 import CellButton from "../../components/ui/CellButton";
 import CellCard from "../../components/ui/CellCard";
 import CellInput from "../../components/ui/CellInput";
-import SystemHealthDashboard from "../../components/monitoring/SystemHealthDashboard";
-import MetricsChart from "../../components/monitoring/MetricsChart";
+// Simplified: remove heavy dashboards/charts for now
 import {
   Activity,
   FileText,
@@ -23,6 +22,7 @@ import {
   BarChart3,
   TrendingUp,
   AlertCircle,
+  Play,
   Zap,
   Server,
   Database,
@@ -41,13 +41,14 @@ interface LogEntry {
 }
 
 export default function ObservabilityPage() {
-  const [activeTab, setActiveTab] = useState<"overview" | "logs" | "metrics" | "alerts">("overview");
+  const [activeTab, setActiveTab] = useState<"overview" | "logs">("overview");
   const [logs, setLogs] = useState<LogEntry[]>([]);
   const [loading, setLoading] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
   const [filterLevel, setFilterLevel] = useState<string>("all");
   const [filterCategory, setFilterCategory] = useState<string>("all");
   const [autoRefresh, setAutoRefresh] = useState(true);
+  const [jobStats, setJobStats] = useState<{ totalJobs: number; completedToday: number; failedToday: number; successRate: number; dataSources?: number; uptime?: string } | null>(null);
 
   // Fetch logs from API
   const fetchLogs = async () => {
@@ -86,6 +87,34 @@ export default function ObservabilityPage() {
       return () => clearInterval(interval);
     }
   }, [autoRefresh, activeTab]);
+
+  // Fetch job stats for overview
+  const fetchJobStats = async () => {
+    try {
+      const resp = await fetch('/api/jobs/stats');
+      if (resp.ok) {
+        const data = await resp.json();
+        setJobStats({
+          totalJobs: data?.stats?.totalJobs ?? 0,
+          completedToday: data?.stats?.completedToday ?? 0,
+          failedToday: data?.stats?.failedToday ?? 0,
+          successRate: data?.stats?.successRate ?? 0,
+          dataSources: data?.systemStats?.dataSources,
+          uptime: data?.systemStats?.uptime,
+        });
+      }
+    } catch (e) {
+      // noop
+    }
+  };
+
+  useEffect(() => {
+    if (activeTab === 'overview') {
+      fetchJobStats();
+      const id = setInterval(fetchJobStats, 30000);
+      return () => clearInterval(id);
+    }
+  }, [activeTab]);
 
   const filteredLogs = logs
     .filter(
@@ -218,7 +247,7 @@ export default function ObservabilityPage() {
           }`}
           onClick={() => setActiveTab('overview')}
         >
-          <TrendingUp className="w-4 h-4" />
+          <Activity className="w-4 h-4" />
           Overview
         </button>
         <button
@@ -231,82 +260,39 @@ export default function ObservabilityPage() {
         >
           <FileText className="w-4 h-4" />
           Logs
-          {logCounts.error > 0 && (
-            <span className="bg-red-500 text-white text-xs px-2 py-0.5 rounded-full">
-              {logCounts.error}
-            </span>
-          )}
-        </button>
-        <button
-          className={`px-6 py-3 font-medium transition-colors flex items-center gap-2 ${
-            activeTab === 'metrics'
-              ? 'border-b-2 border-blue-600 text-blue-600'
-              : 'text-gray-600 hover:text-gray-900'
-          }`}
-          onClick={() => setActiveTab('metrics')}
-        >
-          <BarChart3 className="w-4 h-4" />
-          Metrics
-        </button>
-        <button
-          className={`px-6 py-3 font-medium transition-colors flex items-center gap-2 ${
-            activeTab === 'alerts'
-              ? 'border-b-2 border-blue-600 text-blue-600'
-              : 'text-gray-600 hover:text-gray-900'
-          }`}
-          onClick={() => setActiveTab('alerts')}
-        >
-          <AlertCircle className="w-4 h-4" />
-          Alerts
-          {(logCounts.error + logCounts.warn) > 0 && (
-            <span className="bg-yellow-500 text-white text-xs px-2 py-0.5 rounded-full">
-              {logCounts.error + logCounts.warn}
-            </span>
-          )}
         </button>
       </div>
 
-      {/* Overview Tab */}
+      {/* Overview Tab (simplified) */}
       {activeTab === 'overview' && (
         <div className="space-y-6">
-          {/* System Health */}
-          <SystemHealthDashboard />
-
-          {/* Quick Stats */}
+          {/* Quick Stats (live) */}
           <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
             <CellCard className="p-6">
               <div className="flex items-center justify-between mb-2">
-                <h3 className="text-sm font-bold text-gray-600">Total Logs</h3>
-                <FileText className="w-5 h-5 text-gray-400" />
+                <h3 className="text-sm font-bold text-gray-600">Total Jobs</h3>
+                <Play className="w-5 h-5 text-gray-400" />
               </div>
-              <p className="text-3xl font-mono font-bold">{logs.length}</p>
-              <p className="text-xs text-gray-500 mt-1">Last hour</p>
+              <p className="text-3xl font-mono font-bold">{jobStats?.totalJobs ?? 0}</p>
+              <p className="text-xs text-gray-500 mt-1">Configured</p>
             </CellCard>
 
             <CellCard className="p-6">
               <div className="flex items-center justify-between mb-2">
-                <h3 className="text-sm font-bold text-gray-600">Errors</h3>
+                <h3 className="text-sm font-bold text-gray-600">Completed Today</h3>
+                <CheckCircle className="w-5 h-5 text-green-500" />
+              </div>
+              <p className="text-3xl font-mono font-bold text-green-600">{jobStats?.completedToday ?? 0}</p>
+              <p className="text-xs text-gray-500 mt-1">Last 24 hours</p>
+            </CellCard>
+
+            <CellCard className="p-6">
+              <div className="flex items-center justify-between mb-2">
+                <h3 className="text-sm font-bold text-gray-600">Failed Today</h3>
                 <XCircle className="w-5 h-5 text-red-500" />
               </div>
-              <p className="text-3xl font-mono font-bold text-red-600">
-                {logCounts.error || 0}
-              </p>
-              <p className="text-xs text-gray-500 mt-1">
-                {logCounts.error > 0 ? 'Needs attention' : 'All clear'}
-              </p>
-            </CellCard>
-
-            <CellCard className="p-6">
-              <div className="flex items-center justify-between mb-2">
-                <h3 className="text-sm font-bold text-gray-600">Warnings</h3>
-                <AlertTriangle className="w-5 h-5 text-yellow-500" />
-              </div>
-              <p className="text-3xl font-mono font-bold text-yellow-600">
-                {logCounts.warn || 0}
-              </p>
-              <p className="text-xs text-gray-500 mt-1">
-                {logCounts.warn > 0 ? 'Review recommended' : 'All clear'}
-              </p>
+              <p className="text-3xl font-mono font-bold text-red-600">{jobStats?.failedToday ?? 0}</p>
+              <p className="text-xs text-gray-500 mt-1">Last 24 hours</p>
             </CellCard>
 
             <CellCard className="p-6">
@@ -315,16 +301,13 @@ export default function ObservabilityPage() {
                 <CheckCircle className="w-5 h-5 text-green-500" />
               </div>
               <p className="text-3xl font-mono font-bold text-green-600">
-                {logs.length > 0
-                  ? Math.round(((logs.length - (logCounts.error || 0)) / logs.length) * 100)
-                  : 100}
-                %
+                {jobStats ? Math.round(jobStats.successRate) : 0}%
               </p>
-              <p className="text-xs text-gray-500 mt-1">Overall health</p>
+              <p className="text-xs text-gray-500 mt-1">Jobs (last 24h)</p>
             </CellCard>
           </div>
 
-          {/* Recent Activity Grid */}
+          {/* Recent Activity (errors & warns) */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             {/* Recent Errors */}
             <CellCard className="p-6">
@@ -411,26 +394,7 @@ export default function ObservabilityPage() {
             </CellCard>
           </div>
 
-          {/* Mini Metrics Preview */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <MetricsChart
-              metricName="system.cpu_usage"
-              title="CPU Usage"
-              unit="%"
-              thresholds={{ warning: 70, critical: 90 }}
-            />
-            <MetricsChart
-              metricName="system.memory_usage"
-              title="Memory Usage"
-              unit="%"
-              thresholds={{ warning: 70, critical: 85 }}
-            />
-            <MetricsChart
-              metricName="pipelines.execution_time"
-              title="Pipeline Execution"
-              unit="ms"
-            />
-          </div>
+          {/* Metrics removed for now to simplify */}
         </div>
       )}
 
@@ -572,148 +536,6 @@ export default function ObservabilityPage() {
         </div>
       )}
 
-      {/* Metrics Tab */}
-      {activeTab === 'metrics' && (
-        <div className="space-y-6">
-          {/* System Metrics */}
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            <MetricsChart
-              metricName="system.cpu_usage"
-              title="CPU Usage"
-              unit="%"
-              thresholds={{ warning: 70, critical: 90 }}
-            />
-            <MetricsChart
-              metricName="system.memory_usage"
-              title="Memory Usage"
-              unit="%"
-              thresholds={{ warning: 70, critical: 85 }}
-            />
-          </div>
-
-          {/* Pipeline & Data Metrics */}
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            <MetricsChart
-              metricName="pipelines.execution_time"
-              title="Pipeline Execution Time"
-              unit="ms"
-            />
-            <MetricsChart
-              metricName="pipelines.success_rate"
-              title="Pipeline Success Rate"
-              unit="%"
-            />
-            <MetricsChart
-              metricName="data.processed_records"
-              title="Records Processed"
-              unit="records"
-            />
-          </div>
-
-          {/* Database Metrics */}
-          <CellCard className="p-6">
-            <h3 className="text-lg font-bold font-mono mb-4 flex items-center gap-2">
-              <Database className="w-5 h-5" />
-              Database Performance
-            </h3>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <MetricsChart
-                metricName="database.query_time"
-                title="Query Time"
-                unit="ms"
-              />
-              <MetricsChart
-                metricName="database.connections"
-                title="Active Connections"
-                unit="connections"
-              />
-              <MetricsChart
-                metricName="database.operations"
-                title="Operations/sec"
-                unit="ops"
-              />
-            </div>
-          </CellCard>
-        </div>
-      )}
-
-      {/* Alerts Tab */}
-      {activeTab === 'alerts' && (
-        <div className="space-y-6">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            {/* Active Errors */}
-            <CellCard className="p-6">
-              <h3 className="text-lg font-bold font-mono mb-4 flex items-center gap-2">
-                <XCircle className="w-5 h-5 text-red-500" />
-                Active Errors
-                <span className="bg-red-100 text-red-800 text-xs px-2 py-1 rounded ml-auto">
-                  {logCounts.error || 0}
-                </span>
-              </h3>
-              
-              {recentErrors.length === 0 ? (
-                <div className="text-center py-12">
-                  <CheckCircle className="w-16 h-16 mx-auto mb-4 text-green-400" />
-                  <p className="text-gray-600">No active errors</p>
-                </div>
-              ) : (
-                <div className="space-y-3">
-                  {recentErrors.map((log) => (
-                    <div key={log.id} className="p-4 bg-red-50 border-l-4 border-l-red-600 rounded">
-                      <div className="flex items-start justify-between">
-                        <div>
-                          <p className="font-mono text-sm font-bold text-gray-900">{log.message}</p>
-                          <p className="text-xs text-gray-600 mt-1">
-                            {log.category} • {getTimeAgo(log.timestamp)}
-                          </p>
-                        </div>
-                        <XCircle className="w-5 h-5 text-red-500 flex-shrink-0 ml-2" />
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </CellCard>
-
-            {/* Active Warnings */}
-            <CellCard className="p-6">
-              <h3 className="text-lg font-bold font-mono mb-4 flex items-center gap-2">
-                <AlertTriangle className="w-5 h-5 text-yellow-500" />
-                Active Warnings
-                <span className="bg-yellow-100 text-yellow-800 text-xs px-2 py-1 rounded ml-auto">
-                  {logCounts.warn || 0}
-                </span>
-              </h3>
-              
-              {recentWarnings.length === 0 ? (
-                <div className="text-center py-12">
-                  <CheckCircle className="w-16 h-16 mx-auto mb-4 text-green-400" />
-                  <p className="text-gray-600">No active warnings</p>
-                </div>
-              ) : (
-                <div className="space-y-3">
-                  {recentWarnings.map((log) => (
-                    <div key={log.id} className="p-4 bg-yellow-50 border-l-4 border-l-yellow-600 rounded">
-                      <div className="flex items-start justify-between">
-                        <div>
-                          <p className="font-mono text-sm font-bold text-gray-900">{log.message}</p>
-                          <p className="text-xs text-gray-600 mt-1">
-                            {log.category} • {getTimeAgo(log.timestamp)}
-                          </p>
-                        </div>
-                        <AlertTriangle className="w-5 h-5 text-yellow-500 flex-shrink-0 ml-2" />
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </CellCard>
-          </div>
-
-          {/* System Health Summary */}
-          <SystemHealthDashboard />
-        </div>
-      )}
     </PageLayout>
   );
 }

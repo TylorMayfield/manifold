@@ -132,7 +132,7 @@ export default function ProjectLayout({
         <TitleBar title={`${project.name} - Manifold`} />
 
         {/* Page Header */}
-        <div className="border-b border-dark_cyan-200 border-opacity-10 bg-dark_cyan-100 bg-opacity-20">
+        <div className="border-b border-dark_cyan-200 border-opacity-10 bg-dark_cyan-100 bg-opacity-20 sticky top-8 z-[50]">
           <div className="px-8 py-6">
             <div className="flex items-center justify-between">
               <div className="flex items-center space-x-4">
@@ -173,7 +173,7 @@ export default function ProjectLayout({
         </div>
 
         {/* Page Content */}
-        <div className="flex-1 overflow-y-auto">{children}</div>
+        <div className="flex-1">{children}</div>
       </main>
     </div>
   );

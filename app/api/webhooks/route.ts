@@ -32,6 +32,11 @@ async function ensureDb() {
 
 async function getWebhooks(filters: any = {}): Promise<WebhookConfig[]> {
   const database = await ensureDb();
+  // Graceful fallback if DB isn't ready yet
+  // @ts-ignore access health guard
+  if (typeof (database as any).isHealthy === 'function' && !(database as any).isHealthy()) {
+    return [] as any[];
+  }
   const webhooks = await database.getWebhooks(filters.projectId);
   return webhooks as any[];
 }

@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import { useDataSources } from "../../contexts/DataSourceContext";
 import PageLayout from "../../components/layout/PageLayout";
@@ -48,7 +48,7 @@ interface SnapshotWithSource {
 
 export default function SnapshotsPage() {
   const router = useRouter();
-  const { dataSources, snapshots } = useDataSources();
+  const { dataSources, snapshots, loading } = useDataSources();
   const [searchTerm, setSearchTerm] = useState("");
   const [filterSource, setFilterSource] = useState<string>("all");
   const [selectedSnapshots, setSelectedSnapshots] = useState<string[]>([]);
@@ -56,6 +56,11 @@ export default function SnapshotsPage() {
   const [showDetailsModal, setShowDetailsModal] = useState(false);
   const [selectedSnapshot, setSelectedSnapshot] =
     useState<SnapshotWithSource | null>(null);
+  const [dateFrom, setDateFrom] = useState<string>("");
+  const [dateTo, setDateTo] = useState<string>("");
+  const [page, setPage] = useState<number>(1);
+  const [pageSize, setPageSize] = useState<number>(20);
+  const [keepCount, setKeepCount] = useState<number>(5);
 
   // Use only actual snapshots from context
   const allSnapshots = snapshots.map((snap) => {
@@ -67,7 +72,7 @@ export default function SnapshotsPage() {
       version: snap.version || 1,
       recordCount: snap.recordCount || 0,
       size: `${Math.round((snap.recordCount || 0) * 0.15)} KB`,
-      createdAt: snap.createdAt,
+      createdAt: new Date(snap.createdAt as any),
       metadata: {
         columns: snap.schema?.columns.length || 0,
         fileType: "Generated",
@@ -75,20 +80,37 @@ export default function SnapshotsPage() {
     };
   });
 
-  const filteredSnapshots = allSnapshots
-    .filter(
-      (snapshot) =>
-        searchTerm === "" ||
-        snapshot.dataSourceName
-          .toLowerCase()
-          .includes(searchTerm.toLowerCase()) ||
-        snapshot.id.toLowerCase().includes(searchTerm.toLowerCase())
-    )
-    .filter(
-      (snapshot) =>
-        filterSource === "all" || snapshot.dataSourceId === filterSource
-    )
-    .sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
+  const filteredSnapshots = useMemo(() => {
+    const lower = searchTerm.toLowerCase();
+    let list = allSnapshots
+      .filter((snapshot) =>
+        lower === "" ||
+        snapshot.dataSourceName.toLowerCase().includes(lower) ||
+        snapshot.id.toLowerCase().includes(lower)
+      )
+      .filter((snapshot) => filterSource === "all" || snapshot.dataSourceId === filterSource);
+
+    if (dateFrom) {
+      const from = new Date(dateFrom);
+      list = list.filter((s) => s.createdAt >= from);
+    }
+    if (dateTo) {
+      const to = new Date(dateTo);
+      // include end-of-day
+      to.setHours(23, 59, 59, 999);
+      list = list.filter((s) => s.createdAt <= to);
+    }
+
+    return list.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
+  }, [allSnapshots, searchTerm, filterSource, dateFrom, dateTo]);
+
+  const totalPages = Math.max(1, Math.ceil(filteredSnapshots.length / pageSize));
+  const currentPage = Math.min(page, totalPages);
+  const pagedSnapshots = useMemo(() => {
+    const start = (currentPage - 1) * pageSize;
+    const end = start + pageSize;
+    return filteredSnapshots.slice(start, end);
+  }, [filteredSnapshots, currentPage, pageSize]);
 
   const uniqueSources = Array.from(
     new Set(allSnapshots.map((s) => s.dataSourceId))
@@ -167,6 +189,38 @@ export default function SnapshotsPage() {
     return date.toLocaleDateString();
   };
 
+  if (loading) {
+    return (
+      <PageLayout
+        title="Data Snapshots"
+        subtitle="Version history and data backups"
+        icon={FileText}
+        showNavigation={true}
+        showBackButton={true}
+        backButtonText="Back to Home"
+        backButtonHref="/"
+      >
+        <div className="space-y-4">
+          <CellCard className="p-8">
+            <div className="flex items-center justify-center py-12">
+              <LoadingSpinner />
+            </div>
+          </CellCard>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <CellCard className="p-6">
+              <div className="h-5 w-40 bg-gray-200 animate-pulse mb-4" />
+              <div className="h-4 w-24 bg-gray-200 animate-pulse" />
+            </CellCard>
+            <CellCard className="p-6">
+              <div className="h-5 w-40 bg-gray-200 animate-pulse mb-4" />
+              <div className="h-4 w-24 bg-gray-200 animate-pulse" />
+            </CellCard>
+          </div>
+        </div>
+      </PageLayout>
+    );
+  }
+
   return (
     <PageLayout
       title="Data Snapshots"
@@ -189,10 +243,116 @@ export default function SnapshotsPage() {
               {isComparing ? 'Comparing...' : 'Compare Selected'}
             </CellButton>
           )}
-          <CellButton variant="ghost" size="sm">
+          <div className="flex items-center space-x-2">
+            <span className="text-caption">Keep last</span>
+            <input
+              type="number"
+              min={0}
+              value={keepCount}
+              onChange={(e) => setKeepCount(Math.max(0, Number(e.target.value)))}
+              className="w-16 px-2 py-1 border border-gray-300 bg-white rounded text-sm"
+              aria-label="Keep count"
+            />
+            <span className="text-caption">for</span>
+            <select
+              value={filterSource}
+              onChange={(e) => setFilterSource(e.target.value)}
+              className="px-2 py-1 border border-gray-300 bg-white rounded text-sm"
+              aria-label="Cleanup data source"
+            >
+              <option value="all">Select source…</option>
+              {uniqueSources.map((source) => (
+                <option key={source.id} value={source.id}>
+                  {source.name}
+                </option>
+              ))}
+            </select>
+            <CellButton
+              variant="secondary"
+              size="sm"
+              onClick={async () => {
+                try {
+                  const sourceId = filterSource !== 'all' ? filterSource : undefined;
+                  if (!sourceId) {
+                    alert('Please select a data source');
+                    return;
+                  }
+                  const resp = await fetch('/api/snapshots/cleanup', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ projectId: 'default', dataSourceId: sourceId, keep: keepCount })
+                  });
+                  if (!resp.ok) {
+                    const err = await resp.json();
+                    alert(`Cleanup failed: ${err.error || 'Unknown error'}`);
+                    return;
+                  }
+                  const result = await resp.json();
+                  alert(`Cleanup complete. Deleted ${result.deletedCount}, kept ${result.keptCount}.`);
+                  window.location.reload();
+                } catch (e) {
+                  alert('Cleanup failed. See console for details.');
+                  console.error(e);
+                }
+              }}
+            >
+              Apply
+            </CellButton>
+            <CellButton
+              variant="ghost"
+              size="sm"
+              onClick={async () => {
+                try {
+                  const resp = await fetch('/api/snapshots/checker', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ projectId: 'default', dryRun: true })
+                  });
+                  const data = await resp.json();
+                  if (!resp.ok || !data.success) {
+                    alert(`Dry-run failed: ${data.error || resp.statusText}`);
+                    return;
+                  }
+                  alert(`Dry-run ready. Affected sources: ${data.actions.length}`);
+                } catch (e) {
+                  alert('Dry-run failed');
+                  console.error(e);
+                }
+              }}
+            >
+              Dry Run
+            </CellButton>
+            <CellButton
+              variant="primary"
+              size="sm"
+              onClick={async () => {
+                try {
+                  if (!confirm('Apply snapshot retention policies now? This will delete old snapshots.')) return;
+                  const resp = await fetch('/api/snapshots/checker', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ projectId: 'default', dryRun: false })
+                  });
+                  const data = await resp.json();
+                  if (!resp.ok || !data.success) {
+                    alert(`Apply failed: ${data.error || resp.statusText}`);
+                    return;
+                  }
+                  alert(`Policies applied. Cleaned sources: ${data.actions.filter((a:any)=>a.delete.length>0).length}`);
+                  window.location.reload();
+                } catch (e) {
+                  alert('Apply failed');
+                  console.error(e);
+                }
+              }}
+            >
+              Apply Policies
+            </CellButton>
+          </div>
+          <CellButton variant="secondary" size="sm" onClick={() => window.location.reload()}>
             <RefreshCw className="w-4 h-4" />
           </CellButton>
-          <CellButton variant="ghost" size="sm">
+          <CellButton variant="secondary" size="sm" onClick={() => router.push('/settings')}>
             <Settings className="w-4 h-4" />
           </CellButton>
         </div>
@@ -272,6 +432,30 @@ export default function SnapshotsPage() {
                   </option>
                 ))}
               </select>
+              <input
+                type="date"
+                value={dateFrom}
+                onChange={(e) => setDateFrom(e.target.value)}
+                className="px-3 py-2 border-2 border-black bg-white font-mono text-sm"
+                aria-label="From date"
+              />
+              <input
+                type="date"
+                value={dateTo}
+                onChange={(e) => setDateTo(e.target.value)}
+                className="px-3 py-2 border-2 border-black bg-white font-mono text-sm"
+                aria-label="To date"
+              />
+              <select
+                value={pageSize}
+                onChange={(e) => { setPage(1); setPageSize(Number(e.target.value)); }}
+                className="px-3 py-2 border-2 border-black bg-white font-mono text-sm"
+                aria-label="Page size"
+              >
+                {[10,20,50,100].map(s => (
+                  <option key={s} value={s}>{s}/page</option>
+                ))}
+              </select>
             </div>
           </div>
         </CellCard>
@@ -343,7 +527,7 @@ export default function SnapshotsPage() {
         </CellCard>
       ) : (
         <div className="space-y-4">
-          {filteredSnapshots.map((snapshot) => (
+          {pagedSnapshots.map((snapshot) => (
             <CellCard key={snapshot.id} className="p-6">
               <div className="flex items-center justify-between mb-4">
                 <div className="flex items-center space-x-4">
@@ -450,6 +634,45 @@ export default function SnapshotsPage() {
               </div>
             </CellCard>
           ))}
+          <div className="flex items-center justify-between mt-4">
+            <span className="text-caption">
+              Page {currentPage} of {totalPages} • {filteredSnapshots.length} total
+            </span>
+            <div className="flex items-center space-x-2">
+              <CellButton
+                variant="ghost"
+                size="sm"
+                onClick={() => setPage(1)}
+                disabled={currentPage === 1}
+              >
+                First
+              </CellButton>
+              <CellButton
+                variant="ghost"
+                size="sm"
+                onClick={() => setPage((p) => Math.max(1, p - 1))}
+                disabled={currentPage === 1}
+              >
+                Prev
+              </CellButton>
+              <CellButton
+                variant="ghost"
+                size="sm"
+                onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+                disabled={currentPage === totalPages}
+              >
+                Next
+              </CellButton>
+              <CellButton
+                variant="ghost"
+                size="sm"
+                onClick={() => setPage(totalPages)}
+                disabled={currentPage === totalPages}
+              >
+                Last
+              </CellButton>
+            </div>
+          </div>
         </div>
       )}
 

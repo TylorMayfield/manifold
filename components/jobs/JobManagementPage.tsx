@@ -135,7 +135,7 @@ export default function JobManagementPage() {
           description: "Validate data integrity across all projects",
           schedule: "0 1 * * 1", // Weekly on Monday at 1 AM
           enabled: true,
-          type: "data_sync",
+    type: "pipeline",
           config: {
             timeout: 1200, // 20 minutes
             retries: 2,
@@ -694,7 +694,7 @@ const CreateJobModal: React.FC<CreateJobModalProps> = ({
     name: "",
     description: "",
     schedule: "0 */5 * * * *", // Every 5 minutes
-    type: "data_sync",
+    type: "pipeline",
     projectId: "",
     dataSourceId: "",
     workflowId: "",

@@ -2,7 +2,6 @@
 
 import React, { createContext, useContext, useState, useEffect } from "react";
 import { DataProvider, Snapshot } from "../types";
-import { generateMockData } from "../lib/utils/mockDataGenerator";
 import { clientLogger } from "../lib/utils/ClientLogger";
 
 interface DataSourceContextType {
@@ -144,64 +143,77 @@ export function DataSourceProvider({ children }: DataSourceProviderProps) {
 
       setDataSources((prev) => [...prev, newSource]);
 
-      // If this is a mock data source, generate mock data and create a snapshot
-      if (source.type === "mock" && source.config?.mockConfig) {
-        try {
-          const { templateId, recordCount } = source.config.mockConfig;
-          clientLogger.info('Generating mock data for new source', 'data-processing', {
-            templateId,
-            recordCount,
-            sourceName: newSource.name
+      // Auto-generate a disabled pipeline for this data source
+      try {
+        const pipelineName = `Import - ${newSource.name}`;
+        const pipelineDescription = `Auto-generated pipeline for data source ${newSource.name}. Configure steps, then enable.`;
+        const pipelineResponse = await fetch('/api/pipelines', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            projectId: 'default',
+            name: pipelineName,
+            description: pipelineDescription,
+            steps: [],
+            inputSourceIds: [newSource.id],
+            enabled: false,
+            config: { createdBy: 'auto', template: 'ingest-only' }
+          })
+        });
+
+        if (pipelineResponse.ok) {
+          const createdPipeline = await pipelineResponse.json();
+          clientLogger.success('Disabled pipeline auto-created for data source', 'data-transformation', {
+            pipelineId: createdPipeline.id,
+            pipelineName,
+            dataSourceId: newSource.id
           });
-          const mockSnapshot = generateMockData(templateId, recordCount);
 
-          // Create snapshot with the data source ID
-          const snapshot: Snapshot = {
-            ...mockSnapshot,
-            dataSourceId: newSource.id,
-            projectId: source.projectId,
-            createdAt: new Date(),
-          };
-
-          // Add snapshot via API or locally
+          // Auto-generate a disabled job template linked to the pipeline
           try {
-            const snapshotResponse = await fetch("/api/snapshots", {
-              method: "POST",
-              headers: {
-                "Content-Type": "application/json",
-              },
+            const jobName = `Schedule - ${newSource.name}`;
+            const jobResponse = await fetch('/api/jobs', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify({
-                projectId: source.projectId,
+                projectId: 'default',
+                name: jobName,
+                type: 'data_sync',
+                pipelineId: createdPipeline.id,
                 dataSourceId: newSource.id,
-                data: mockSnapshot.data,
-                schema: mockSnapshot.schema,
-                metadata: mockSnapshot.metadata
-              }),
+                schedule: '0 2 * * *', // Daily at 2 AM (disabled by default)
+                enabled: false
+              })
             });
 
-            if (snapshotResponse.ok) {
-              const createdSnapshot = await snapshotResponse.json();
-              clientLogger.success('Snapshot created for mock source', 'data-processing', {
-                snapshotId: createdSnapshot.id,
-                sourceName: newSource.name,
-                recordCount: createdSnapshot.recordCount
+            if (jobResponse.ok) {
+              const createdJob = await jobResponse.json();
+              clientLogger.success('Disabled job template auto-created for data source', 'jobs', {
+                jobId: createdJob.id,
+                pipelineId: createdPipeline.id,
+                dataSourceId: newSource.id
               });
-              setSnapshots((prev) => [...prev, snapshot]);
             } else {
-              const errorText = await snapshotResponse.text();
-              clientLogger.warn("Snapshot API failed, adding locally", "data-processing", {
-                httpStatus: snapshotResponse.status,
-                error: errorText
+              const jobErr = await jobResponse.text();
+              clientLogger.warn('Failed to auto-create job template', 'jobs', {
+                httpStatus: jobResponse.status,
+                error: jobErr,
+                pipelineId: createdPipeline.id
               });
-              setSnapshots((prev) => [...prev, snapshot]);
             }
-          } catch (error) {
-            clientLogger.warn("Error creating snapshot, adding locally", "data-processing", { error });
-            setSnapshots((prev) => [...prev, snapshot]);
+          } catch (jobError) {
+            clientLogger.warn('Error while auto-creating job template for pipeline', 'jobs', { error: jobError, dataSourceId: newSource.id });
           }
-        } catch (error) {
-          clientLogger.error("Failed to generate mock data", "data-processing", { error });
+        } else {
+          const errText = await pipelineResponse.text();
+          clientLogger.warn('Failed to auto-create pipeline for data source', 'data-transformation', {
+            httpStatus: pipelineResponse.status,
+            error: errText,
+            dataSourceId: newSource.id
+          });
         }
+      } catch (err) {
+        clientLogger.warn('Error while auto-creating pipeline for data source', 'data-transformation', { error: err, dataSourceId: newSource.id });
       }
 
       return newSource;
