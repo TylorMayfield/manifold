@@ -33,6 +33,10 @@ export async function GET(
     console.log(`[Snapshot Data API] Loading data from snapshot ${snapshotId}: offset=${offset}, limit=${limit}`);
     
     const database = await ensureDb();
+    // @ts-ignore
+    if (typeof (database as any).isHealthy === 'function' && !(database as any).isHealthy()) {
+      return NextResponse.json({ error: 'Database not ready', data: [], totalCount: 0 }, { status: 503 });
+    }
     
     // Get the snapshot to find the data source ID
     const snapshots = await database.getSnapshots('');

@@ -379,15 +379,28 @@ export class MongoDatabase {
 
   // ==================== PIPELINES ====================
 
-  getPipelines(projectId?: string) {
+  async getPipelines(projectId?: string) {
     if (!this.isConnected) throw new Error("Database not connected");
     const query = projectId ? { projectId } : {};
-    return Pipeline.find(query).sort({ createdAt: -1 }).lean();
+    const docs = await Pipeline.find(query).sort({ createdAt: -1 }).lean();
+    // Map _id to id for frontend
+    return docs.map(doc => ({
+      ...doc,
+      id: doc._id,
+      _id: undefined
+    }));
   }
 
-  getPipeline(id: string) {
+  async getPipeline(id: string) {
     if (!this.isConnected) throw new Error("Database not connected");
-    return Pipeline.findById(id).lean();
+    const doc: any = await Pipeline.findById(id).lean();
+    if (!doc) return null;
+    // Map _id to id for frontend
+    return {
+      ...doc,
+      id: doc._id,
+      _id: undefined
+    };
   }
 
   async createPipeline(projectId: string, pipelineData: any) {
@@ -406,7 +419,13 @@ export class MongoDatabase {
       updatedAt: new Date()
     });
     await doc.save();
-    return doc.toObject();
+    const obj = doc.toObject();
+    // Ensure id is mapped from _id for frontend
+    return {
+      ...obj,
+      id: obj._id,
+      _id: obj._id
+    };
   }
 
   async updatePipeline(id: string, updates: any) {

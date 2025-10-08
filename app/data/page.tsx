@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import { 
   Search, 
   Filter, 
@@ -43,6 +44,7 @@ interface DataSourceWithData {
 }
 
 export default function DataBrowserPage() {
+  const router = useRouter();
   const [dataSources, setDataSources] = useState<DataSourceWithData[]>([]);
   const [selectedSource, setSelectedSource] = useState<DataSourceWithData | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
@@ -459,8 +461,7 @@ export default function DataBrowserPage() {
                       size="sm"
                       onClick={(e) => {
                         e.stopPropagation();
-                        console.log('Edit button clicked!');
-                        alert('Edit functionality coming soon');
+                        router.push(`/add-data-source?edit=${selectedSource.id}`);
                       }}
                       title="Edit"
                     >
