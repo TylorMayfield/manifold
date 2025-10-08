@@ -45,4 +45,52 @@ export async function GET(
   }
 }
 
+export async function PUT(
+  request: NextRequest,
+  context: RouteContext
+): Promise<NextResponse> {
+  try {
+    const params = await context.params;
+    const pipelineId = params.id;
+    const pipelineData = await request.json();
 
+    const database = await ensureDb();
+    const updatedPipeline = await database.updatePipeline(
+      pipelineId,
+      pipelineData
+    );
+
+    if (!updatedPipeline) {
+      return NextResponse.json({ error: 'Pipeline not found' }, { status: 404 });
+    }
+
+    return NextResponse.json(updatedPipeline);
+  } catch (error) {
+    console.error('Error updating pipeline:', error);
+    return NextResponse.json(
+      { error: 'Failed to update pipeline' },
+      { status: 500 }
+    );
+  }
+}
+
+export async function DELETE(
+  request: NextRequest,
+  context: RouteContext
+): Promise<NextResponse> {
+  try {
+    const params = await context.params;
+    const pipelineId = params.id;
+
+    const database = await ensureDb();
+    await database.deletePipeline(pipelineId);
+
+    return NextResponse.json({ message: 'Pipeline deleted successfully' });
+  } catch (error) {
+    console.error('Error deleting pipeline:', error);
+    return NextResponse.json(
+      { error: 'Failed to delete pipeline' },
+      { status: 500 }
+    );
+  }
+}
