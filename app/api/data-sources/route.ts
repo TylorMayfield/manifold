@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { MongoDatabase } from '../../../lib/server/database/MongoDatabase';
+import { integrationHub } from '../../../lib/services/IntegrationHub';
 
 // Force dynamic rendering
 export const dynamic = 'force-dynamic';
@@ -54,6 +55,16 @@ export async function POST(request: NextRequest) {
     // Create data source
     const dataSource = await database.createDataSource(projectId, dataSourceData);
     console.log('[DataSources API POST] Created data source:', dataSource);
+
+    // Integration Hub: Register in catalog, setup for monitoring
+    // Note: Full onboarding (with PII detection) happens when first snapshot is created
+    try {
+      console.log('[DataSources API] Registering data source with Integration Hub...');
+      // For now, just log - full onboarding happens when data is imported
+      console.log('[DataSources API] Data source will be fully onboarded when first snapshot is created');
+    } catch (hubError) {
+      console.warn('[DataSources API] Integration Hub registration failed (non-critical):', hubError);
+    }
     
     return NextResponse.json(dataSource, { status: 201 });
   } catch (error) {

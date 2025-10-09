@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { SeparatedDatabaseManager } from '../../../lib/database/SeparatedDatabaseManager';
 import { MongoDatabase } from '../../../lib/server/database/MongoDatabase';
+import { integrationHub } from '../../../lib/services/IntegrationHub';
 
 export const dynamic = 'force-dynamic';
 
@@ -127,6 +128,19 @@ export async function POST(request: NextRequest) {
       version: result.version,
       recordCount: result.recordCount
     });
+
+    // Integration Hub: Onboard data source with auto-cataloging, PII detection, etc.
+    try {
+      const dataSource = await database.getDataSource(dataSourceId);
+      if (dataSource && data.length > 0) {
+        console.log('[Snapshots API] Triggering Integration Hub onboarding...');
+        await integrationHub.onboardDataSource(dataSource, data);
+        console.log('[Snapshots API] Integration Hub onboarding complete');
+      }
+    } catch (hubError) {
+      // Don't fail the snapshot creation if Integration Hub fails
+      console.warn('[Snapshots API] Integration Hub onboarding failed (non-critical):', hubError);
+    }
     
     return NextResponse.json({ 
       id: result.snapshotId,

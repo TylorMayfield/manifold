@@ -1,3 +1,16 @@
+/**
+ * Data Transformation Engine - SERVER-SIDE TRANSFORMATIONS
+ * 
+ * Server-side transformation engine used by specific components.
+ * For standard pipeline execution, use PipelineExecutor instead.
+ * 
+ * Used by:
+ * - TransformationPipelineBuilder component
+ * 
+ * Note: Consider consolidating with PipelineExecutor in the future
+ * for a unified transformation system.
+ */
+
 import { logger } from "../utils/logger";
 
 export interface TransformationStep {

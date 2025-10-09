@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { MongoDatabase } from '../../../../../lib/server/database/MongoDatabase';
 import { pipelineExecutor, ExecutionContext } from '../../../../../lib/services/PipelineExecutor';
+import { integrationHub } from '../../../../../lib/services/IntegrationHub';
 import { v4 as uuidv4 } from 'uuid';
 
 let db: MongoDatabase | null = null;
@@ -120,6 +121,19 @@ export async function POST(
 
     console.log(`[Pipeline Execute] Execution completed: ${result.status}`);
     console.log(`[Pipeline Execute] Input: ${result.inputRecords} records, Output: ${result.outputRecords} records`);
+
+    // Integration Hub: Track execution, update lineage
+    try {
+      console.log('[Pipeline Execute] Notifying Integration Hub of execution...');
+      await integrationHub.onPipelineExecuted(
+        result.pipelineId,
+        result.executionId,
+        result.status === 'completed'
+      );
+      console.log('[Pipeline Execute] Integration Hub notification complete');
+    } catch (hubError) {
+      console.warn('[Pipeline Execute] Integration Hub notification failed (non-critical):', hubError);
+    }
 
     // Store execution result in database
     try {
