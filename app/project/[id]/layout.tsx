@@ -5,9 +5,10 @@ import { useState, useEffect, useCallback } from "react";
 import { Project, DataSource } from "../../../types";
 import AppSidebar from "../../../components/layout/AppSidebar";
 import TitleBar from "../../../components/layout/TitleBar";
+import StandardLoading from "../../../components/layout/StandardLoading";
 import { clientDatabaseService } from "../../../lib/database/ClientDatabaseService";
 import { clientLogger } from "../../../lib/utils/ClientLogger";
-import { ArrowLeft, Database, Settings } from "lucide-react";
+import { ArrowLeft, Database, Settings, AlertTriangle } from "lucide-react";
 import Button from "../../../components/ui/Button";
 import useViewTransition from "../../../hooks/useViewTransition";
 
@@ -95,16 +96,38 @@ export default function ProjectLayout({
 
   if (loading) {
     return (
-      <div className="min-h-screen gradient-bg flex items-center justify-center">
-        <div className="text-white">Loading project...</div>
-      </div>
+      <StandardLoading
+        message="Loading Project..."
+        submessage="Initializing project workspace and data sources..."
+      />
     );
   }
 
   if (!project) {
     return (
       <div className="min-h-screen gradient-bg flex items-center justify-center">
-        <div className="text-white">Project not found</div>
+        <div className="max-w-2xl mx-auto p-8 text-center">
+          <div className="mb-8">
+            <div className="mx-auto w-32 h-32 rounded-full bg-jasper-500/20 flex items-center justify-center mb-6">
+              <AlertTriangle className="w-16 h-16 text-jasper-400" />
+            </div>
+            <h1 className="text-4xl font-bold text-white mb-4">
+              Project Not Found
+            </h1>
+            <p className="text-dark_cyan-400 text-lg mb-8">
+              The project you're looking for doesn't exist or you don't have
+              access to it.
+            </p>
+          </div>
+          <div className="flex flex-col sm:flex-row gap-4 justify-center">
+            <Button
+              onClick={() => router.push("/")}
+              icon={<ArrowLeft className="h-4 w-4" />}
+            >
+              Back to Home
+            </Button>
+          </div>
+        </div>
       </div>
     );
   }
