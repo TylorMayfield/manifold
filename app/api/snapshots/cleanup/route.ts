@@ -33,7 +33,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     const toDelete = keep > 0 ? sorted.slice(keep) : sorted;
 
     for (const snap of toDelete) {
-      await db.deleteSnapshot(snap.id);
+      await db.deleteSnapshot(String(snap.id));
     }
 
     return NextResponse.json({
