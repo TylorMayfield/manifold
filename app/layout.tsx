@@ -31,6 +31,31 @@ export const metadata: Metadata = {
   },
 };
 
+/**
+ * INTEGRATION PATTERNS:
+ *
+ * Loading Pattern:
+ * - All loading.tsx files use StandardLoading component from components/layout/StandardLoading
+ * - StandardLoading wraps LoadingState with variant="page"
+ * - Design matches error pages with gradient-bg, tangerine spinner icon, and consistent styling
+ * - This ensures consistent loading experience across all routes
+ *
+ * Context Provider Pattern:
+ * - Global contexts (Settings, Logs, DataSources) are provided at root level below
+ * - Page-specific contexts (Pipelines, Jobs) wrap individual pages for code splitting
+ * - Example: PipelineProvider wraps /pipelines/page.tsx, not available globally
+ *
+ * Error Handling:
+ * - Route-level: error.tsx files catch page errors
+ * - Component-level: ErrorBoundary component available for critical components
+ * - All follow consistent gradient-bg, glass-card styling pattern
+ *
+ * Layout Pattern:
+ * - Most pages: Use PageLayout component for consistent header/navigation
+ * - Project pages: Use custom layout with AppSidebar for workspace experience
+ * - See INTEGRATION_ANALYSIS.md for detailed documentation
+ */
+
 export default function RootLayout({
   children,
 }: Readonly<{

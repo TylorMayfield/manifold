@@ -50,11 +50,11 @@ export class JobExecutor {
   private apiProvider = ApiProvider.getInstance();
   private customScriptProvider = CustomScriptProvider.getInstance();
 
-  static getInstance(): JobExecutor {
-    if (!JobExecutor.instance) {
-      JobExecutor.instance = new JobExecutor();
+  static getInstance(): JobFactory {
+    if (!JobFactory.instance) {
+      JobFactory.instance = new JobFactory();
     }
-    return JobExecutor.instance;
+    return JobFactory.instance;
   }
 
   /**

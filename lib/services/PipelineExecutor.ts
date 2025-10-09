@@ -1,5 +1,8 @@
 /**
- * Pipeline Execution Engine
+ * Pipeline Execution Engine - PRIMARY EXECUTOR ✅
+ * 
+ * This is the MAIN pipeline executor used by the application.
+ * Use this for all standard pipeline transformations.
  * 
  * Executes ETL pipelines with transformation steps including:
  * - Filter: Filter rows based on expressions
@@ -9,6 +12,16 @@
  * - Sort: Sort data
  * - Deduplicate: Remove duplicate rows
  * - Custom Script: Execute custom JavaScript
+ * 
+ * Used by:
+ * - /api/pipelines/[id]/execute (main API)
+ * - IntegrationHub (orchestration)
+ * - CrossFeatureWorkflows
+ * - PipelineTester, PipelinePreview
+ * 
+ * Note: There are other pipeline executors for specific use cases:
+ * - ETLPipelineManager: Legacy full ETL (Extract/Transform/Load)
+ * - DataTransformationEngine: Server-side transformations
  */
 
 import { Pipeline, TransformStep, TransformConfig, TransformType } from '../../types';

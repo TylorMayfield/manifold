@@ -1,3 +1,20 @@
+/**
+ * ETL Pipeline Manager - LEGACY/SPECIALIZED ⚠️
+ * 
+ * This is for FULL ETL workflows (Extract, Transform, Load).
+ * Different from the standard PipelineExecutor which only handles transformations.
+ * 
+ * Use this when you need:
+ * - Extract phase (from multiple source types)
+ * - Transform phase
+ * - Load phase (to multiple destination types)
+ * 
+ * For standard pipeline transformations, use PipelineExecutor instead.
+ * 
+ * Note: This uses a different type system (ETLPipeline) vs Pipeline.
+ * Consider migrating to PipelineExecutor in the future for consistency.
+ */
+
 import { clientLogger } from "../utils/ClientLogger";
 
 export interface ETLPipeline {
