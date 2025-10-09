@@ -188,21 +188,21 @@ export function DataSourceProvider({ children }: DataSourceProviderProps) {
 
             if (jobResponse.ok) {
               const createdJob = await jobResponse.json();
-              clientLogger.success('Disabled job template auto-created for data source', 'jobs', {
+              clientLogger.success('Disabled job template auto-created for data source', 'system', {
                 jobId: createdJob.id,
                 pipelineId: createdPipeline.id,
                 dataSourceId: newSource.id
               });
             } else {
               const jobErr = await jobResponse.text();
-              clientLogger.warn('Failed to auto-create job template', 'jobs', {
+              clientLogger.warn('Failed to auto-create job template', 'system', {
                 httpStatus: jobResponse.status,
                 error: jobErr,
                 pipelineId: createdPipeline.id
               });
             }
           } catch (jobError) {
-            clientLogger.warn('Error while auto-creating job template for pipeline', 'jobs', { error: jobError, dataSourceId: newSource.id });
+            clientLogger.warn('Error while auto-creating job template for pipeline', 'system', { error: jobError, dataSourceId: newSource.id });
           }
         } else {
           const errText = await pipelineResponse.text();

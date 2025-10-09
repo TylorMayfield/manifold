@@ -34,10 +34,11 @@ export async function POST(
       return NextResponse.json({ error: 'Database not ready' }, { status: 503 });
     }
 
-    const job = await database.getJob(jobId);
-    if (!job) {
+    const jobs = await database.getJob(jobId);
+    if (!jobs || jobs.length === 0) {
       return NextResponse.json({ error: 'Job not found' }, { status: 404 });
     }
+    const job = jobs[0];
 
     // If job has a pipelineId, execute the pipeline
     if (job.pipelineId) {

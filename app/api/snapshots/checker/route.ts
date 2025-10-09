@@ -16,6 +16,15 @@ async function ensureDb() {
   return initPromise;
 }
 
+interface DataSourceWithPolicy {
+  id: string;
+  projectId?: string;
+  snapshotPolicy?: {
+    keepLast?: number;
+    maxAgeDays?: number;
+  };
+}
+
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json().catch(() => ({}));
@@ -32,8 +41,10 @@ export async function POST(request: NextRequest) {
     // Note: getDataSources signature may vary; fallback to all sources and filter
     // @ts-ignore
     const allSources = await (database.getDataSources ? database.getDataSources(projectId) : database.getDataSources());
-    const dataSources = Array.isArray(allSources)
-      ? allSources.filter((s: any) => !projectId || s.projectId === projectId)
+    const dataSources: DataSourceWithPolicy[] = Array.isArray(allSources)
+      ? allSources
+          .filter((s: any) => !projectId || s.projectId === projectId)
+          .map((s: any) => ({ ...s, id: String(s.id) }))
       : [];
 
     const now = Date.now();

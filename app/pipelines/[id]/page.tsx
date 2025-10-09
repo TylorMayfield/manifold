@@ -206,17 +206,19 @@ export default function PipelineDetailsPage() {
                     className="p-4 border border-gray-200 bg-white rounded"
                   >
                     <div className="flex justify-between items-center mb-2">
-                      <CellSelect
-                        label="Type"
-                        value={step.type}
-                        onChange={(e) =>
-                          handleStepChange(index, "type", e.target.value)
-                        }
-                      >
-                        <option value="filter">filter</option>
-                        <option value="map">map</option>
-                        <option value="aggregate">aggregate</option>
-                      </CellSelect>
+                      <div className="flex items-center space-x-2">
+                        <label className="text-caption font-bold">Type</label>
+                        <CellSelect
+                          value={step.type}
+                          onChange={(e) =>
+                            handleStepChange(index, "type", e.target.value)
+                          }
+                        >
+                          <option value="filter">filter</option>
+                          <option value="map">map</option>
+                          <option value="aggregate">aggregate</option>
+                        </CellSelect>
+                      </div>
                       <CellButton
                         variant="ghost"
                         size="sm"
