@@ -31,6 +31,14 @@ export const metadata: Metadata = {
   },
 };
 
+/**
+ * Loading Pattern:
+ * - All loading.tsx files use StandardLoading component from components/layout/StandardLoading
+ * - StandardLoading wraps LoadingState with variant="page"
+ * - Design matches error pages with gradient-bg, tangerine spinner icon, and consistent styling
+ * - This ensures consistent loading experience across all routes
+ */
+
 export default function RootLayout({
   children,
 }: Readonly<{
