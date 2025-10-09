@@ -7,6 +7,7 @@ import { SettingsProvider } from "../contexts/SettingsContext";
 import TopLoadingBar from "../components/ui/TopLoadingBar";
 import ClientOnly from "../components/providers/ClientOnly";
 import TransitionProvider from "../components/providers/TransitionProvider";
+import CommandPaletteProvider from "../components/providers/CommandPaletteProvider";
 import StatusFooter from "../components/layout/StatusFooter";
 
 const inter = Inter({
@@ -71,11 +72,13 @@ export default function RootLayout({
           <SettingsProvider>
             <LogProvider>
               <DataSourceProvider>
-                <TransitionProvider>
-                  <TopLoadingBar />
-                  {children}
-                  <StatusFooter />
-                </TransitionProvider>
+                <CommandPaletteProvider>
+                  <TransitionProvider>
+                    <TopLoadingBar />
+                    {children}
+                    <StatusFooter />
+                  </TransitionProvider>
+                </CommandPaletteProvider>
               </DataSourceProvider>
             </LogProvider>
           </SettingsProvider>

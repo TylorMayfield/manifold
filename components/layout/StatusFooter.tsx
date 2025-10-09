@@ -1,22 +1,25 @@
-"use client"
+"use client";
 
 import React, { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { 
-  Activity, 
-  Clock, 
-  CheckCircle, 
-  XCircle, 
+import {
+  Activity,
+  Clock,
+  CheckCircle,
+  XCircle,
   Database,
   HardDrive,
   Zap,
   TrendingUp,
   ChevronUp,
   ChevronDown,
-  Settings
+  Settings,
+  HelpCircle,
 } from "lucide-react";
 import { cn } from "../../lib/utils/cn";
 import StatusBadge from "../ui/StatusBadge";
+import FeatureDiscovery from "../ui/FeatureDiscovery";
+import CellModal from "../ui/CellModal";
 
 interface JobStatus {
   isProcessing: boolean;
@@ -64,6 +67,7 @@ const StatusFooter: React.FC = () => {
     },
   });
   const [isExpanded, setIsExpanded] = useState(false);
+  const [showFeatureDiscovery, setShowFeatureDiscovery] = useState(false);
   const [elapsedTime, setElapsedTime] = useState(0);
 
   // Poll for job status updates
@@ -72,17 +76,17 @@ const StatusFooter: React.FC = () => {
       try {
         // Try to fetch current job status
         const [jobsResponse, statsResponse] = await Promise.all([
-          fetch('/api/jobs?status=running').catch(() => null),
-          fetch('/api/jobs/stats').catch(() => null),
+          fetch("/api/jobs?status=running").catch(() => null),
+          fetch("/api/jobs/stats").catch(() => null),
         ]);
 
         if (jobsResponse?.ok) {
           const jobsData = await jobsResponse.json();
           const runningJobs = jobsData.jobs || [];
-          
+
           if (runningJobs.length > 0) {
             const currentJob = runningJobs[0];
-            setStatus(prev => ({
+            setStatus((prev) => ({
               ...prev,
               isProcessing: true,
               currentJob: {
@@ -94,7 +98,7 @@ const StatusFooter: React.FC = () => {
               },
             }));
           } else {
-            setStatus(prev => ({
+            setStatus((prev) => ({
               ...prev,
               isProcessing: false,
               currentJob: undefined,
@@ -104,7 +108,7 @@ const StatusFooter: React.FC = () => {
 
         if (statsResponse?.ok) {
           const statsData = await statsResponse.json();
-          setStatus(prev => ({
+          setStatus((prev) => ({
             ...prev,
             stats: statsData.stats || prev.stats,
             systemStats: statsData.systemStats || prev.systemStats,
@@ -112,7 +116,7 @@ const StatusFooter: React.FC = () => {
           }));
         }
       } catch (error) {
-        console.error('Failed to fetch job status:', error);
+        console.error("Failed to fetch job status:", error);
       }
     };
 
@@ -133,7 +137,9 @@ const StatusFooter: React.FC = () => {
     }
 
     const updateElapsed = () => {
-      const elapsed = Math.floor((Date.now() - status.currentJob!.startTime.getTime()) / 1000);
+      const elapsed = Math.floor(
+        (Date.now() - status.currentJob!.startTime.getTime()) / 1000
+      );
       setElapsedTime(elapsed);
     };
 
@@ -146,11 +152,11 @@ const StatusFooter: React.FC = () => {
   const formatTime = (seconds: number): string => {
     const mins = Math.floor(seconds / 60);
     const secs = seconds % 60;
-    return `${mins}:${secs.toString().padStart(2, '0')}`;
+    return `${mins}:${secs.toString().padStart(2, "0")}`;
   };
 
   const formatDuration = (ms?: number): string => {
-    if (!ms) return '—';
+    if (!ms) return "—";
     const seconds = Math.floor(ms / 1000);
     if (seconds < 60) return `${seconds}s`;
     const minutes = Math.floor(seconds / 60);
@@ -176,7 +182,9 @@ const StatusFooter: React.FC = () => {
                 <div className="text-xs font-mono text-orange-200">
                   {formatTime(elapsedTime)} elapsed
                   {status.currentJob.progress !== undefined && (
-                    <span className="ml-2">• {Math.round(status.currentJob.progress)}%</span>
+                    <span className="ml-2">
+                      • {Math.round(status.currentJob.progress)}%
+                    </span>
                   )}
                 </div>
               </div>
@@ -184,7 +192,9 @@ const StatusFooter: React.FC = () => {
           ) : (
             <div className="flex items-center gap-2 px-3 py-1.5 bg-gradient-to-br from-green-500/10 to-emerald-500/10 border border-green-600/30 rounded-md">
               <CheckCircle className="w-4 h-4 text-green-400" />
-              <span className="text-sm font-mono text-green-300">System Idle</span>
+              <span className="text-sm font-mono text-green-300">
+                System Idle
+              </span>
             </div>
           )}
 
@@ -193,7 +203,9 @@ const StatusFooter: React.FC = () => {
             <div className="hidden md:flex items-center gap-2 px-3 py-1.5 bg-white/5 border border-white/10 rounded-md text-xs font-mono">
               <Clock className="w-3 h-3 text-white/50" />
               <span className="text-white/60">Last:</span>
-              <span className="text-white font-medium">{status.lastJob.name}</span>
+              <span className="text-white font-medium">
+                {status.lastJob.name}
+              </span>
               <StatusBadge status={status.lastJob.status} />
               {status.lastJob.duration && (
                 <span className="text-white/60">
@@ -242,11 +254,20 @@ const StatusFooter: React.FC = () => {
           />
         </div>
 
-        {/* Right: Settings & Expand Button */}
+        {/* Right: Help, Settings & Expand Button */}
         <div className="flex items-center gap-2">
+          {/* Help Button */}
+          <button
+            onClick={() => setShowFeatureDiscovery(true)}
+            className="p-2 rounded-md border-2 border-transparent hover:border-white/20 bg-white/5 hover:bg-white/10 text-white/70 hover:text-white transition-all duration-200 group shadow-[2px_2px_0px_0px_rgba(255,255,255,0.1)]"
+            title="Feature Discovery"
+          >
+            <HelpCircle className="w-5 h-5 group-hover:scale-110 transition-transform duration-300" />
+          </button>
+
           {/* Settings Button */}
           <button
-            onClick={() => router.push('/settings')}
+            onClick={() => router.push("/settings")}
             className="p-2 rounded-md border-2 border-transparent hover:border-white/20 bg-white/5 hover:bg-white/10 text-white/70 hover:text-white transition-all duration-200 group shadow-[2px_2px_0px_0px_rgba(255,255,255,0.1)]"
             title="Settings"
           >
@@ -345,7 +366,7 @@ const StatusFooter: React.FC = () => {
                   {formatTime(elapsedTime)}
                 </span>
               </div>
-              
+
               {status.currentJob.progress !== undefined && (
                 <div className="relative h-3 bg-black/30 border-2 border-orange-600/30 rounded-full overflow-hidden shadow-inner">
                   <div
@@ -363,6 +384,16 @@ const StatusFooter: React.FC = () => {
           )}
         </div>
       )}
+
+      {/* Feature Discovery Modal */}
+      <CellModal
+        isOpen={showFeatureDiscovery}
+        onClose={() => setShowFeatureDiscovery(false)}
+        title="Discover Features"
+        size="xl"
+      >
+        <FeatureDiscovery onClose={() => setShowFeatureDiscovery(false)} />
+      </CellModal>
     </footer>
   );
 };
@@ -377,19 +408,21 @@ interface StatItemProps {
   borderColor?: string;
 }
 
-const StatItem: React.FC<StatItemProps> = ({ 
-  icon: Icon, 
-  label, 
-  value, 
+const StatItem: React.FC<StatItemProps> = ({
+  icon: Icon,
+  label,
+  value,
   color = "text-white",
   bgColor = "bg-white/5",
-  borderColor = "border-white/10"
+  borderColor = "border-white/10",
 }) => (
-  <div className={cn(
-    "flex items-center gap-2 px-3 py-1.5 rounded-md border transition-all duration-200 hover:scale-105",
-    bgColor,
-    borderColor
-  )}>
+  <div
+    className={cn(
+      "flex items-center gap-2 px-3 py-1.5 rounded-md border transition-all duration-200 hover:scale-105",
+      bgColor,
+      borderColor
+    )}
+  >
     <Icon className={cn("w-4 h-4", color)} />
     <div className="flex items-baseline gap-1.5">
       <span className={cn("text-sm font-bold font-mono", color)}>{value}</span>
@@ -408,24 +441,30 @@ interface DetailStatProps {
   borderColor?: string;
 }
 
-const DetailStat: React.FC<DetailStatProps> = ({ 
-  icon: Icon, 
-  label, 
-  value, 
+const DetailStat: React.FC<DetailStatProps> = ({
+  icon: Icon,
+  label,
+  value,
   valueColor = "text-white",
   bgColor = "bg-white/5",
-  borderColor = "border-white/10"
+  borderColor = "border-white/10",
 }) => (
-  <div className={cn(
-    "p-3 rounded-lg border-2 transition-all duration-200 hover:scale-105 hover:shadow-[2px_2px_0px_0px_rgba(255,255,255,0.2)]",
-    bgColor,
-    borderColor
-  )}>
+  <div
+    className={cn(
+      "p-3 rounded-lg border-2 transition-all duration-200 hover:scale-105 hover:shadow-[2px_2px_0px_0px_rgba(255,255,255,0.2)]",
+      bgColor,
+      borderColor
+    )}
+  >
     <div className="flex items-center gap-2 mb-2">
       <Icon className="w-4 h-4 text-white/50" />
-      <span className="text-xs font-mono text-white/60 uppercase tracking-wide">{label}</span>
+      <span className="text-xs font-mono text-white/60 uppercase tracking-wide">
+        {label}
+      </span>
     </div>
-    <div className={cn("text-2xl font-bold font-mono", valueColor)}>{value}</div>
+    <div className={cn("text-2xl font-bold font-mono", valueColor)}>
+      {value}
+    </div>
   </div>
 );
 

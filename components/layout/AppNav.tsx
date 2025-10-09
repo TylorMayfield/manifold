@@ -1,19 +1,19 @@
 "use client";
 
-import React from 'react';
-import { useRouter, usePathname } from 'next/navigation';
-import { cn } from '../../lib/utils/cn';
-import { 
-  Database, 
-  FileText, 
-  Zap, 
-  Settings, 
-  Play, 
+import React from "react";
+import { useRouter, usePathname } from "next/navigation";
+import { cn } from "../../lib/utils/cn";
+import {
+  Database,
+  FileText,
+  Zap,
+  Settings,
+  Play,
   Home,
   Webhook,
   Layers,
-  Puzzle
-} from 'lucide-react';
+  Puzzle,
+} from "lucide-react";
 
 export interface NavItem {
   href: string;
@@ -24,67 +24,67 @@ export interface NavItem {
 
 export interface AppNavProps {
   className?: string;
-  variant?: 'horizontal' | 'vertical';
+  variant?: "horizontal" | "vertical";
   showIcons?: boolean;
   showDescriptions?: boolean;
 }
 
 const defaultNavItems: NavItem[] = [
   {
-    href: '/',
-    label: 'Home',
+    href: "/",
+    label: "Home",
     icon: Home,
-    description: 'Dashboard and overview'
+    description: "Dashboard and overview",
   },
   {
-    href: '/data',
-    label: 'Data Sources',
+    href: "/data",
+    label: "Data Sources",
     icon: Database,
-    description: 'Manage data connections'
+    description: "Manage data connections",
   },
   {
-    href: '/data-lakes',
-    label: 'Data Lakes',
+    href: "/data-lakes",
+    label: "Data Lakes",
     icon: Layers,
-    description: 'Unified data lake management'
+    description: "Unified data lake management",
   },
   {
-    href: '/plugins',
-    label: 'Plugins',
+    href: "/plugins",
+    label: "Plugins",
     icon: Puzzle,
-    description: 'Manage and configure plugins'
+    description: "Manage and configure plugins",
   },
   {
-    href: '/pipelines',
-    label: 'Pipelines',
+    href: "/pipelines",
+    label: "Pipelines",
     icon: Zap,
-    description: 'Transform and process data'
+    description: "Transform and process data",
   },
   {
-    href: '/jobs',
-    label: 'Jobs',
+    href: "/jobs",
+    label: "Jobs",
     icon: Play,
-    description: 'Scheduled automation'
+    description: "Scheduled automation",
   },
   {
-    href: '/webhooks',
-    label: 'Webhooks',
+    href: "/webhooks",
+    label: "Webhooks",
     icon: Webhook,
-    description: 'Notifications and integrations'
+    description: "Notifications and integrations",
   },
   {
-    href: '/observability',
-    label: 'Observability',
+    href: "/observability",
+    label: "Observability",
     icon: FileText,
-    description: 'Logs, metrics, and monitoring'
-  }
+    description: "Logs, metrics, and monitoring",
+  },
 ];
 
-export default function AppNav({ 
+export default function AppNav({
   className,
-  variant = 'horizontal',
+  variant = "horizontal",
   showIcons = true,
-  showDescriptions = false 
+  showDescriptions = false,
 }: AppNavProps) {
   const router = useRouter();
   const pathname = usePathname();
@@ -94,15 +94,15 @@ export default function AppNav({
   };
 
   const isActive = (href: string) => {
-    if (href === '/') {
-      return pathname === '/';
+    if (href === "/") {
+      return pathname === "/";
     }
     // Exact match or starts with href followed by a slash
     // This prevents /data from matching /data-lakes
-    return pathname === href || pathname.startsWith(href + '/');
+    return pathname === href || pathname.startsWith(href + "/");
   };
 
-  if (variant === 'vertical') {
+  if (variant === "vertical") {
     return (
       <nav className={cn("cell-nav", className)}>
         <div className="flex flex-col">
@@ -119,9 +119,7 @@ export default function AppNav({
                   active && "active bg-gray-100"
                 )}
               >
-                {showIcons && (
-                  <Icon className="w-4 h-4 mr-3 flex-shrink-0" />
-                )}
+                {showIcons && <Icon className="w-4 h-4 mr-3 flex-shrink-0" />}
                 <div className="flex-1 min-w-0">
                   <div className="font-medium text-sm">{item.label}</div>
                   {showDescriptions && item.description && (
@@ -138,7 +136,7 @@ export default function AppNav({
     );
   }
 
-  const navItems = defaultNavItems.filter(item => item.href !== '/plugins');
+  const navItems = defaultNavItems.filter((item) => item.href !== "/plugins");
 
   return (
     <nav className={cn("cell-nav", className)}>
@@ -152,14 +150,21 @@ export default function AppNav({
               key={item.href}
               onClick={() => handleNavigation(item.href)}
               className={cn(
-                "cell-nav-item flex items-center px-4 py-2 border-r-2 border-black last:border-r-0",
+                "cell-nav-item flex items-center px-4 py-2 border-r-2 border-black last:border-r-0 relative group",
                 active && "active bg-gray-100"
               )}
+              title={item.description}
             >
-              {showIcons && (
-                <Icon className="w-4 h-4 mr-2" />
-              )}
+              {showIcons && <Icon className="w-4 h-4 mr-2" />}
               <span className="text-sm font-medium">{item.label}</span>
+
+              {/* Tooltip */}
+              {item.description && (
+                <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-3 py-2 bg-gray-900 text-white text-xs font-mono rounded-md whitespace-nowrap opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity z-50 shadow-lg">
+                  {item.description}
+                  <div className="absolute top-full left-1/2 transform -translate-x-1/2 border-4 border-transparent border-t-gray-900" />
+                </div>
+              )}
             </button>
           );
         })}
