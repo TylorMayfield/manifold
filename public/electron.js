@@ -21,9 +21,11 @@ if (!app) {
 }
 
 const isDev = process.env.NODE_ENV === "development" || !app.isPackaged;
-console.log("Development mode:", isDev);
-console.log("NODE_ENV:", process.env.NODE_ENV);
-console.log("isPackaged:", app.isPackaged);
+if (isDev) {
+  console.log("Development mode:", isDev);
+  console.log("NODE_ENV:", process.env.NODE_ENV);
+  console.log("isPackaged:", app.isPackaged);
+}
 
 // Server URL configuration
 let serverUrl = null;
@@ -40,8 +42,6 @@ async function startNextServer() {
   // Production: Use simpler approach - load from static files if available
   // For now, we'll use the Next.js dev server approach even in production
   // This is a temporary solution until we properly configure standalone mode
-
-  console.log("Production mode: attempting to start server...");
 
   // Try to find node executable
   let nodePath = process.platform === "win32" ? "node.exe" : "node";
@@ -65,8 +65,6 @@ async function startNextServer() {
     foundNode = nodePath; // Use system node
   }
 
-  console.log("Using Node.js at:", foundNode);
-
   const serverPath = path.join(
     process.resourcesPath,
     "app",
@@ -76,17 +74,10 @@ async function startNextServer() {
   );
 
   if (!fs.existsSync(serverPath)) {
-    console.error("Production server not found at:", serverPath);
-    console.log("Expected path:", serverPath);
-    console.log("Resource path:", process.resourcesPath);
-
-    // For now, fall back to development mode
-    console.log("FALLBACK: Using development server");
+    console.error("Production server not found, falling back to localhost:3000");
     serverUrl = "http://localhost:3000";
     return;
   }
-
-  console.log("Starting Next.js server from:", serverPath);
 
   const { spawn } = require("child_process");
   const port = 3000;
@@ -104,26 +95,28 @@ async function startNextServer() {
       stdio: "pipe",
     });
 
-    serverProcess.stdout.on("data", (data) => {
-      console.log(`[Server] ${data.toString().trim()}`);
-    });
+    if (isDev) {
+      serverProcess.stdout.on("data", (data) => {
+        console.log(`[Server] ${data.toString().trim()}`);
+      });
 
-    serverProcess.stderr.on("data", (data) => {
-      console.error(`[Server Error] ${data.toString().trim()}`);
-    });
+      serverProcess.stderr.on("data", (data) => {
+        console.error(`[Server Error] ${data.toString().trim()}`);
+      });
+    }
 
     serverProcess.on("error", (error) => {
       console.error("Failed to start server:", error);
     });
 
     serverProcess.on("exit", (code) => {
-      console.log(`Server process exited with code ${code}`);
+      if (isDev || code !== 0) {
+        console.log(`Server process exited with code ${code}`);
+      }
     });
 
     // Wait for server to be ready
-    console.log("Waiting for server to start...");
     await new Promise((resolve) => setTimeout(resolve, 3000));
-    console.log("Server should be ready at:", serverUrl);
   } catch (error) {
     console.error("Error starting server:", error);
     // Fallback
@@ -136,7 +129,6 @@ let handlersRegistered = false;
 
 // Handle second instance
 app.on("second-instance", (event, commandLine, workingDirectory) => {
-  console.log("Second instance detected, focusing main window");
   if (mainWindow) {
     if (mainWindow.isMinimized()) mainWindow.restore();
     mainWindow.focus();
@@ -146,23 +138,19 @@ app.on("second-instance", (event, commandLine, workingDirectory) => {
 // Register IPC handlers only once
 function registerIpcHandlers() {
   if (handlersRegistered) {
-    console.log("IPC handlers already registered, skipping...");
     return;
   }
 
-  console.log("Registering IPC handlers...");
   handlersRegistered = true;
 
   // Handle window controls
   ipcMain.handle("window-minimize", () => {
-    console.log("Minimize window requested");
     if (mainWindow) {
       mainWindow.minimize();
     }
   });
 
   ipcMain.handle("window-maximize", () => {
-    console.log("Maximize window requested");
     if (mainWindow) {
       if (mainWindow.isMaximized()) {
         mainWindow.unmaximize();
@@ -173,7 +161,6 @@ function registerIpcHandlers() {
   });
 
   ipcMain.handle("window-close", () => {
-    console.log("Close window requested");
     if (mainWindow) {
       mainWindow.close();
     }
@@ -207,22 +194,19 @@ function createWindow() {
     minHeight: 800,
     title: "Manifold - Data Integration Platform",
     webPreferences: {
-      nodeIntegration: true,
+      nodeIntegration: false,
       contextIsolation: true,
       enableRemoteModule: false,
       preload: path.join(__dirname, "preload.js"),
-      webSecurity: false,
-      allowRunningInsecureContent: true,
     },
     // Use native Windows title bar
     frame: true,
     titleBarStyle: "default",
-    show: true,
+    show: false, // Will show in ready-to-show event
     backgroundColor: "#0a0a0a",
   });
 
   // Load the app
-  console.log("Loading app from:", serverUrl);
   mainWindow.loadURL(serverUrl);
 
   // Open DevTools in development
@@ -234,8 +218,8 @@ function createWindow() {
   mainWindow.webContents.on(
     "did-fail-load",
     (event, errorCode, errorDescription, validatedURL) => {
-      console.error("Failed to load:", errorDescription, validatedURL);
       if (isDev) {
+        console.error("Failed to load:", errorDescription, validatedURL);
         // Try alternative ports if the first one fails
         const ports = [3000, 3001, 3002];
         const currentPort = parseInt(validatedURL.split(":")[2]) || 3000;
@@ -251,19 +235,12 @@ function createWindow() {
 
   // Show window when ready
   mainWindow.once("ready-to-show", () => {
-    console.log("Window ready to show, displaying...");
+    if (isDev) {
+      console.log("Window ready to show, displaying...");
+    }
     mainWindow.show();
     mainWindow.focus();
     mainWindow.moveTop();
-  });
-
-  // Debug window events
-  mainWindow.on("show", () => {
-    console.log("Window shown");
-  });
-
-  mainWindow.on("focus", () => {
-    console.log("Window focused");
   });
 
   // Handle window closed
@@ -303,7 +280,6 @@ app.on("window-all-closed", () => {
 app.on("before-quit", () => {
   // Stop server process
   if (serverProcess) {
-    console.log("Stopping server process...");
     try {
       serverProcess.kill();
     } catch (error) {
@@ -313,7 +289,6 @@ app.on("before-quit", () => {
 
   // MongoDB connections are managed by the Next.js server
   // They will be cleaned up when the server stops
-  console.log("Application shutting down cleanly");
 });
 
 // Create application menu
