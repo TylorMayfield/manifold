@@ -23,20 +23,4 @@ contextBridge.exposeInMainWorld("electronAPI", {
   minimizeWindow: () => ipcRenderer.invoke("window-minimize"),
   maximizeWindow: () => ipcRenderer.invoke("window-maximize"),
   closeWindow: () => ipcRenderer.invoke("window-close"),
-
-  // Database operations
-  getProjects: () => ipcRenderer.invoke("get-projects"),
-  getProject: (id) => ipcRenderer.invoke("get-project", id),
-  createProject: (project) => ipcRenderer.invoke("create-project", project),
-  updateProject: (id, updates) =>
-    ipcRenderer.invoke("update-project", id, updates),
-  deleteProject: (id) => ipcRenderer.invoke("delete-project", id),
-
-  getDataSources: (projectId) =>
-    ipcRenderer.invoke("get-data-sources", projectId),
-  createDataSource: (dataSource) =>
-    ipcRenderer.invoke("create-data-source", dataSource),
-  updateDataSource: (id, updates) =>
-    ipcRenderer.invoke("update-data-source", id, updates),
-  deleteDataSource: (id) => ipcRenderer.invoke("delete-data-source", id),
 });
