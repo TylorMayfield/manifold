@@ -34,7 +34,10 @@ export type DataProviderType =
   | "sqlite"
   | "odbc"
   | "mssql"
-  | "javascript";
+  | "javascript"
+  | "sqlite_generator"
+  | "json_generator"
+  | "csv_generator";
 
 // Keep DataSource as alias for backward compatibility
 export type DataSource = DataProvider;

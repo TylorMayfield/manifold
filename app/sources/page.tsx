@@ -35,6 +35,9 @@ const sourceTypeIcons: Record<DataProviderType, React.ComponentType<any>> = {
   sql: Database,
   odbc: Database,
   mssql: Database,
+  sqlite_generator: Database,
+  json_generator: FileText,
+  csv_generator: FileText,
 };
 
 const sourceTypeColors: Record<DataProviderType, string> = {
@@ -50,6 +53,9 @@ const sourceTypeColors: Record<DataProviderType, string> = {
   sql: "text-purple-400",
   odbc: "text-cyan-400",
   mssql: "text-blue-500",
+  sqlite_generator: "text-purple-500",
+  json_generator: "text-green-500",
+  csv_generator: "text-blue-500",
 };
 
 export default function DataSourcesPage() {

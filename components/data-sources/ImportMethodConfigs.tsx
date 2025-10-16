@@ -11,6 +11,9 @@ import {
   Code,
   Clock,
   Play,
+  Plus,
+  RefreshCw,
+  Zap,
 } from "lucide-react";
 import Button from "../ui/Button";
 import CellButton from "../ui/CellButton";
@@ -188,100 +191,241 @@ function MysqlDirectConfig({
   config,
   onConfigChange,
   onNext,
+  dataSourceType,
 }: ImportMethodConfigProps) {
   const [showAdvanced, setShowAdvanced] = useState(false);
+  
+  // Get database-specific defaults
+  const getDefaultPort = () => {
+    switch (dataSourceType) {
+      case 'mysql': return 3306;
+      case 'postgres': return 5432;
+      case 'mssql': return 1433;
+      default: return 3306;
+    }
+  };
+
+  const getDatabaseLabel = () => {
+    switch (dataSourceType) {
+      case 'mysql': return 'MySQL';
+      case 'postgres': return 'PostgreSQL';
+      case 'mssql': return 'Microsoft SQL Server';
+      case 'sqlite': return 'SQLite';
+      case 'odbc': return 'ODBC';
+      default: return 'Database';
+    }
+  };
+
   const [connectionConfig, setConnectionConfig] = useState({
-    host: config.mysqlConfig?.host || "localhost",
-    port: config.mysqlConfig?.port || 3306,
-    database: config.mysqlConfig?.database || "",
-    username: config.mysqlConfig?.username || "",
-    password: config.mysqlConfig?.password || "",
-    ssl: config.mysqlConfig?.ssl || false,
-    tables: config.mysqlConfig?.tables || [],
+    host: config.host || config.mysqlConfig?.host || "localhost",
+    port: config.port || config.mysqlConfig?.port || getDefaultPort(),
+    database: config.database || config.mysqlConfig?.database || "",
+    username: config.username || config.mysqlConfig?.username || "",
+    password: config.password || config.mysqlConfig?.password || "",
+    filePath: config.filePath || "", // For SQLite
+    driver: config.driver || "", // For ODBC
+    ssl: config.ssl || config.mysqlConfig?.ssl || false,
+    tables: config.tables || config.mysqlConfig?.tables || [],
+    importAllTables: config.importAllTables !== false, // Default to true
     // Delta sync options
-    deltaSync: config.mysqlConfig?.deltaSync || {
+    deltaSync: config.deltaSync || config.mysqlConfig?.deltaSync || {
       enabled: false,
       trackingColumn: 'updated_at',
       trackingType: 'timestamp',
     },
     // Batch export options
-    batchExport: config.mysqlConfig?.batchExport || {
+    batchExport: config.batchExport || config.mysqlConfig?.batchExport || {
       enabled: false,
       batchSize: 1000,
       pauseBetweenBatches: 100,
     },
   });
 
-  const handleNext = () => {
-    onConfigChange({
-      ...config,
-      mysqlConfig: connectionConfig,
+  const [availableTables, setAvailableTables] = useState<string[]>([]);
+  const [loadingTables, setLoadingTables] = useState(false);
+
+  const loadTables = async () => {
+    if (dataSourceType === 'sqlite') return; // SQLite doesn't need this
+    
+    setLoadingTables(true);
+    try {
+      const response = await fetch('/api/data-sources/introspect', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          type: dataSourceType,
+          config: {
+            host: connectionConfig.host,
+            port: connectionConfig.port,
+            database: connectionConfig.database,
+            username: connectionConfig.username,
+            password: connectionConfig.password,
+            driver: connectionConfig.driver,
+            ssl: connectionConfig.ssl,
+          },
+        }),
+      });
+
+      const result = await response.json();
+      if (response.ok && result.tables) {
+        setAvailableTables(result.tables);
+      } else {
+        alert(`Failed to load tables: ${result.error || 'Unknown error'}`);
+      }
+    } catch (error) {
+      console.error('Failed to load tables:', error);
+      alert('Failed to load tables. Please check your connection settings.');
+    } finally {
+      setLoadingTables(false);
+    }
+  };
+
+  const toggleTable = (tableName: string) => {
+    const newTables = connectionConfig.tables.includes(tableName)
+      ? connectionConfig.tables.filter(t => t !== tableName)
+      : [...connectionConfig.tables, tableName];
+    
+    setConnectionConfig({
+      ...connectionConfig,
+      tables: newTables,
     });
+  };
+
+  const selectAllTables = () => {
+    setConnectionConfig({
+      ...connectionConfig,
+      tables: [...availableTables],
+    });
+  };
+
+  const deselectAllTables = () => {
+    setConnectionConfig({
+      ...connectionConfig,
+      tables: [],
+    });
+  };
+
+  const handleNext = () => {
+    const finalConfig = {
+      ...config,
+      ...connectionConfig,
+      mysqlConfig: connectionConfig, // Keep for backward compatibility
+    };
+    
+    console.log('[ImportMethodConfigs] handleNext - dataSourceType:', dataSourceType);
+    console.log('[ImportMethodConfigs] handleNext - connectionConfig:', connectionConfig);
+    console.log('[ImportMethodConfigs] handleNext - finalConfig:', finalConfig);
+    
+    onConfigChange(finalConfig);
     onNext();
   };
+
+  const dbLabel = getDatabaseLabel();
 
   return (
     <div className="space-y-6">
       <div className="text-center">
         <Database className="h-12 w-12 mx-auto text-blue-500 mb-4" />
-        <h3 className="text-lg font-semibold mb-2">MySQL Connection</h3>
+        <h3 className="text-lg font-semibold mb-2">{dbLabel} Connection</h3>
         <p className="text-gray-600">
-          Configure your MySQL database connection
+          Configure your {dbLabel} database connection
         </p>
       </div>
 
-      <div className="grid grid-cols-2 gap-4">
+      {/* ODBC Driver Field */}
+      {dataSourceType === 'odbc' && (
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-2">
-            Host
+            ODBC Driver Name <span className="text-red-500">*</span>
           </label>
           <input
             type="text"
-            value={connectionConfig.host}
+            value={connectionConfig.driver}
             onChange={(e) =>
-              setConnectionConfig({ ...connectionConfig, host: e.target.value })
+              setConnectionConfig({ ...connectionConfig, driver: e.target.value })
             }
             className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-            placeholder="localhost"
+            placeholder="SQL Server, PostgreSQL Unicode, etc."
           />
+          <p className="text-xs text-gray-500 mt-1">
+            Example: "SQL Server", "PostgreSQL Unicode", "MySQL ODBC 8.0 Driver"
+          </p>
         </div>
+      )}
 
+      {/* SQLite File Path */}
+      {dataSourceType === 'sqlite' ? (
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-2">
-            Port
+            Database File Path <span className="text-red-500">*</span>
           </label>
           <input
-            type="number"
-            value={connectionConfig.port}
+            type="text"
+            value={connectionConfig.filePath}
             onChange={(e) =>
-              setConnectionConfig({
-                ...connectionConfig,
-                port: parseInt(e.target.value),
-              })
+              setConnectionConfig({ ...connectionConfig, filePath: e.target.value })
             }
             className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-            placeholder="3306"
+            placeholder="/path/to/database.sqlite"
           />
         </div>
-      </div>
+      ) : (
+        <>
+          {/* Host and Port for non-SQLite databases */}
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Host <span className="text-red-500">*</span>
+              </label>
+              <input
+                type="text"
+                value={connectionConfig.host}
+                onChange={(e) =>
+                  setConnectionConfig({ ...connectionConfig, host: e.target.value })
+                }
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                placeholder="localhost"
+              />
+            </div>
 
-      <div>
-        <label className="block text-sm font-medium text-gray-700 mb-2">
-          Database Name
-        </label>
-        <input
-          type="text"
-          value={connectionConfig.database}
-          onChange={(e) =>
-            setConnectionConfig({
-              ...connectionConfig,
-              database: e.target.value,
-            })
-          }
-          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-          placeholder="your_database_name"
-        />
-      </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Port
+              </label>
+              <input
+                type="number"
+                value={connectionConfig.port}
+                onChange={(e) =>
+                  setConnectionConfig({
+                    ...connectionConfig,
+                    port: parseInt(e.target.value),
+                  })
+                }
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                placeholder={getDefaultPort().toString()}
+              />
+            </div>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Database Name <span className="text-red-500">*</span>
+            </label>
+            <input
+              type="text"
+              value={connectionConfig.database}
+              onChange={(e) =>
+                setConnectionConfig({
+                  ...connectionConfig,
+                  database: e.target.value,
+                })
+              }
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              placeholder="your_database_name"
+            />
+          </div>
+        </>
+      )}
 
       <div className="grid grid-cols-2 gap-4">
         <div>
@@ -335,6 +479,86 @@ function MysqlDirectConfig({
           Use SSL connection
         </label>
       </div>
+
+      {/* Table Selection */}
+      {dataSourceType !== 'sqlite' && (
+        <CellCard className="p-4 bg-gray-50">
+          <div className="flex justify-between items-center mb-4">
+            <div>
+              <h4 className="text-sm font-bold text-gray-900">Table Selection</h4>
+              <p className="text-xs text-gray-600">Choose which tables to import data from</p>
+            </div>
+            <CellButton 
+              onClick={loadTables} 
+              variant="secondary" 
+              size="sm"
+              disabled={loadingTables || !connectionConfig.host || !connectionConfig.database}
+            >
+              {loadingTables ? (
+                <>
+                  <RefreshCw className="h-4 w-4 mr-1 animate-spin" />
+                  Loading...
+                </>
+              ) : (
+                <>
+                  <Database className="h-4 w-4 mr-1" />
+                  Load Tables
+                </>
+              )}
+            </CellButton>
+          </div>
+
+          {availableTables.length > 0 ? (
+            <>
+              <div className="flex justify-between items-center mb-3">
+                <div className="text-sm text-gray-600">
+                  {connectionConfig.tables.length} of {availableTables.length} tables selected
+                </div>
+                <div className="flex gap-2">
+                  <CellButton onClick={selectAllTables} variant="ghost" size="sm">
+                    Select All
+                  </CellButton>
+                  <CellButton onClick={deselectAllTables} variant="ghost" size="sm">
+                    Deselect All
+                  </CellButton>
+                </div>
+              </div>
+
+              <div className="max-h-64 overflow-y-auto border border-gray-300 rounded p-3 bg-white">
+                <div className="space-y-2">
+                  {availableTables.map((tableName) => (
+                    <div key={tableName} className="flex items-center">
+                      <input
+                        type="checkbox"
+                        id={`table-${tableName}`}
+                        checked={connectionConfig.tables.includes(tableName)}
+                        onChange={() => toggleTable(tableName)}
+                        className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                      />
+                      <label 
+                        htmlFor={`table-${tableName}`} 
+                        className="ml-2 block text-sm text-gray-900 cursor-pointer font-mono"
+                      >
+                        {tableName}
+                      </label>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {connectionConfig.tables.length === 0 && (
+                <div className="mt-2 text-xs text-orange-600 bg-orange-50 border border-orange-200 rounded p-2">
+                  ⚠️ No tables selected. All tables will be imported by default.
+                </div>
+              )}
+            </>
+          ) : (
+            <div className="text-center py-4 text-sm text-gray-500">
+              Click "Load Tables" to see available tables from the database
+            </div>
+          )}
+        </CellCard>
+      )}
 
       {/* Advanced Options */}
       <div className="border-t border-gray-200 pt-4">
@@ -482,19 +706,7 @@ function MysqlDirectConfig({
         )}
       </div>
 
-      <div className="flex justify-end">
-        <Button
-          onClick={handleNext}
-          variant="primary"
-          disabled={
-            !connectionConfig.host ||
-            !connectionConfig.database ||
-            !connectionConfig.username
-          }
-        >
-          Continue
-        </Button>
-      </div>
+      {/* No button here - workflow uses Review button at bottom */}
     </div>
   );
 }
@@ -917,9 +1129,6 @@ function JavaScriptCustomScriptConfig({
 }: ImportMethodConfigProps) {
   const [script, setScript] = useState(config.javascriptConfig?.script || "");
   const [selectedExample, setSelectedExample] = useState<string>("");
-  const [variables, setVariables] = useState<Record<string, any>>(
-    config.javascriptConfig?.variables || {}
-  );
   const [outputFormat, setOutputFormat] = useState<"array" | "object">(
     config.javascriptConfig?.outputFormat || "array"
   );
@@ -950,43 +1159,12 @@ function JavaScriptCustomScriptConfig({
     }
   };
 
-  const handleVariablesChange = (key: string, value: string) => {
-    const newVariables = { ...variables, [key]: value };
-    setVariables(newVariables);
-    onConfigChange({
-      ...config,
-      javascriptConfig: {
-        ...config.javascriptConfig,
-        variables: newVariables,
-      },
-    });
-  };
-
-  const addVariable = () => {
-    const newKey = `variable_${Object.keys(variables).length + 1}`;
-    handleVariablesChange(newKey, "");
-  };
-
-  const removeVariable = (key: string) => {
-    const newVariables = { ...variables };
-    delete newVariables[key];
-    setVariables(newVariables);
-    onConfigChange({
-      ...config,
-      javascriptConfig: {
-        ...config.javascriptConfig,
-        variables: newVariables,
-      },
-    });
-  };
-
   const handleNext = () => {
     onConfigChange({
       ...config,
       javascriptConfig: {
         ...config.javascriptConfig,
         script,
-        variables,
         outputFormat,
         enableDiff: true,
         diffKey: "id",
@@ -1044,57 +1222,6 @@ async function fetchData() {
 // Return the data
 return await fetchData();`}
         />
-      </div>
-
-      <div>
-        <label className="block text-body font-bold text-gray-700 mb-2">
-          Environment Variables
-        </label>
-        <p className="text-caption text-gray-600 mb-4">
-          Define variables that will be available in your script context.
-        </p>
-        
-        <div className="space-y-2">
-          {Object.entries(variables).map(([key, value]) => (
-            <div key={key} className="flex gap-2">
-              <input
-                type="text"
-                value={key}
-                onChange={(e) => {
-                  const newVariables = { ...variables };
-                  delete newVariables[key];
-                  newVariables[e.target.value] = value;
-                  setVariables(newVariables);
-                }}
-                className="cell-input flex-1 px-3 py-2"
-                placeholder="Variable name"
-              />
-              <input
-                type="text"
-                value={value}
-                onChange={(e) => handleVariablesChange(key, e.target.value)}
-                className="cell-input flex-2 px-3 py-2"
-                placeholder="Variable value"
-              />
-              <CellButton
-                variant="danger"
-                size="sm"
-                onClick={() => removeVariable(key)}
-              >
-                Remove
-              </CellButton>
-            </div>
-          ))}
-        </div>
-        
-        <CellButton
-          variant="ghost"
-          size="sm"
-          onClick={addVariable}
-          className="mt-2"
-        >
-          Add Variable
-        </CellButton>
       </div>
 
       <div>
@@ -1643,9 +1770,531 @@ function SQLFileConfig({
   );
 }
 
+// Shared Faker types configuration
+const FAKER_TYPES = [
+  { value: "number.int", label: "Integer (Auto-increment)" },
+  { value: "string.uuid", label: "UUID" },
+  { value: "person.firstName", label: "First Name" },
+  { value: "person.lastName", label: "Last Name" },
+  { value: "person.fullName", label: "Full Name" },
+  { value: "internet.email", label: "Email Address" },
+  { value: "internet.userName", label: "Username" },
+  { value: "internet.password", label: "Password" },
+  { value: "internet.url", label: "URL" },
+  { value: "phone.number", label: "Phone Number" },
+  { value: "location.streetAddress", label: "Street Address" },
+  { value: "location.city", label: "City" },
+  { value: "location.state", label: "State" },
+  { value: "location.zipCode", label: "Zip Code" },
+  { value: "location.country", label: "Country" },
+  { value: "company.name", label: "Company Name" },
+  { value: "lorem.sentence", label: "Sentence" },
+  { value: "lorem.paragraph", label: "Paragraph" },
+  { value: "date.past", label: "Past Date" },
+  { value: "date.future", label: "Future Date" },
+  { value: "date.birthdate", label: "Birthdate" },
+  { value: "number.float", label: "Decimal Number" },
+  { value: "datatype.boolean", label: "Boolean (true/false)" },
+  { value: "finance.amount", label: "Currency Amount" },
+  { value: "finance.creditCardNumber", label: "Credit Card Number" },
+];
+
+// JSON Generator Configuration with Faker
+function JsonGeneratorConfig({
+  config,
+  onConfigChange,
+  onNext,
+}: ImportMethodConfigProps) {
+  const [outputPath, setOutputPath] = useState(config.jsonGenerator?.outputPath || "");
+  const [recordCount, setRecordCount] = useState(config.jsonGenerator?.recordCount || 100);
+  const [fields, setFields] = useState<Array<{name: string; fakerType: string}>>(
+    config.jsonGenerator?.fields || [
+      { name: "id", fakerType: "number.int" },
+      { name: "name", fakerType: "person.fullName" },
+      { name: "email", fakerType: "internet.email" },
+    ]
+  );
+
+  const addField = () => {
+    setFields([...fields, { name: `field_${fields.length + 1}`, fakerType: "person.fullName" }]);
+  };
+
+  const removeField = (index: number) => {
+    setFields(fields.filter((_, i) => i !== index));
+  };
+
+  const updateField = (index: number, field: 'name' | 'fakerType', value: string) => {
+    const newFields = [...fields];
+    newFields[index][field] = value;
+    setFields(newFields);
+  };
+
+  const handleNext = () => {
+    onConfigChange({
+      ...config,
+      jsonGenerator: {
+        outputPath,
+        recordCount,
+        fields,
+      },
+    });
+    onNext();
+  };
+
+  return (
+    <div className="space-y-6">
+      <div className="text-center">
+        <FileText className="h-12 w-12 mx-auto text-green-500 mb-4" />
+        <h3 className="text-lg font-semibold mb-2">Generate JSON File</h3>
+        <p className="text-gray-600">
+          Create a JSON file with realistic test data using Faker
+        </p>
+      </div>
+
+      {/* Output Path */}
+      <CellCard className="p-4">
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-2">
+            Output File Path <span className="text-red-500">*</span>
+          </label>
+          <input
+            type="text"
+            value={outputPath}
+            onChange={(e) => setOutputPath(e.target.value)}
+            className="cell-input px-3 py-2"
+            placeholder="C:\data\test-data.json or /path/to/test-data.json"
+          />
+          <p className="text-xs text-gray-500 mt-1">
+            Full path where the JSON file will be saved
+          </p>
+        </div>
+      </CellCard>
+
+      {/* Record Count */}
+      <CellCard className="p-4">
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-2">
+            Number of Records <span className="text-red-500">*</span>
+          </label>
+          <input
+            type="number"
+            value={recordCount}
+            onChange={(e) => setRecordCount(parseInt(e.target.value))}
+            className="cell-input px-3 py-2"
+            placeholder="100"
+            min="1"
+            max="100000"
+          />
+        </div>
+      </CellCard>
+
+      {/* Field Schema */}
+      <CellCard className="p-4">
+        <div className="flex justify-between items-center mb-4">
+          <div>
+            <h4 className="text-sm font-bold text-gray-900">Field Schema</h4>
+            <p className="text-xs text-gray-600">Define the fields and data types for your JSON objects</p>
+          </div>
+          <CellButton onClick={addField} variant="secondary" size="sm">
+            <Plus className="h-4 w-4 mr-1" />
+            Add Field
+          </CellButton>
+        </div>
+
+        <div className="space-y-3">
+          {fields.map((field, index) => (
+            <div key={index} className="flex gap-2 items-start">
+              <div className="flex-1">
+                <input
+                  type="text"
+                  value={field.name}
+                  onChange={(e) => updateField(index, 'name', e.target.value)}
+                  className="cell-input px-3 py-2 text-sm"
+                  placeholder="Field name"
+                />
+              </div>
+              <div className="flex-2">
+                <select
+                  value={field.fakerType}
+                  onChange={(e) => updateField(index, 'fakerType', e.target.value)}
+                  className="cell-input px-3 py-2 text-sm"
+                >
+                  {FAKER_TYPES.map(type => (
+                    <option key={type.value} value={type.value}>
+                      {type.label}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <CellButton
+                onClick={() => removeField(index)}
+                variant="danger"
+                size="sm"
+                disabled={fields.length === 1}
+              >
+                Remove
+              </CellButton>
+            </div>
+          ))}
+        </div>
+      </CellCard>
+
+      {/* Preview Info */}
+      <CellCard className="p-4 bg-green-50 border-2 border-green-200">
+        <div className="flex items-start">
+          <Zap className="h-5 w-5 text-green-600 mr-2 mt-0.5" />
+          <div>
+            <h4 className="text-sm font-bold text-green-900 mb-1">What will be generated:</h4>
+            <ul className="text-xs text-green-800 space-y-1">
+              <li>• JSON file at: <code className="bg-green-100 px-1 py-0.5 rounded">{outputPath || "(path not set)"}</code></li>
+              <li>• Array of {recordCount} objects</li>
+              <li>• {fields.length} fields per object with realistic test data</li>
+            </ul>
+          </div>
+        </div>
+      </CellCard>
+    </div>
+  );
+}
+
+// CSV Generator Configuration with Faker
+function CsvGeneratorConfig({
+  config,
+  onConfigChange,
+  onNext,
+}: ImportMethodConfigProps) {
+  const [outputPath, setOutputPath] = useState(config.csvGenerator?.outputPath || "");
+  const [recordCount, setRecordCount] = useState(config.csvGenerator?.recordCount || 100);
+  const [columns, setColumns] = useState<Array<{name: string; fakerType: string}>>(
+    config.csvGenerator?.columns || [
+      { name: "id", fakerType: "number.int" },
+      { name: "name", fakerType: "person.fullName" },
+      { name: "email", fakerType: "internet.email" },
+    ]
+  );
+
+  const addColumn = () => {
+    setColumns([...columns, { name: `column_${columns.length + 1}`, fakerType: "person.fullName" }]);
+  };
+
+  const removeColumn = (index: number) => {
+    setColumns(columns.filter((_, i) => i !== index));
+  };
+
+  const updateColumn = (index: number, field: 'name' | 'fakerType', value: string) => {
+    const newColumns = [...columns];
+    newColumns[index][field] = value;
+    setColumns(newColumns);
+  };
+
+  const handleNext = () => {
+    onConfigChange({
+      ...config,
+      csvGenerator: {
+        outputPath,
+        recordCount,
+        columns,
+      },
+    });
+    onNext();
+  };
+
+  return (
+    <div className="space-y-6">
+      <div className="text-center">
+        <FileText className="h-12 w-12 mx-auto text-blue-500 mb-4" />
+        <h3 className="text-lg font-semibold mb-2">Generate CSV File</h3>
+        <p className="text-gray-600">
+          Create a CSV file with realistic test data using Faker
+        </p>
+      </div>
+
+      {/* Output Path */}
+      <CellCard className="p-4">
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-2">
+            Output File Path <span className="text-red-500">*</span>
+          </label>
+          <input
+            type="text"
+            value={outputPath}
+            onChange={(e) => setOutputPath(e.target.value)}
+            className="cell-input px-3 py-2"
+            placeholder="C:\data\test-data.csv or /path/to/test-data.csv"
+          />
+          <p className="text-xs text-gray-500 mt-1">
+            Full path where the CSV file will be saved
+          </p>
+        </div>
+      </CellCard>
+
+      {/* Record Count */}
+      <CellCard className="p-4">
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-2">
+            Number of Records <span className="text-red-500">*</span>
+          </label>
+          <input
+            type="number"
+            value={recordCount}
+            onChange={(e) => setRecordCount(parseInt(e.target.value))}
+            className="cell-input px-3 py-2"
+            placeholder="100"
+            min="1"
+            max="100000"
+          />
+        </div>
+      </CellCard>
+
+      {/* Column Schema */}
+      <CellCard className="p-4">
+        <div className="flex justify-between items-center mb-4">
+          <div>
+            <h4 className="text-sm font-bold text-gray-900">Column Schema</h4>
+            <p className="text-xs text-gray-600">Define the columns and data types for your CSV file</p>
+          </div>
+          <CellButton onClick={addColumn} variant="secondary" size="sm">
+            <Plus className="h-4 w-4 mr-1" />
+            Add Column
+          </CellButton>
+        </div>
+
+        <div className="space-y-3">
+          {columns.map((column, index) => (
+            <div key={index} className="flex gap-2 items-start">
+              <div className="flex-1">
+                <input
+                  type="text"
+                  value={column.name}
+                  onChange={(e) => updateColumn(index, 'name', e.target.value)}
+                  className="cell-input px-3 py-2 text-sm"
+                  placeholder="Column name"
+                />
+              </div>
+              <div className="flex-2">
+                <select
+                  value={column.fakerType}
+                  onChange={(e) => updateColumn(index, 'fakerType', e.target.value)}
+                  className="cell-input px-3 py-2 text-sm"
+                >
+                  {FAKER_TYPES.map(type => (
+                    <option key={type.value} value={type.value}>
+                      {type.label}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <CellButton
+                onClick={() => removeColumn(index)}
+                variant="danger"
+                size="sm"
+                disabled={columns.length === 1}
+              >
+                Remove
+              </CellButton>
+            </div>
+          ))}
+        </div>
+      </CellCard>
+
+      {/* Preview Info */}
+      <CellCard className="p-4 bg-blue-50 border-2 border-blue-200">
+        <div className="flex items-start">
+          <Zap className="h-5 w-5 text-blue-600 mr-2 mt-0.5" />
+          <div>
+            <h4 className="text-sm font-bold text-blue-900 mb-1">What will be generated:</h4>
+            <ul className="text-xs text-blue-800 space-y-1">
+              <li>• CSV file at: <code className="bg-blue-100 px-1 py-0.5 rounded">{outputPath || "(path not set)"}</code></li>
+              <li>• Header row with column names</li>
+              <li>• {recordCount} data rows</li>
+              <li>• {columns.length} columns with realistic test data</li>
+            </ul>
+          </div>
+        </div>
+      </CellCard>
+    </div>
+  );
+}
+
+// SQLite Generator Configuration with Faker
+function SqliteGeneratorConfig({
+  config,
+  onConfigChange,
+  onNext,
+}: ImportMethodConfigProps) {
+  const [outputPath, setOutputPath] = useState(config.sqliteGenerator?.outputPath || "");
+  const [tableName, setTableName] = useState(config.sqliteGenerator?.tableName || "users");
+  const [recordCount, setRecordCount] = useState(config.sqliteGenerator?.recordCount || 100);
+  const [columns, setColumns] = useState<Array<{name: string; fakerType: string}>>(
+    config.sqliteGenerator?.columns || [
+      { name: "id", fakerType: "number.int" },
+      { name: "name", fakerType: "person.fullName" },
+      { name: "email", fakerType: "internet.email" },
+    ]
+  );
+
+  const addColumn = () => {
+    setColumns([...columns, { name: `column_${columns.length + 1}`, fakerType: "person.fullName" }]);
+  };
+
+  const removeColumn = (index: number) => {
+    setColumns(columns.filter((_, i) => i !== index));
+  };
+
+  const updateColumn = (index: number, field: 'name' | 'fakerType', value: string) => {
+    const newColumns = [...columns];
+    newColumns[index][field] = value;
+    setColumns(newColumns);
+  };
+
+  const handleNext = () => {
+    onConfigChange({
+      ...config,
+      sqliteGenerator: {
+        outputPath,
+        tableName,
+        recordCount,
+        columns,
+      },
+    });
+    onNext();
+  };
+
+  return (
+    <div className="space-y-6">
+      <div className="text-center">
+        <Database className="h-12 w-12 mx-auto text-purple-500 mb-4" />
+        <h3 className="text-lg font-semibold mb-2">Generate SQLite Database</h3>
+        <p className="text-gray-600">
+          Create a SQLite database file with realistic test data using Faker
+        </p>
+      </div>
+
+      {/* Output Path */}
+      <CellCard className="p-4">
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-2">
+            Output File Path <span className="text-red-500">*</span>
+          </label>
+          <input
+            type="text"
+            value={outputPath}
+            onChange={(e) => setOutputPath(e.target.value)}
+            className="cell-input px-3 py-2"
+            placeholder="C:\data\test-database.sqlite or /path/to/test-database.sqlite"
+          />
+          <p className="text-xs text-gray-500 mt-1">
+            Full path where the SQLite database file will be saved
+          </p>
+        </div>
+      </CellCard>
+
+      {/* Table Configuration */}
+      <CellCard className="p-4">
+        <div className="grid grid-cols-2 gap-4">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Table Name <span className="text-red-500">*</span>
+            </label>
+            <input
+              type="text"
+              value={tableName}
+              onChange={(e) => setTableName(e.target.value)}
+              className="cell-input px-3 py-2"
+              placeholder="users"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Number of Records <span className="text-red-500">*</span>
+            </label>
+            <input
+              type="number"
+              value={recordCount}
+              onChange={(e) => setRecordCount(parseInt(e.target.value))}
+              className="cell-input px-3 py-2"
+              placeholder="100"
+              min="1"
+              max="100000"
+            />
+          </div>
+        </div>
+      </CellCard>
+
+      {/* Column Schema */}
+      <CellCard className="p-4">
+        <div className="flex justify-between items-center mb-4">
+          <div>
+            <h4 className="text-sm font-bold text-gray-900">Column Schema</h4>
+            <p className="text-xs text-gray-600">Define the columns and data types for your table</p>
+          </div>
+          <CellButton onClick={addColumn} variant="secondary" size="sm">
+            <Plus className="h-4 w-4 mr-1" />
+            Add Column
+          </CellButton>
+        </div>
+
+        <div className="space-y-3">
+          {columns.map((column, index) => (
+            <div key={index} className="flex gap-2 items-start">
+              <div className="flex-1">
+                <input
+                  type="text"
+                  value={column.name}
+                  onChange={(e) => updateColumn(index, 'name', e.target.value)}
+                  className="cell-input px-3 py-2 text-sm"
+                  placeholder="Column name"
+                />
+              </div>
+              <div className="flex-2">
+                <select
+                  value={column.fakerType}
+                  onChange={(e) => updateColumn(index, 'fakerType', e.target.value)}
+                  className="cell-input px-3 py-2 text-sm"
+                >
+                  {FAKER_TYPES.map(type => (
+                    <option key={type.value} value={type.value}>
+                      {type.label}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <CellButton
+                onClick={() => removeColumn(index)}
+                variant="danger"
+                size="sm"
+                disabled={columns.length === 1}
+              >
+                Remove
+              </CellButton>
+            </div>
+          ))}
+        </div>
+      </CellCard>
+
+      {/* Preview Info */}
+      <CellCard className="p-4 bg-purple-50 border-2 border-purple-200">
+        <div className="flex items-start">
+          <Zap className="h-5 w-5 text-purple-600 mr-2 mt-0.5" />
+          <div>
+            <h4 className="text-sm font-bold text-purple-900 mb-1">What will be generated:</h4>
+            <ul className="text-xs text-purple-800 space-y-1">
+              <li>• SQLite database file at: <code className="bg-purple-100 px-1 py-0.5 rounded">{outputPath || "(path not set)"}</code></li>
+              <li>• Table: <code className="bg-purple-100 px-1 py-0.5 rounded">{tableName}</code> with {recordCount} records</li>
+              <li>• {columns.length} columns with realistic test data</li>
+            </ul>
+          </div>
+        </div>
+      </CellCard>
+
+      {/* No button here - workflow uses Review button at bottom */}
+    </div>
+  );
+}
+
 // Main configuration component
 export default function ImportMethodConfigs(props: ImportMethodConfigProps) {
-  const { dataSourceType, importMethod } = props;
+  const { dataSourceType, importMethod} = props;
 
   switch (importMethod) {
     case "file-upload":
@@ -1658,12 +2307,20 @@ export default function ImportMethodConfigs(props: ImportMethodConfigProps) {
       return <RestApiConfig {...props} />;
     case "template-based":
       return <MockDataConfig {...props} />;
+    case "custom-schema":
+      return <MockDataConfig {...props} />;
     case "custom-script":
       return <JavaScriptCustomScriptConfig {...props} />;
     case "scheduled-script":
       return <JavaScriptScheduledScriptConfig {...props} />;
     case "sql-import":
       return <SQLFileConfig {...props} />;
+    case "faker-sqlite":
+      return <SqliteGeneratorConfig {...props} />;
+    case "faker-json":
+      return <JsonGeneratorConfig {...props} />;
+    case "faker-csv":
+      return <CsvGeneratorConfig {...props} />;
     default:
       return (
         <div className="text-center py-8">

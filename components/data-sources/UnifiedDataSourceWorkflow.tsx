@@ -92,10 +92,12 @@ export default function UnifiedDataSourceWorkflow({
   const [loadingTables, setLoadingTables] = useState(false);
 
   // Data source type options with their available import methods
+  // Organized by category: Databases, Files, APIs/Scripts, Development
   const dataSourceTypes: DataSourceTypeOption[] = [
+    // === DATABASES ===
     {
       id: "mysql",
-      name: "MySQL Database",
+      name: "MySQL",
       description: "Connect to MySQL databases for real-time data access",
       icon: <Database className="h-6 w-6" />,
       color: "bg-blue-500",
@@ -114,6 +116,86 @@ export default function UnifiedDataSourceWorkflow({
         },
       ],
     },
+    {
+      id: "postgres",
+      name: "PostgreSQL",
+      description: "Connect to PostgreSQL databases with advanced features",
+      icon: <Database className="h-6 w-6" />,
+      color: "bg-indigo-500",
+      importMethods: [
+        {
+          id: "direct-connection",
+          name: "Direct Connection",
+          description: "Connect directly to PostgreSQL database",
+          icon: <Database className="h-5 w-5" />,
+        },
+        {
+          id: "sql-dump-import",
+          name: "SQL Dump Import",
+          description: "Import data from PostgreSQL dump files",
+          icon: <Upload className="h-5 w-5" />,
+        },
+      ],
+    },
+    {
+      id: "mssql",
+      name: "Microsoft SQL Server",
+      description: "Connect to Microsoft SQL Server databases",
+      icon: <Database className="h-6 w-6" />,
+      color: "bg-blue-600",
+      importMethods: [
+        {
+          id: "direct-connection",
+          name: "Direct Connection",
+          description: "Connect directly to SQL Server database",
+          icon: <Database className="h-5 w-5" />,
+        },
+        {
+          id: "sql-dump-import",
+          name: "SQL Dump Import",
+          description: "Import data from SQL Server backup files",
+          icon: <Upload className="h-5 w-5" />,
+        },
+      ],
+    },
+    {
+      id: "sqlite",
+      name: "SQLite",
+      description: "Connect to SQLite database files",
+      icon: <Database className="h-6 w-6" />,
+      color: "bg-gray-600",
+      importMethods: [
+        {
+          id: "direct-connection",
+          name: "Direct Connection",
+          description: "Connect to SQLite database file",
+          icon: <Database className="h-5 w-5" />,
+        },
+        {
+          id: "file-upload",
+          name: "File Upload",
+          description: "Upload SQLite database file",
+          icon: <Upload className="h-5 w-5" />,
+        },
+      ],
+    },
+    {
+      id: "odbc",
+      name: "ODBC Connection",
+      description: "Connect to any ODBC-compliant database (Access, DB2, etc.)",
+      icon: <Database className="h-6 w-6" />,
+      color: "bg-cyan-500",
+      importMethods: [
+        {
+          id: "direct-connection",
+          name: "Direct Connection",
+          description: "Connect using ODBC driver",
+          icon: <Database className="h-5 w-5" />,
+        },
+      ],
+    },
+
+    // === FILES ===
     {
       id: "csv",
       name: "CSV File",
@@ -163,6 +245,23 @@ export default function UnifiedDataSourceWorkflow({
       ],
     },
     {
+      id: "sql",
+      name: "SQL Dump File",
+      description: "Import data from SQL dump files or raw SQL statements",
+      icon: <Database className="h-6 w-6" />,
+      color: "bg-purple-600",
+      importMethods: [
+        {
+          id: "sql-import",
+          name: "SQL File Import",
+          description: "Import from SQL dump files or paste SQL statements",
+          icon: <Upload className="h-5 w-5" />,
+        },
+      ],
+    },
+
+    // === APIs & SCRIPTS ===
+    {
       id: "api_script",
       name: "API Endpoint",
       description: "Connect to REST APIs and web services",
@@ -180,27 +279,6 @@ export default function UnifiedDataSourceWorkflow({
           name: "GraphQL API",
           description: "Connect to GraphQL endpoints",
           icon: <Zap className="h-5 w-5" />,
-        },
-      ],
-    },
-    {
-      id: "mock",
-      name: "Mock Data",
-      description: "Generate sample data for testing and development",
-      icon: <Cloud className="h-6 w-6" />,
-      color: "bg-gray-500",
-      importMethods: [
-        {
-          id: "template-based",
-          name: "Template Based",
-          description: "Generate data from predefined templates",
-          icon: <Settings className="h-5 w-5" />,
-        },
-        {
-          id: "custom-schema",
-          name: "Custom Schema",
-          description: "Define custom data schemas",
-          icon: <Code className="h-5 w-5" />,
         },
       ],
     },
@@ -225,18 +303,71 @@ export default function UnifiedDataSourceWorkflow({
         },
       ],
     },
+
+    // === DEVELOPMENT & TESTING ===
     {
-      id: "sql",
-      name: "SQL Import",
-      description: "Import data from SQL dump files or raw SQL statements",
+      id: "mock",
+      name: "Mock Data Generator",
+      description: "Generate sample data for testing and development",
+      icon: <Zap className="h-6 w-6" />,
+      color: "bg-gray-500",
+      importMethods: [
+        {
+          id: "template-based",
+          name: "Template Based",
+          description: "Generate data from predefined templates",
+          icon: <Settings className="h-5 w-5" />,
+        },
+        {
+          id: "custom-schema",
+          name: "Custom Schema",
+          description: "Define custom data schemas",
+          icon: <Code className="h-5 w-5" />,
+        },
+      ],
+    },
+    {
+      id: "sqlite_generator",
+      name: "SQLite Generator",
+      description: "Generate a SQLite database file with realistic test data using Faker",
       icon: <Database className="h-6 w-6" />,
       color: "bg-purple-500",
       importMethods: [
         {
-          id: "sql-import",
-          name: "SQL File Import",
-          description: "Import from SQL dump files or paste SQL statements",
-          icon: <Upload className="h-5 w-5" />,
+          id: "faker-sqlite",
+          name: "Faker Schema",
+          description: "Define schema and generate realistic data with Faker",
+          icon: <Zap className="h-5 w-5" />,
+        },
+      ],
+    },
+    {
+      id: "json_generator",
+      name: "JSON Generator",
+      description: "Generate a JSON file with realistic test data using Faker",
+      icon: <FileText className="h-6 w-6" />,
+      color: "bg-green-500",
+      importMethods: [
+        {
+          id: "faker-json",
+          name: "Faker Schema",
+          description: "Define schema and generate realistic JSON data",
+          icon: <Zap className="h-5 w-5" />,
+        },
+      ],
+    },
+    {
+      id: "csv_generator",
+      name: "CSV Generator",
+      description: "Generate a CSV file with realistic test data using Faker",
+      icon: <FileText className="h-6 w-6" />,
+      color: "bg-blue-500",
+      importMethods: [
+        {
+          id: "faker-csv",
+          name: "Faker Schema",
+          description: "Define schema and generate realistic CSV data",
+          icon: <Zap className="h-5 w-5" />,
         },
       ],
     },
@@ -281,8 +412,9 @@ export default function UnifiedDataSourceWorkflow({
     // Type-specific validation
     switch (selectedType) {
       case 'mysql':
+      case 'postgres':
         if (!dataSourceConfig.host?.trim()) {
-          return { valid: false, error: 'MySQL host is required' };
+          return { valid: false, error: `${selectedType === 'mysql' ? 'MySQL' : 'PostgreSQL'} host is required` };
         }
         if (!dataSourceConfig.database?.trim()) {
           return { valid: false, error: 'Database name is required' };
@@ -294,18 +426,28 @@ export default function UnifiedDataSourceWorkflow({
       
       case 'mssql':
         if (!dataSourceConfig.host?.trim()) {
-          return { valid: false, error: 'MSSQL host is required' };
+          return { valid: false, error: 'SQL Server host is required' };
         }
         if (!dataSourceConfig.database?.trim()) {
           return { valid: false, error: 'Database name is required' };
         }
         break;
       
+      case 'sqlite':
+        if (!dataSourceConfig.filePath?.trim() && !dataSourceConfig.uploadFile) {
+          return { valid: false, error: 'SQLite database file path is required' };
+        }
+        break;
+      
       case 'odbc':
-        if (!dataSourceConfig.driver?.trim()) {
+        // Check both top-level and nested config locations
+        const driver = dataSourceConfig.driver || dataSourceConfig.mysqlConfig?.driver;
+        const database = dataSourceConfig.database || dataSourceConfig.mysqlConfig?.database;
+        
+        if (!driver?.trim()) {
           return { valid: false, error: 'ODBC driver name is required' };
         }
-        if (!dataSourceConfig.database?.trim()) {
+        if (!database?.trim()) {
           return { valid: false, error: 'Database name is required' };
         }
         break;
@@ -338,8 +480,13 @@ export default function UnifiedDataSourceWorkflow({
   };
 
   const testConnection = async () => {
+    console.log('[UnifiedDataSourceWorkflow] testConnection - dataSourceConfig:', dataSourceConfig);
+    console.log('[UnifiedDataSourceWorkflow] testConnection - selectedType:', selectedType);
+    
     const validation = validateConfiguration();
     if (!validation.valid) {
+      console.error('[UnifiedDataSourceWorkflow] Validation failed:', validation.error);
+      console.error('[UnifiedDataSourceWorkflow] Current config:', dataSourceConfig);
       alert(validation.error);
       return;
     }
@@ -562,12 +709,40 @@ export default function UnifiedDataSourceWorkflow({
   };
 
   const renderTypeSelection = () => {
-    const selectedTypeOption = dataSourceTypes.find(
-      (t) => t.id === selectedType
-    );
+    // Group data sources by category
+    const categories = [
+      {
+        name: "Databases",
+        description: "Connect to SQL databases and data warehouses",
+        types: dataSourceTypes.filter(t => 
+          ['mysql', 'postgres', 'mssql', 'sqlite', 'odbc'].includes(t.id)
+        )
+      },
+      {
+        name: "Files",
+        description: "Import data from various file formats",
+        types: dataSourceTypes.filter(t => 
+          ['csv', 'json', 'sql'].includes(t.id)
+        )
+      },
+      {
+        name: "APIs & Scripts",
+        description: "Connect to external APIs or run custom scripts",
+        types: dataSourceTypes.filter(t => 
+          ['api_script', 'javascript'].includes(t.id)
+        )
+      },
+      {
+        name: "Development",
+        description: "Generate test data for development purposes",
+        types: dataSourceTypes.filter(t => 
+          ['mock', 'sqlite_generator', 'json_generator', 'csv_generator'].includes(t.id)
+        )
+      }
+    ];
 
     return (
-      <div className="space-y-6">
+      <div className="space-y-8">
         <div className="text-center">
           <h2 className="text-heading font-bold mb-2">
             Choose Data Source Type
@@ -577,48 +752,57 @@ export default function UnifiedDataSourceWorkflow({
           </p>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {dataSourceTypes.map((type) => (
-            <CellCard
-              key={type.id}
-              className="p-6 cursor-pointer hover:bg-gray-50 transition-all duration-200 group"
-              onClick={() => handleTypeSelection(type.id)}
-            >
-              <div className="flex items-center mb-4">
-                <div
-                  className={`p-3 border-2 border-black shadow-cell text-white mr-4 group-hover:shadow-cell-sm group-hover:translate-x-[1px] group-hover:translate-y-[1px] transition-all duration-100 ${type.color}`}
+        {categories.map((category) => (
+          <div key={category.name} className="space-y-4">
+            <div className="border-b-2 border-black pb-2">
+              <h3 className="text-subheading font-bold">{category.name}</h3>
+              <p className="text-caption text-gray-600">{category.description}</p>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {category.types.map((type) => (
+                <CellCard
+                  key={type.id}
+                  className="p-6 cursor-pointer hover:bg-gray-50 transition-all duration-200 group"
+                  onClick={() => handleTypeSelection(type.id)}
                 >
-                  {type.icon}
-                </div>
-                <div>
-                  <h3 className="text-subheading font-bold">
-                    {type.name}
-                  </h3>
-                  <p className="text-caption text-gray-600">
-                    {type.importMethods.length} import method
-                    {type.importMethods.length !== 1 ? "s" : ""} available
-                  </p>
-                </div>
-              </div>
-              <p className="text-body text-gray-600 mb-4">{type.description}</p>
-              <div className="flex flex-wrap gap-1">
-                {type.importMethods.slice(0, 2).map((method) => (
-                  <span
-                    key={method.id}
-                    className="px-2 py-1 border border-black bg-gray-100 text-gray-600 text-caption font-mono"
-                  >
-                    {method.name}
-                  </span>
-                ))}
-                {type.importMethods.length > 2 && (
-                  <span className="px-2 py-1 border border-black bg-gray-100 text-gray-600 text-caption font-mono">
-                    +{type.importMethods.length - 2} more
-                  </span>
-                )}
-              </div>
-            </CellCard>
-          ))}
-        </div>
+                  <div className="flex items-center mb-4">
+                    <div
+                      className={`p-3 border-2 border-black shadow-cell text-white mr-4 group-hover:shadow-cell-sm group-hover:translate-x-[1px] group-hover:translate-y-[1px] transition-all duration-100 ${type.color}`}
+                    >
+                      {type.icon}
+                    </div>
+                    <div>
+                      <h3 className="text-subheading font-bold">
+                        {type.name}
+                      </h3>
+                      <p className="text-caption text-gray-600">
+                        {type.importMethods.length} method
+                        {type.importMethods.length !== 1 ? "s" : ""}
+                      </p>
+                    </div>
+                  </div>
+                  <p className="text-body text-gray-600 mb-4">{type.description}</p>
+                  <div className="flex flex-wrap gap-1">
+                    {type.importMethods.slice(0, 2).map((method) => (
+                      <span
+                        key={method.id}
+                        className="px-2 py-1 border border-black bg-gray-100 text-gray-600 text-caption font-mono"
+                      >
+                        {method.name}
+                      </span>
+                    ))}
+                    {type.importMethods.length > 2 && (
+                      <span className="px-2 py-1 border border-black bg-gray-100 text-gray-600 text-caption font-mono">
+                        +{type.importMethods.length - 2} more
+                      </span>
+                    )}
+                  </div>
+                </CellCard>
+              ))}
+            </div>
+          </div>
+        ))}
       </div>
     );
   };
