@@ -207,12 +207,12 @@ function createWindow() {
     minHeight: 800,
     title: "Manifold - Data Integration Platform",
     webPreferences: {
-      nodeIntegration: false,
+      nodeIntegration: true,
       contextIsolation: true,
       enableRemoteModule: false,
       preload: path.join(__dirname, "preload.js"),
-      webSecurity: true,
-      allowRunningInsecureContent: false,
+      webSecurity: false,
+      allowRunningInsecureContent: true,
     },
     // Use native Windows title bar
     frame: true,

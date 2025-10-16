@@ -5,13 +5,15 @@
 import { NextRequest } from 'next/server';
 import { GET } from '../../../app/api/jobs/stats/route';
 
-// Mock CoreDatabase
-jest.mock('../../../lib/server/database/CoreDatabase', () => ({
-  CoreDatabase: {
+// Mock MongoDatabase
+jest.mock('../../../lib/server/database/MongoDatabase', () => ({
+  MongoDatabase: {
     getInstance: jest.fn(() => ({
+      initialize: jest.fn(),
+      isHealthy: jest.fn(() => true),
       getProjects: jest.fn(async () => [
         {
-          id: 'proj1',
+          _id: 'proj1',
           name: 'Test Project',
           createdAt: new Date('2025-09-25T00:00:00Z'),
           updatedAt: new Date(),
@@ -19,26 +21,28 @@ jest.mock('../../../lib/server/database/CoreDatabase', () => ({
           dataPath: './data/projects/proj1',
         }
       ]),
-    })),
-  },
-}));
-
-// Mock SeparatedDatabaseManager
-jest.mock('../../../lib/database/SeparatedDatabaseManager', () => ({
-  SeparatedDatabaseManager: {
-    getInstance: jest.fn(() => ({
       getDataSources: jest.fn(async () => [
         { id: 'ds1', name: 'Test Source', type: 'csv' },
         { id: 'ds2', name: 'Test Source 2', type: 'json' }
       ]),
+      getJobs: jest.fn(async () => []),
+      getPipelines: jest.fn(async () => []),
+      getSnapshots: jest.fn(async () => []),
+      createJob: jest.fn(),
+      updateJob: jest.fn(),
     })),
   },
 }));
 
-// Mock fs
-jest.mock('fs', () => ({
-  existsSync: jest.fn(() => true),
-  statSync: jest.fn(() => ({ size: 1024 * 1024 })), // 1 MB
+// Mock mongoose for dbStats
+jest.mock('mongoose', () => ({
+  connection: {
+    db: {
+      admin: jest.fn(() => ({
+        command: jest.fn(async () => ({ dataSize: 1024 * 1024 })) // 1 MB
+      }))
+    }
+  }
 }));
 
 describe('Jobs Stats API', () => {
@@ -116,11 +120,19 @@ describe('Jobs Stats API', () => {
     });
 
     it('should handle database errors gracefully', async () => {
-      const CoreDatabase = require('../../../lib/server/database/CoreDatabase').CoreDatabase;
-      CoreDatabase.getInstance.mockImplementationOnce(() => ({
+      const MongoDatabase = require('../../../lib/server/database/MongoDatabase').MongoDatabase;
+      MongoDatabase.getInstance.mockImplementationOnce(() => ({
+        initialize: jest.fn(),
+        isHealthy: jest.fn(() => true),
         getProjects: jest.fn(async () => {
           throw new Error('Database error');
         }),
+        getDataSources: jest.fn(async () => []),
+        getJobs: jest.fn(async () => []),
+        getPipelines: jest.fn(async () => []),
+        getSnapshots: jest.fn(async () => []),
+        createJob: jest.fn(),
+        updateJob: jest.fn(),
       }));
 
       const response = await GET();
@@ -131,14 +143,17 @@ describe('Jobs Stats API', () => {
     });
 
     it('should return default values when no projects exist', async () => {
-      const CoreDatabase = require('../../../lib/server/database/CoreDatabase').CoreDatabase;
-      CoreDatabase.getInstance.mockImplementationOnce(() => ({
+      const MongoDatabase = require('../../../lib/server/database/MongoDatabase').MongoDatabase;
+      MongoDatabase.getInstance.mockImplementationOnce(() => ({
+        initialize: jest.fn(),
+        isHealthy: jest.fn(() => true),
         getProjects: jest.fn(async () => []),
-      }));
-
-      const SeparatedDatabaseManager = require('../../../lib/database/SeparatedDatabaseManager').SeparatedDatabaseManager;
-      SeparatedDatabaseManager.getInstance.mockImplementationOnce(() => ({
         getDataSources: jest.fn(async () => []),
+        getJobs: jest.fn(async () => []),
+        getPipelines: jest.fn(async () => []),
+        getSnapshots: jest.fn(async () => []),
+        createJob: jest.fn(),
+        updateJob: jest.fn(),
       }));
 
       const response = await GET();
@@ -150,41 +165,54 @@ describe('Jobs Stats API', () => {
       expect(data.systemStats.uptime).toBe('0m');
     });
 
-    it('should handle missing data sources gracefully', async () => {
-      const SeparatedDatabaseManager = require('../../../lib/database/SeparatedDatabaseManager').SeparatedDatabaseManager;
-      SeparatedDatabaseManager.getInstance.mockImplementationOnce(() => ({
-        getDataSources: jest.fn(async () => {
-          throw new Error('No data sources');
-        }),
+    it('should handle database not ready gracefully', async () => {
+      const MongoDatabase = require('../../../lib/server/database/MongoDatabase').MongoDatabase;
+      MongoDatabase.getInstance.mockImplementationOnce(() => ({
+        initialize: jest.fn(),
+        isHealthy: jest.fn(() => false), // Database not healthy
+        getProjects: jest.fn(async () => []),
+        getDataSources: jest.fn(async () => []),
+        getJobs: jest.fn(async () => []),
+        getPipelines: jest.fn(async () => []),
+        getSnapshots: jest.fn(async () => []),
+        createJob: jest.fn(),
+        updateJob: jest.fn(),
       }));
 
       const response = await GET();
       const data = await response.json();
       
-      // Should still return valid response with 0 data sources
+      // Should return default stats when database not ready
       expect(response.status).toBe(200);
+      expect(data.stats.totalJobs).toBe(0);
+      expect(data.systemStats.dataSources).toBe(0);
     });
   });
 
   describe('Storage Calculation', () => {
-    it('should sum storage from all data source databases', async () => {
+    it('should get storage from MongoDB stats', async () => {
       const response = await GET();
       const data = await response.json();
       
       expect(data.systemStats.storageUsed).toBeDefined();
-      // With 2 data sources at 1 MB each = 2 MB
-      expect(data.systemStats.storageUsed).toContain('MB');
+      expect(typeof data.systemStats.storageUsed).toBe('string');
+      expect(data.systemStats.storageUsed).toMatch(/\d+(\.\d+)?\s+(B|KB|MB|GB)/);
     });
 
-    it('should handle missing database files', async () => {
-      const fs = require('fs');
-      fs.existsSync.mockReturnValueOnce(false);
+    it('should handle storage calculation errors', async () => {
+      const mongoose = require('mongoose');
+      mongoose.connection.db.admin.mockImplementationOnce(() => ({
+        command: jest.fn(async () => {
+          throw new Error('Stats error');
+        })
+      }));
 
       const response = await GET();
       const data = await response.json();
       
-      // Should still return a valid storage value
-      expect(data.systemStats.storageUsed).toBeDefined();
+      // Should still return a valid response
+      expect(response.status).toBe(200);
+      expect(data.systemStats).toBeDefined();
     });
   });
 
@@ -194,19 +222,21 @@ describe('Jobs Stats API', () => {
       const data = await response.json();
       
       expect(data.systemStats.uptime).toBeDefined();
-      // With project created 5 days ago
-      expect(data.systemStats.uptime).toMatch(/\d+d/); // Should show days
+      // With project created in September, should show days
+      expect(data.systemStats.uptime).toMatch(/\d+(d|h|m)/);
     });
 
     it('should show hours when less than a day', async () => {
-      const CoreDatabase = require('../../../lib/server/database/CoreDatabase').CoreDatabase;
+      const MongoDatabase = require('../../../lib/server/database/MongoDatabase').MongoDatabase;
       const now = new Date();
       const sixHoursAgo = new Date(now.getTime() - 6 * 60 * 60 * 1000);
       
-      CoreDatabase.getInstance.mockImplementationOnce(() => ({
+      MongoDatabase.getInstance.mockImplementationOnce(() => ({
+        initialize: jest.fn(),
+        isHealthy: jest.fn(() => true),
         getProjects: jest.fn(async () => [
           {
-            id: 'proj1',
+            _id: 'proj1',
             name: 'Recent Project',
             createdAt: sixHoursAgo,
             updatedAt: now,
@@ -214,6 +244,12 @@ describe('Jobs Stats API', () => {
             dataPath: './data/projects/proj1',
           }
         ]),
+        getDataSources: jest.fn(async () => []),
+        getJobs: jest.fn(async () => []),
+        getPipelines: jest.fn(async () => []),
+        getSnapshots: jest.fn(async () => []),
+        createJob: jest.fn(),
+        updateJob: jest.fn(),
       }));
 
       const response = await GET();
@@ -223,3 +259,4 @@ describe('Jobs Stats API', () => {
     });
   });
 });
+

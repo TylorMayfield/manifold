@@ -6,6 +6,8 @@ export { JsonProvider } from './JsonProvider';
 export { ScriptProvider } from './ScriptProvider';
 export { MockProvider } from './MockProvider';
 export { SqliteProvider } from './SqliteProvider';
+export { OdbcProvider } from './OdbcProvider';
+export { MssqlProvider } from './MssqlProvider';
 
 // Export all interfaces
 export type {
@@ -27,6 +29,8 @@ export type { JsonProviderConfig } from './JsonProvider';
 export type { ScriptProviderConfig } from './ScriptProvider';
 export type { MockProviderConfig, MockDataField } from './MockProvider';
 export type { SqliteProviderConfig } from './SqliteProvider';
+export type { OdbcProviderConfig } from './OdbcProvider';
+export type { MssqlProviderConfig, MssqlConnection } from './MssqlProvider';
 
 // Register all providers with the factory
 import { ProviderFactory } from './BaseProvider';
@@ -35,6 +39,8 @@ import { JsonProvider } from './JsonProvider';
 import { ScriptProvider } from './ScriptProvider';
 import { MockProvider } from './MockProvider';
 import { SqliteProvider } from './SqliteProvider';
+import { OdbcProvider } from './OdbcProvider';
+import { MssqlProvider } from './MssqlProvider';
 
 // Register providers
 ProviderFactory.registerProvider('csv', CsvProvider);
@@ -42,6 +48,8 @@ ProviderFactory.registerProvider('json', JsonProvider);
 ProviderFactory.registerProvider('script', ScriptProvider);
 ProviderFactory.registerProvider('mock', MockProvider);
 ProviderFactory.registerProvider('sqlite', SqliteProvider);
+ProviderFactory.registerProvider('odbc', OdbcProvider);
+ProviderFactory.registerProvider('mssql', MssqlProvider);
 
 // Provider registry with metadata
 export const PROVIDER_REGISTRY = {
@@ -117,6 +125,39 @@ export const PROVIDER_REGISTRY = {
       'Streaming for large datasets',
       'Transaction support',
       'Performance optimizations'
+    ],
+    category: 'database'
+  },
+  odbc: {
+    class: OdbcProvider,
+    displayName: 'ODBC Database',
+    description: 'Connect to any ODBC-compliant database (Access, DB2, Informix, etc.)',
+    supportedFormats: [],
+    features: [
+      'Universal database connectivity',
+      'Support for any ODBC driver',
+      'Delta/incremental sync',
+      'Batch export to reduce load',
+      'Custom connection strings',
+      'DSN support',
+      'Table introspection'
+    ],
+    category: 'database'
+  },
+  mssql: {
+    class: MssqlProvider,
+    displayName: 'Microsoft SQL Server',
+    description: 'Connect to Microsoft SQL Server with advanced features and optimizations',
+    supportedFormats: [],
+    features: [
+      'Change Tracking support',
+      'Optimized bulk operations',
+      'Query hints (NOLOCK, MAXDOP)',
+      'Delta sync with rowversion',
+      'Connection pooling',
+      'Named instance support',
+      'Batch export to reduce load',
+      'Table introspection'
     ],
     category: 'database'
   }

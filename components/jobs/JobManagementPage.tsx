@@ -49,8 +49,12 @@ interface CronJob {
   nextRun?: Date;
   config?: any;
   projectId?: string;
+  pipelineId?: string;
   dataSourceId?: string;
   workflowId?: string;
+  script?: string;
+  apiUrl?: string;
+  apiMethod?: string;
   createdBy?: string;
 }
 
@@ -690,14 +694,20 @@ const CreateJobModal: React.FC<CreateJobModalProps> = ({
   onClose,
   onSubmit,
 }) => {
+  const [pipelines, setPipelines] = useState<any[]>([]);
+  const [dataSources, setDataSources] = useState<any[]>([]);
   const [formData, setFormData] = useState({
     name: "",
     description: "",
     schedule: "0 */5 * * * *", // Every 5 minutes
     type: "pipeline",
     projectId: "",
+    pipelineId: "",
     dataSourceId: "",
     workflowId: "",
+    script: "",
+    apiUrl: "",
+    apiMethod: "GET",
     config: {
       enabled: true,
       timeout: 300,
@@ -713,6 +723,21 @@ const CreateJobModal: React.FC<CreateJobModalProps> = ({
     createdBy: "system",
     enabled: true,
   });
+
+  // Fetch pipelines and data sources when modal opens
+  useEffect(() => {
+    if (isOpen) {
+      fetch('/api/pipelines')
+        .then(res => res.json())
+        .then(data => setPipelines(data || []))
+        .catch(err => console.error('Failed to load pipelines:', err));
+      
+      fetch('/api/data-sources')
+        .then(res => res.json())
+        .then(data => setDataSources(data || []))
+        .catch(err => console.error('Failed to load data sources:', err));
+    }
+  }, [isOpen]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -747,6 +772,7 @@ const CreateJobModal: React.FC<CreateJobModalProps> = ({
               }
               className="w-full p-2 rounded-lg bg-white/10 border border-white/20 text-white"
             >
+              <option value="pipeline">Pipeline Execution</option>
               <option value="data_sync">Data Sync</option>
               <option value="backup">Backup</option>
               <option value="cleanup">Cleanup</option>
@@ -768,6 +794,120 @@ const CreateJobModal: React.FC<CreateJobModalProps> = ({
             rows={3}
           />
         </div>
+
+        {/* Conditional Fields Based on Job Type */}
+        {formData.type === "pipeline" && (
+          <div>
+            <label className="block text-sm font-medium mb-2">Pipeline</label>
+            <select
+              value={formData.pipelineId || ""}
+              onChange={(e) =>
+                setFormData({ ...formData, pipelineId: e.target.value })
+              }
+              className="w-full p-2 rounded-lg bg-white/10 border border-white/20 text-white"
+              required
+            >
+              <option value="">Select a pipeline...</option>
+              {pipelines.map((pipeline) => (
+                <option key={pipeline.id} value={pipeline.id}>
+                  {pipeline.name}
+                </option>
+              ))}
+            </select>
+            <p className="text-xs text-gray-400 mt-1">
+              Select which pipeline this job will execute on schedule
+            </p>
+          </div>
+        )}
+
+        {formData.type === "data_sync" && (
+          <div>
+            <label className="block text-sm font-medium mb-2">Data Source</label>
+            <select
+              value={formData.dataSourceId || ""}
+              onChange={(e) =>
+                setFormData({ ...formData, dataSourceId: e.target.value })
+              }
+              className="w-full p-2 rounded-lg bg-white/10 border border-white/20 text-white"
+              required
+            >
+              <option value="">Select a data source...</option>
+              {dataSources.map((ds) => (
+                <option key={ds.id} value={ds.id}>
+                  {ds.name} ({ds.type})
+                </option>
+              ))}
+            </select>
+            <p className="text-xs text-gray-400 mt-1">
+              Select which data source this job will sync on schedule
+            </p>
+          </div>
+        )}
+
+        {formData.type === "workflow" && (
+          <div>
+            <label className="block text-sm font-medium mb-2">Workflow ID</label>
+            <Input
+              value={formData.workflowId || ""}
+              onChange={(e) =>
+                setFormData({ ...formData, workflowId: e.target.value })
+              }
+              placeholder="Enter workflow ID to execute"
+              required
+            />
+            <p className="text-xs text-gray-400 mt-1">
+              The ID of the workflow this job will run
+            </p>
+          </div>
+        )}
+
+        {formData.type === "custom_script" && (
+          <div>
+            <label className="block text-sm font-medium mb-2">Script Code</label>
+            <Textarea
+              value={formData.script || ""}
+              onChange={(e) =>
+                setFormData({ ...formData, script: e.target.value })
+              }
+              placeholder="Enter JavaScript code to execute"
+              rows={6}
+              required
+              className="font-mono text-sm"
+            />
+            <p className="text-xs text-gray-400 mt-1">
+              JavaScript code that will be executed on schedule
+            </p>
+          </div>
+        )}
+
+        {formData.type === "api_poll" && (
+          <div className="space-y-3">
+            <div>
+              <label className="block text-sm font-medium mb-2">API URL</label>
+              <Input
+                value={formData.apiUrl || ""}
+                onChange={(e) =>
+                  setFormData({ ...formData, apiUrl: e.target.value })
+                }
+                placeholder="https://api.example.com/data"
+                required
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium mb-2">HTTP Method</label>
+              <select
+                value={formData.apiMethod || "GET"}
+                onChange={(e) =>
+                  setFormData({ ...formData, apiMethod: e.target.value })
+                }
+                className="w-full p-2 rounded-lg bg-white/10 border border-white/20 text-white"
+              >
+                <option value="GET">GET</option>
+                <option value="POST">POST</option>
+              </select>
+            </div>
+          </div>
+        )}
 
         <div>
           <label className="block text-sm font-medium mb-2">

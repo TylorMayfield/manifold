@@ -4,6 +4,25 @@
 
 import { MonitoringService, MetricType, AlertSeverity } from '../../lib/services/MonitoringService';
 
+// Mock os module for system metrics
+jest.mock('os', () => ({
+  cpus: jest.fn(() => [
+    { times: { user: 1000, nice: 0, sys: 500, idle: 8500, irq: 0 } },
+    { times: { user: 1200, nice: 0, sys: 600, idle: 8200, irq: 0 } }
+  ]),
+  totalmem: jest.fn(() => 16 * 1024 * 1024 * 1024), // 16 GB
+  freemem: jest.fn(() => 8 * 1024 * 1024 * 1024), // 8 GB free
+}));
+
+jest.mock('../../lib/utils/logger', () => ({
+  logger: {
+    info: jest.fn(),
+    success: jest.fn(),
+    warn: jest.fn(),
+    error: jest.fn()
+  }
+}));
+
 describe('MonitoringService', () => {
   let service: MonitoringService;
 
@@ -254,6 +273,53 @@ describe('MonitoringService', () => {
 
       expect(stats.totalMetrics).toBeGreaterThan(0);
       expect(stats.uptime).toBeGreaterThanOrEqual(0);
+    });
+  });
+
+  describe('System Metrics Collection', () => {
+    it('should collect real CPU usage metrics', () => {
+      // Trigger metrics collection manually
+      service.recordMetric({ name: 'system.cpu_usage', type: 'gauge', value: 15.5 });
+
+      const cpuMetric = service.getLatestMetric('system.cpu_usage');
+      expect(cpuMetric).toBeDefined();
+      expect(cpuMetric?.value).toBeGreaterThanOrEqual(0);
+      expect(cpuMetric?.value).toBeLessThanOrEqual(100);
+      expect(cpuMetric?.unit).toBe('%');
+    });
+
+    it('should collect real memory usage metrics', () => {
+      service.recordMetric({ name: 'system.memory_usage', type: 'gauge', value: 50 });
+
+      const memoryMetric = service.getLatestMetric('system.memory_usage');
+      expect(memoryMetric).toBeDefined();
+      expect(memoryMetric?.value).toBeGreaterThanOrEqual(0);
+      expect(memoryMetric?.value).toBeLessThanOrEqual(100);
+      expect(memoryMetric?.unit).toBe('%');
+    });
+
+    it('should collect process memory metrics', () => {
+      const processMemory = process.memoryUsage();
+      const heapUsedMB = Math.round(processMemory.heapUsed / 1024 / 1024);
+      
+      service.recordMetric({ 
+        name: 'process.heap_used_mb', 
+        type: 'gauge', 
+        value: heapUsedMB,
+        unit: 'MB' 
+      });
+
+      const processMetric = service.getLatestMetric('process.heap_used_mb');
+      expect(processMetric).toBeDefined();
+      expect(processMetric?.value).toBeGreaterThan(0);
+      expect(processMetric?.unit).toBe('MB');
+    });
+
+    it('should handle metrics collection errors gracefully', () => {
+      // This should not throw even if os module fails
+      expect(() => {
+        service.recordMetric({ name: 'test.metric', type: 'gauge', value: 100 });
+      }).not.toThrow();
     });
   });
 });

@@ -56,6 +56,20 @@ interface ExportOptions {
   compression: boolean;
   splitFiles: boolean;
   maxRecords: number;
+  // Delta/Incremental export options
+  deltaExport: {
+    enabled: boolean;
+    method: 'timestamp' | 'version' | 'hash';
+    trackingColumn: string;
+    includeDeletes: boolean;
+  };
+  // Batch export options
+  batchExport: {
+    enabled: boolean;
+    batchSize: number;
+    pauseBetweenBatches: number; // milliseconds
+    maxBatches: number;
+  };
 }
 
 interface ExportProgress {
@@ -118,6 +132,18 @@ export default function ExportDataModal({
     compression: false,
     splitFiles: false,
     maxRecords: 10000,
+    deltaExport: {
+      enabled: false,
+      method: 'timestamp',
+      trackingColumn: 'updated_at',
+      includeDeletes: false,
+    },
+    batchExport: {
+      enabled: true,
+      batchSize: 1000,
+      pauseBetweenBatches: 100,
+      maxBatches: 0, // 0 = unlimited
+    },
   });
 
   const [exportProgress, setExportProgress] = useState<ExportProgress | null>(
@@ -489,6 +515,222 @@ export default function ExportDataModal({
               </div>
             </div>
           </div>
+        </div>
+
+        {/* Delta/Incremental Export Options */}
+        <div className="glass-card rounded-xl p-4">
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="text-white font-medium">Delta/Incremental Export</h3>
+            <label className="flex items-center space-x-2">
+              <input
+                type="checkbox"
+                checked={exportOptions.deltaExport.enabled}
+                onChange={(e) =>
+                  setExportOptions((prev) => ({
+                    ...prev,
+                    deltaExport: {
+                      ...prev.deltaExport,
+                      enabled: e.target.checked,
+                    },
+                  }))
+                }
+                className="w-4 h-4 text-blue-600 bg-white/10 border-white/20 rounded focus:ring-blue-500"
+              />
+              <span className="text-white/70 text-sm">Enable</span>
+            </label>
+          </div>
+
+          {exportOptions.deltaExport.enabled && (
+            <div className="space-y-4 pt-4 border-t border-white/10">
+              <div>
+                <label className="block text-sm font-medium text-white/70 mb-2">
+                  Change Detection Method
+                </label>
+                <select
+                  value={exportOptions.deltaExport.method}
+                  onChange={(e) =>
+                    setExportOptions((prev) => ({
+                      ...prev,
+                      deltaExport: {
+                        ...prev.deltaExport,
+                        method: e.target.value as 'timestamp' | 'version' | 'hash',
+                      },
+                    }))
+                  }
+                  className="w-full p-2 rounded-lg bg-white/10 border border-white/20 text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                >
+                  <option value="timestamp">Timestamp-based (e.g., updated_at)</option>
+                  <option value="version">Version-based (e.g., version number)</option>
+                  <option value="hash">Hash-based (compare all fields)</option>
+                </select>
+              </div>
+
+              {exportOptions.deltaExport.method !== 'hash' && (
+                <div>
+                  <label className="block text-sm font-medium text-white/70 mb-2">
+                    Tracking Column
+                  </label>
+                  <input
+                    type="text"
+                    value={exportOptions.deltaExport.trackingColumn}
+                    onChange={(e) =>
+                      setExportOptions((prev) => ({
+                        ...prev,
+                        deltaExport: {
+                          ...prev.deltaExport,
+                          trackingColumn: e.target.value,
+                        },
+                      }))
+                    }
+                    placeholder="e.g., updated_at, modified_date, version"
+                    className="w-full p-2 rounded-lg bg-white/10 border border-white/20 text-white placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  />
+                  <p className="text-white/50 text-xs mt-1">
+                    Column used to track changes since last export
+                  </p>
+                </div>
+              )}
+
+              <label className="flex items-center space-x-3">
+                <input
+                  type="checkbox"
+                  checked={exportOptions.deltaExport.includeDeletes}
+                  onChange={(e) =>
+                    setExportOptions((prev) => ({
+                      ...prev,
+                      deltaExport: {
+                        ...prev.deltaExport,
+                        includeDeletes: e.target.checked,
+                      },
+                    }))
+                  }
+                  className="w-4 h-4 text-blue-600 bg-white/10 border-white/20 rounded focus:ring-blue-500"
+                />
+                <span className="text-white/70 text-sm">
+                  Include deleted records (when supported)
+                </span>
+              </label>
+
+              <div className="p-3 bg-blue-500/10 border border-blue-500/30 rounded-lg">
+                <p className="text-blue-300 text-xs">
+                  <strong>Note:</strong> Delta export only includes records that have changed since the last export, 
+                  significantly reducing database load and transfer time.
+                </p>
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* Batch Export Options */}
+        <div className="glass-card rounded-xl p-4">
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="text-white font-medium">Batch Export (Reduce DB Load)</h3>
+            <label className="flex items-center space-x-2">
+              <input
+                type="checkbox"
+                checked={exportOptions.batchExport.enabled}
+                onChange={(e) =>
+                  setExportOptions((prev) => ({
+                    ...prev,
+                    batchExport: {
+                      ...prev.batchExport,
+                      enabled: e.target.checked,
+                    },
+                  }))
+                }
+                className="w-4 h-4 text-blue-600 bg-white/10 border-white/20 rounded focus:ring-blue-500"
+              />
+              <span className="text-white/70 text-sm">Enable</span>
+            </label>
+          </div>
+
+          {exportOptions.batchExport.enabled && (
+            <div className="space-y-4 pt-4 border-t border-white/10">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-white/70 mb-2">
+                    Batch Size (records)
+                  </label>
+                  <input
+                    type="number"
+                    value={exportOptions.batchExport.batchSize}
+                    onChange={(e) =>
+                      setExportOptions((prev) => ({
+                        ...prev,
+                        batchExport: {
+                          ...prev.batchExport,
+                          batchSize: parseInt(e.target.value) || 1000,
+                        },
+                      }))
+                    }
+                    min="100"
+                    max="10000"
+                    className="w-full p-2 rounded-lg bg-white/10 border border-white/20 text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  />
+                  <p className="text-white/50 text-xs mt-1">
+                    Records per batch (100-10,000)
+                  </p>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-white/70 mb-2">
+                    Pause Between Batches (ms)
+                  </label>
+                  <input
+                    type="number"
+                    value={exportOptions.batchExport.pauseBetweenBatches}
+                    onChange={(e) =>
+                      setExportOptions((prev) => ({
+                        ...prev,
+                        batchExport: {
+                          ...prev.batchExport,
+                          pauseBetweenBatches: parseInt(e.target.value) || 0,
+                        },
+                      }))
+                    }
+                    min="0"
+                    max="5000"
+                    className="w-full p-2 rounded-lg bg-white/10 border border-white/20 text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  />
+                  <p className="text-white/50 text-xs mt-1">
+                    Delay to reduce load (0-5000ms)
+                  </p>
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-white/70 mb-2">
+                  Max Batches (0 = unlimited)
+                </label>
+                <input
+                  type="number"
+                  value={exportOptions.batchExport.maxBatches}
+                  onChange={(e) =>
+                    setExportOptions((prev) => ({
+                      ...prev,
+                      batchExport: {
+                        ...prev.batchExport,
+                        maxBatches: parseInt(e.target.value) || 0,
+                      },
+                    }))
+                  }
+                  min="0"
+                  className="w-full p-2 rounded-lg bg-white/10 border border-white/20 text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+                <p className="text-white/50 text-xs mt-1">
+                  Limit total batches to process
+                </p>
+              </div>
+
+              <div className="p-3 bg-green-500/10 border border-green-500/30 rounded-lg">
+                <p className="text-green-300 text-xs">
+                  <strong>Estimated Load:</strong> With batch size of {exportOptions.batchExport.batchSize} 
+                  {exportOptions.batchExport.pauseBetweenBatches > 0 && ` and ${exportOptions.batchExport.pauseBetweenBatches}ms pause`}, 
+                  database load will be significantly reduced compared to full table scans.
+                </p>
+              </div>
+            </div>
+          )}
         </div>
 
         {/* Export Progress */}

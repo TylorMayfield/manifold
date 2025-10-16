@@ -32,6 +32,8 @@ export type DataProviderType =
   | "mysql"
   | "postgres"
   | "sqlite"
+  | "odbc"
+  | "mssql"
   | "javascript";
 
 // Keep DataSource as alias for backward compatibility
@@ -58,6 +60,65 @@ export interface DataProviderConfig {
     ssl?: boolean;
     tables?: string[]; // Specific tables to sync, if empty sync all
     syncInterval?: number; // Minutes between syncs
+  };
+
+  // ODBC config
+  odbcConfig?: {
+    driver: string; // ODBC driver name
+    host?: string;
+    port?: number;
+    database: string;
+    username: string;
+    password: string;
+    dsn?: string; // Data Source Name
+    connectionString?: string; // Custom connection string
+    ssl?: boolean;
+    tables?: string[];
+    // Delta/incremental sync
+    deltaSync?: {
+      enabled: boolean;
+      trackingColumn: string;
+      trackingType: 'timestamp' | 'integer' | 'version';
+    };
+    // Batch export
+    batchExport?: {
+      enabled: boolean;
+      batchSize: number;
+      pauseBetweenBatches?: number;
+    };
+  };
+
+  // MSSQL config
+  mssqlConfig?: {
+    host: string;
+    port?: number;
+    database: string;
+    username: string;
+    password: string;
+    domain?: string; // For Windows authentication
+    instanceName?: string; // Named instance
+    encrypt?: boolean;
+    trustServerCertificate?: boolean;
+    tables?: string[];
+    // Delta/Change Tracking
+    deltaSync?: {
+      enabled: boolean;
+      method: 'change_tracking' | 'timestamp' | 'rowversion';
+      trackingColumn?: string;
+    };
+    // Batch export with SQL Server optimizations
+    batchExport?: {
+      enabled: boolean;
+      batchSize: number;
+      noLock?: boolean; // Use NOLOCK hint
+      pauseBetweenBatches?: number;
+    };
+    // Query hints
+    queryHints?: {
+      noLock?: boolean;
+      readPast?: boolean;
+      maxDop?: number;
+    };
   };
 
   // SQL dump config

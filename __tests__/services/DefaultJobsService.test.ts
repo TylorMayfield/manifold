@@ -1,37 +1,30 @@
-import { DefaultJobsService } from '../../../lib/services/DefaultJobsService'
-
-// Mock the database dependencies
-jest.mock('../../../lib/database/SeparatedDatabaseManager', () => ({
-  SeparatedDatabaseManager: {
+// Mock all dependencies before importing
+jest.mock('../../lib/server/database/MongoDatabase', () => ({
+  MongoDatabase: {
     getInstance: jest.fn(() => ({
-      getDataSource: jest.fn(),
-      createDataSource: jest.fn(),
-      getDataSources: jest.fn(),
-      createDataVersion: jest.fn(),
-      getDataSourceDb: jest.fn(),
-    }))
-  }
-}))
-
-jest.mock('../../../lib/server/database/CoreDatabase', () => ({
-  CoreDatabase: {
-    getInstance: jest.fn(() => ({
-      getDbPath: jest.fn(() => '/test/path/core.db'),
+      initialize: jest.fn(),
+      isHealthy: jest.fn(() => true),
       createJob: jest.fn(),
-      getJobs: jest.fn(),
-      getProjects: jest.fn(),
+      updateJob: jest.fn(),
+      getJobs: jest.fn(() => []),
+      getProjects: jest.fn(() => []),
+      getDataSources: jest.fn(() => []),
+      getSnapshots: jest.fn(() => []),
+      getPipelines: jest.fn(() => []),
     }))
   }
-}))
+}), { virtual: true });
 
-jest.mock('../../../lib/utils/logger', () => ({
+jest.mock('../../lib/utils/logger', () => ({
   logger: {
     info: jest.fn(),
     success: jest.fn(),
     warn: jest.fn(),
     error: jest.fn()
   }
-}))
+}), { virtual: true });
+
+import { DefaultJobsService } from '../../lib/services/DefaultJobsService';
 
 jest.mock('fs', () => ({
   existsSync: jest.fn(),
@@ -47,10 +40,8 @@ jest.mock('path', () => ({
   dirname: jest.fn((path) => path.split('/').slice(0, -1).join('/'))
 }))
 
-jest.mock('electron', () => ({
-  app: {
-    getPath: jest.fn(() => '/test/userData')
-  }
+jest.mock('process', () => ({
+  cwd: jest.fn(() => '/test/project')
 }))
 
 describe('DefaultJobsService', () => {
@@ -64,47 +55,66 @@ describe('DefaultJobsService', () => {
   describe('createDefaultJobs', () => {
     it('creates both backup and integrity check jobs', async () => {
       const mockCreateJob = jest.fn()
-      const mockCoreDb = {
-        createJob: mockCreateJob
+      const mockMongoDb = {
+        initialize: jest.fn(),
+        isHealthy: jest.fn(() => true),
+        createJob: mockCreateJob,
+        getJobs: jest.fn(() => []),
+        getProjects: jest.fn(() => []),
+        getDataSources: jest.fn(() => []),
+        getSnapshots: jest.fn(() => []),
+        getPipelines: jest.fn(() => []),
+        updateJob: jest.fn(),
       }
       
-      // Mock the CoreDatabase instance
-      const { CoreDatabase } = require('../../../lib/server/database/CoreDatabase')
-      CoreDatabase.getInstance.mockReturnValue(mockCoreDb)
+      // Get the already mocked MongoDatabase instance
+      const { MongoDatabase } = require('../../lib/server/database/MongoDatabase')
+      MongoDatabase.getInstance.mockReturnValue(mockMongoDb)
 
       await service.createDefaultJobs()
 
       expect(mockCreateJob).toHaveBeenCalledTimes(2)
       expect(mockCreateJob).toHaveBeenCalledWith(
         expect.objectContaining({
+          projectId: 'default',
           name: 'Core Config Backup',
           type: 'backup',
+          schedule: '0 2 * * *',
           config: expect.objectContaining({
             backupType: 'core_config',
-            schedule: '0 2 * * *'
+            retentionDays: 30
           })
         })
       )
       expect(mockCreateJob).toHaveBeenCalledWith(
         expect.objectContaining({
+          projectId: 'default',
           name: 'Data Source Integrity Check',
           type: 'integrity_check',
+          schedule: '0 3 * * 0',
           config: expect.objectContaining({
             checkType: 'metadata_integrity',
-            schedule: '0 3 * * 0'
+            checkAllProjects: true
           })
         })
       )
     })
 
     it('handles errors during job creation', async () => {
-      const mockCreateJob = jest.fn().mockRejectedValue(new Error('Database error'))
-      const mockCoreDb = {
-        createJob: mockCreateJob
+      const mockMongoDb = {
+        initialize: jest.fn(),
+        isHealthy: jest.fn(() => true),
+        createJob: jest.fn().mockRejectedValue(new Error('Database error')),
+        getJobs: jest.fn(() => []),
+        getProjects: jest.fn(() => []),
+        getDataSources: jest.fn(() => []),
+        getSnapshots: jest.fn(() => []),
+        getPipelines: jest.fn(() => []),
+        updateJob: jest.fn(),
       }
       
-      const { CoreDatabase } = require('../../../lib/server/database/CoreDatabase')
-      CoreDatabase.getInstance.mockReturnValue(mockCoreDb)
+      const { MongoDatabase } = require('../../../lib/server/database/MongoDatabase')
+      MongoDatabase.getInstance.mockReturnValue(mockMongoDb)
 
       await expect(service.createDefaultJobs()).rejects.toThrow('Database error')
     })
@@ -113,19 +123,35 @@ describe('DefaultJobsService', () => {
   describe('executeConfigBackup', () => {
     beforeEach(() => {
       const fs = require('fs')
+      const { MongoDatabase } = require('../../../lib/server/database/MongoDatabase')
+      
       fs.existsSync.mockReturnValue(true)
-      fs.copyFileSync.mockImplementation(() => {})
+      fs.writeFileSync = jest.fn()
       fs.statSync.mockReturnValue({ size: 1024, mtime: new Date() })
+      
+      MongoDatabase.getInstance.mockReturnValue({
+        initialize: jest.fn(),
+        isHealthy: jest.fn(() => true),
+        getProjects: jest.fn(() => []),
+        getDataSources: jest.fn(() => []),
+        getJobs: jest.fn(() => []),
+        getPipelines: jest.fn(() => []),
+        createJob: jest.fn(),
+        updateJob: jest.fn(),
+        getSnapshots: jest.fn(() => []),
+      })
     })
 
-    it('creates backup successfully', async () => {
+    it('creates MongoDB backup successfully', async () => {
       const result = await service.executeConfigBackup()
 
       expect(result.success).toBe(true)
-      expect(result.message).toContain('backup completed successfully')
+      expect(result.message).toContain('MongoDB backup completed successfully')
       expect(result.details).toMatchObject({
         backupSize: 1024,
-        timestamp: expect.any(String)
+        timestamp: expect.any(String),
+        projectsCount: expect.any(Number),
+        dataSourcesCount: expect.any(Number)
       })
     })
 
@@ -141,16 +167,16 @@ describe('DefaultJobsService', () => {
       )
     })
 
-    it('validates backup integrity', async () => {
+    it('exports MongoDB data to JSON', async () => {
       const fs = require('fs')
-      fs.statSync
-        .mockReturnValueOnce({ size: 1024, mtime: new Date() }) // Original
-        .mockReturnValueOnce({ size: 2048, mtime: new Date() }) // Backup
+      fs.writeFileSync = jest.fn()
 
-      const result = await service.executeConfigBackup()
+      await service.executeConfigBackup()
 
-      expect(result.success).toBe(false)
-      expect(result.error).toContain('Backup size mismatch')
+      expect(fs.writeFileSync).toHaveBeenCalledWith(
+        expect.stringContaining('mongodb-backup-'),
+        expect.any(String)
+      )
     })
 
     it('cleans up old backups', async () => {
@@ -159,7 +185,7 @@ describe('DefaultJobsService', () => {
       oldDate.setDate(oldDate.getDate() - 35) // 35 days ago
       
       fs.readdirSync.mockReturnValue([
-        'core-config-backup-2023-01-01.db',
+        'mongodb-backup-2023-01-01.json',
         'other-file.txt'
       ])
       fs.statSync.mockReturnValue({ 
@@ -170,7 +196,7 @@ describe('DefaultJobsService', () => {
       await service.executeConfigBackup()
 
       expect(fs.unlinkSync).toHaveBeenCalledWith(
-        expect.stringContaining('core-config-backup-2023-01-01.db')
+        expect.stringContaining('mongodb-backup-2023-01-01.json')
       )
     })
   })
@@ -178,8 +204,8 @@ describe('DefaultJobsService', () => {
   describe('executeIntegrityCheck', () => {
     it('checks all projects and data sources', async () => {
       const mockProjects = [
-        { id: 'project1', name: 'Project 1', dataSources: [] },
-        { id: 'project2', name: 'Project 2', dataSources: [] }
+        { _id: 'project1', name: 'Project 1' },
+        { _id: 'project2', name: 'Project 2' }
       ]
       
       const mockDataSources = [
@@ -187,78 +213,69 @@ describe('DefaultJobsService', () => {
           id: 'ds1',
           name: 'Data Source 1',
           type: 'csv',
-          dataPath: '/test/path/ds1.db',
           lastSyncAt: new Date(),
           enabled: true
         }
       ]
 
-      const mockCoreDb = {
-        getProjects: jest.fn().mockResolvedValue(mockProjects)
-      }
-      
-      const mockDbManager = {
+      const mockMongoDb = {
+        initialize: jest.fn(),
+        isHealthy: jest.fn(() => true),
+        getProjects: jest.fn().mockResolvedValue(mockProjects),
         getDataSources: jest.fn().mockResolvedValue(mockDataSources),
-        getDataSourceDb: jest.fn().mockResolvedValue({
-          getStats: jest.fn().mockResolvedValue({ totalVersions: 1 })
-        })
+        getSnapshots: jest.fn().mockResolvedValue([{ id: 'snap1', version: 1 }]),
+        getJobs: jest.fn(() => []),
+        getPipelines: jest.fn(() => []),
+        createJob: jest.fn(),
+        updateJob: jest.fn(),
       }
 
-      const { CoreDatabase } = require('../../../lib/server/database/CoreDatabase')
-      const { SeparatedDatabaseManager } = require('../../../lib/database/SeparatedDatabaseManager')
-      
-      CoreDatabase.getInstance.mockReturnValue(mockCoreDb)
-      SeparatedDatabaseManager.getInstance.mockReturnValue(mockDbManager)
-
-      const fs = require('fs')
-      fs.existsSync.mockReturnValue(true)
+      const { MongoDatabase } = require('../../../lib/server/database/MongoDatabase')
+      MongoDatabase.getInstance.mockReturnValue(mockMongoDb)
 
       const result = await service.executeIntegrityCheck()
 
       expect(result.success).toBe(true)
       expect(result.details.projectsChecked).toBe(2)
-      expect(mockDbManager.getDataSources).toHaveBeenCalledTimes(2)
+      expect(mockMongoDb.getDataSources).toHaveBeenCalledTimes(2)
     })
 
-    it('identifies missing database files', async () => {
-      const mockProjects = [{ id: 'project1', name: 'Project 1', dataSources: [] }]
+    it('identifies missing snapshots', async () => {
+      const mockProjects = [{ _id: 'project1', name: 'Project 1' }]
       const mockDataSources = [{
         id: 'ds1',
         name: 'Data Source 1',
         type: 'csv',
-        dataPath: '/test/path/ds1.db',
         lastSyncAt: new Date(),
         enabled: true
       }]
 
-      const mockCoreDb = {
-        getProjects: jest.fn().mockResolvedValue(mockProjects)
-      }
-      
-      const mockDbManager = {
-        getDataSources: jest.fn().mockResolvedValue(mockDataSources)
+      const mockMongoDb = {
+        initialize: jest.fn(),
+        isHealthy: jest.fn(() => true),
+        getProjects: jest.fn().mockResolvedValue(mockProjects),
+        getDataSources: jest.fn().mockResolvedValue(mockDataSources),
+        getSnapshots: jest.fn().mockResolvedValue([]), // No snapshots despite lastSyncAt
+        getJobs: jest.fn(() => []),
+        getPipelines: jest.fn(() => []),
+        createJob: jest.fn(),
+        updateJob: jest.fn(),
       }
 
-      const { CoreDatabase } = require('../../../lib/server/database/CoreDatabase')
-      const { SeparatedDatabaseManager } = require('../../../lib/database/SeparatedDatabaseManager')
-      
-      CoreDatabase.getInstance.mockReturnValue(mockCoreDb)
-      SeparatedDatabaseManager.getInstance.mockReturnValue(mockDbManager)
-
-      const fs = require('fs')
-      fs.existsSync.mockReturnValue(false) // File doesn't exist
+      const { MongoDatabase } = require('../../../lib/server/database/MongoDatabase')
+      MongoDatabase.getInstance.mockReturnValue(mockMongoDb)
 
       const result = await service.executeIntegrityCheck()
 
       expect(result.success).toBe(false)
       expect(result.details.issuesFound).toBeGreaterThan(0)
-      expect(result.details.issues).toContain(
-        expect.stringContaining('Data source database file missing')
-      )
+      expect(result.details.issues.some((issue: string) => 
+        issue.includes('has no snapshots despite last sync')
+      )).toBe(true)
     })
 
     it('identifies stale data sources', async () => {
-      const mockProjects = [{ id: 'project1', name: 'Project 1', dataSources: [] }]
+      const mockProjects = [{ _id: 'project1', name: 'Project 1' }]
       const staleDate = new Date()
       staleDate.setDate(staleDate.getDate() - 10) // 10 days ago
       
@@ -266,34 +283,31 @@ describe('DefaultJobsService', () => {
         id: 'ds1',
         name: 'Data Source 1',
         type: 'csv',
-        dataPath: '/test/path/ds1.db',
         lastSyncAt: staleDate,
         enabled: true
       }]
 
-      const mockCoreDb = {
-        getProjects: jest.fn().mockResolvedValue(mockProjects)
-      }
-      
-      const mockDbManager = {
-        getDataSources: jest.fn().mockResolvedValue(mockDataSources)
+      const mockMongoDb = {
+        initialize: jest.fn(),
+        isHealthy: jest.fn(() => true),
+        getProjects: jest.fn().mockResolvedValue(mockProjects),
+        getDataSources: jest.fn().mockResolvedValue(mockDataSources),
+        getSnapshots: jest.fn().mockResolvedValue([]),
+        getJobs: jest.fn(() => []),
+        getPipelines: jest.fn(() => []),
+        createJob: jest.fn(),
+        updateJob: jest.fn(),
       }
 
-      const { CoreDatabase } = require('../../../lib/server/database/CoreDatabase')
-      const { SeparatedDatabaseManager } = require('../../../lib/database/SeparatedDatabaseManager')
-      
-      CoreDatabase.getInstance.mockReturnValue(mockCoreDb)
-      SeparatedDatabaseManager.getInstance.mockReturnValue(mockDbManager)
-
-      const fs = require('fs')
-      fs.existsSync.mockReturnValue(true)
+      const { MongoDatabase } = require('../../../lib/server/database/MongoDatabase')
+      MongoDatabase.getInstance.mockReturnValue(mockMongoDb)
 
       const result = await service.executeIntegrityCheck()
 
       expect(result.success).toBe(false)
-      expect(result.details.issues).toContain(
-        expect.stringContaining("hasn't been synced for")
-      )
+      expect(result.details.issues.some((issue: string) =>
+        issue.includes("hasn't been synced for")
+      )).toBe(true)
     })
   })
 
@@ -301,48 +315,63 @@ describe('DefaultJobsService', () => {
     it('returns job status for both default jobs', async () => {
       const mockJobs = [
         {
-          id: 'job1',
+          _id: 'job1',
           type: 'backup',
-          config: JSON.stringify({ backupType: 'core_config' }),
           status: 'completed',
-          lastRun: new Date().toISOString()
+          lastRun: new Date()
         },
         {
-          id: 'job2',
+          _id: 'job2',
           type: 'integrity_check',
-          status: 'active',
-          lastRun: new Date().toISOString()
+          status: 'idle',
+          lastRun: new Date()
         }
       ]
 
-      const mockCoreDb = {
-        getJobs: jest.fn().mockResolvedValue(mockJobs)
+      const mockMongoDb = {
+        initialize: jest.fn(),
+        isHealthy: jest.fn(() => true),
+        getJobs: jest.fn().mockResolvedValue(mockJobs),
+        getProjects: jest.fn(() => []),
+        getDataSources: jest.fn(() => []),
+        getSnapshots: jest.fn(() => []),
+        getPipelines: jest.fn(() => []),
+        createJob: jest.fn(),
+        updateJob: jest.fn(),
       }
 
-      const { CoreDatabase } = require('../../../lib/server/database/CoreDatabase')
-      CoreDatabase.getInstance.mockReturnValue(mockCoreDb)
+      const { MongoDatabase } = require('../../../lib/server/database/MongoDatabase')
+      MongoDatabase.getInstance.mockReturnValue(mockMongoDb)
 
       const status = await service.getJobStatus()
 
       expect(status.configBackupJob).toMatchObject({
-        id: 'job1',
+        _id: 'job1',
         type: 'backup',
         status: 'completed'
       })
       expect(status.integrityCheckJob).toMatchObject({
-        id: 'job2',
+        _id: 'job2',
         type: 'integrity_check',
-        status: 'active'
+        status: 'idle'
       })
     })
 
     it('returns null for missing jobs', async () => {
-      const mockCoreDb = {
-        getJobs: jest.fn().mockResolvedValue([])
+      const mockMongoDb = {
+        initialize: jest.fn(),
+        isHealthy: jest.fn(() => true),
+        getJobs: jest.fn().mockResolvedValue([]),
+        getProjects: jest.fn(() => []),
+        getDataSources: jest.fn(() => []),
+        getSnapshots: jest.fn(() => []),
+        getPipelines: jest.fn(() => []),
+        createJob: jest.fn(),
+        updateJob: jest.fn(),
       }
 
-      const { CoreDatabase } = require('../../../lib/server/database/CoreDatabase')
-      CoreDatabase.getInstance.mockReturnValue(mockCoreDb)
+      const { MongoDatabase } = require('../../../lib/server/database/MongoDatabase')
+      MongoDatabase.getInstance.mockReturnValue(mockMongoDb)
 
       const status = await service.getJobStatus()
 
@@ -352,41 +381,116 @@ describe('DefaultJobsService', () => {
   })
 
   describe('runJobManually', () => {
-    it('runs backup job manually', async () => {
+    it('runs backup job manually and updates job record', async () => {
       const fs = require('fs')
+      const mockJobs = [{ _id: 'job1', type: 'backup', status: 'idle' }]
+      const mockMongoDb = {
+        initialize: jest.fn(),
+        isHealthy: jest.fn(() => true),
+        getJobs: jest.fn().mockResolvedValue(mockJobs),
+        updateJob: jest.fn(),
+        getProjects: jest.fn(() => []),
+        getDataSources: jest.fn(() => []),
+        getSnapshots: jest.fn(() => []),
+        getPipelines: jest.fn(() => []),
+        createJob: jest.fn(),
+      }
+      
+      const { MongoDatabase } = require('../../../lib/server/database/MongoDatabase')
+      MongoDatabase.getInstance.mockReturnValue(mockMongoDb)
+      
       fs.existsSync.mockReturnValue(true)
-      fs.copyFileSync.mockImplementation(() => {})
+      fs.writeFileSync = jest.fn()
       fs.statSync.mockReturnValue({ size: 1024, mtime: new Date() })
 
       const result = await service.runJobManually('backup')
 
       expect(result.success).toBe(true)
-      expect(result.message).toContain('backup completed')
+      expect(result.message).toContain('MongoDB backup completed')
+      expect(mockMongoDb.updateJob).toHaveBeenCalledWith(
+        'job1',
+        expect.objectContaining({
+          status: 'completed',
+          lastRun: expect.any(Date)
+        })
+      )
     })
 
     it('runs integrity check job manually', async () => {
-      const mockProjects = [{ id: 'project1', name: 'Project 1', dataSources: [] }]
-      const mockCoreDb = {
-        getProjects: jest.fn().mockResolvedValue(mockProjects)
-      }
-      
-      const mockDbManager = {
-        getDataSources: jest.fn().mockResolvedValue([])
+      const mockProjects = [{ _id: 'project1', name: 'Project 1' }]
+      const mockJobs = [{ _id: 'job2', type: 'integrity_check', status: 'idle' }]
+      const mockMongoDb = {
+        initialize: jest.fn(),
+        isHealthy: jest.fn(() => true),
+        getProjects: jest.fn().mockResolvedValue(mockProjects),
+        getDataSources: jest.fn().mockResolvedValue([]),
+        getSnapshots: jest.fn().mockResolvedValue([]),
+        getJobs: jest.fn().mockResolvedValue(mockJobs),
+        updateJob: jest.fn(),
+        getPipelines: jest.fn(() => []),
+        createJob: jest.fn(),
       }
 
-      const { CoreDatabase } = require('../../../lib/server/database/CoreDatabase')
-      const { SeparatedDatabaseManager } = require('../../../lib/database/SeparatedDatabaseManager')
-      
-      CoreDatabase.getInstance.mockReturnValue(mockCoreDb)
-      SeparatedDatabaseManager.getInstance.mockReturnValue(mockDbManager)
+      const { MongoDatabase } = require('../../../lib/server/database/MongoDatabase')
+      MongoDatabase.getInstance.mockReturnValue(mockMongoDb)
 
       const result = await service.runJobManually('integrity_check')
 
       expect(result.success).toBe(true)
       expect(result.message).toContain('no issues found')
+      expect(mockMongoDb.updateJob).toHaveBeenCalled()
+    })
+
+    it('creates job if it does not exist', async () => {
+      const mockMongoDb = {
+        initialize: jest.fn(),
+        isHealthy: jest.fn(() => true),
+        getJobs: jest.fn()
+          .mockResolvedValueOnce([]) // No jobs initially
+          .mockResolvedValueOnce([{ _id: 'new-job', type: 'backup' }]) // Job created
+          .mockResolvedValueOnce([{ _id: 'new-job', type: 'backup' }]), // For final update
+        createJob: jest.fn(),
+        updateJob: jest.fn(),
+        getProjects: jest.fn(() => []),
+        getDataSources: jest.fn(() => []),
+        getSnapshots: jest.fn(() => []),
+        getPipelines: jest.fn(() => []),
+      }
+
+      const { MongoDatabase } = require('../../../lib/server/database/MongoDatabase')
+      MongoDatabase.getInstance.mockReturnValue(mockMongoDb)
+
+      const fs = require('fs')
+      fs.existsSync.mockReturnValue(true)
+      fs.writeFileSync = jest.fn()
+      fs.statSync.mockReturnValue({ size: 1024, mtime: new Date() })
+
+      await service.runJobManually('backup')
+
+      expect(mockMongoDb.createJob).toHaveBeenCalledWith(
+        expect.objectContaining({
+          projectId: 'default',
+          type: 'backup'
+        })
+      )
     })
 
     it('throws error for unknown job type', async () => {
+      const mockMongoDb = {
+        initialize: jest.fn(),
+        isHealthy: jest.fn(() => true),
+        getJobs: jest.fn(() => []),
+        getProjects: jest.fn(() => []),
+        getDataSources: jest.fn(() => []),
+        getSnapshots: jest.fn(() => []),
+        getPipelines: jest.fn(() => []),
+        createJob: jest.fn(),
+        updateJob: jest.fn(),
+      }
+      
+      const { MongoDatabase } = require('../../../lib/server/database/MongoDatabase')
+      MongoDatabase.getInstance.mockReturnValue(mockMongoDb)
+
       await expect(service.runJobManually('unknown' as any)).rejects.toThrow(
         'Unknown job type: unknown'
       )
