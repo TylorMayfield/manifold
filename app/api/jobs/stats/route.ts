@@ -28,6 +28,25 @@ export async function GET() {
   try {
     const database = await ensureDb();
     
+    // Gracefully handle not-yet-connected database
+    if (!database.isHealthy()) {
+      console.log('[Jobs Stats API] Database not healthy yet, returning default stats');
+      return NextResponse.json({
+        stats: {
+          totalJobs: 0,
+          completedToday: 0,
+          failedToday: 0,
+          successRate: 100,
+        },
+        systemStats: {
+          dataSources: 0,
+          activePipelines: 0,
+          storageUsed: "0 B",
+          uptime: "0m",
+        },
+      });
+    }
+    
     // Get all projects to count data sources
     const projects = await database.getProjects();
     

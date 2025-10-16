@@ -14,7 +14,15 @@ export type LogCategory =
   | "data-transformation"
   | "data-quality"
   | "websocket"
-  | "job-management";
+  | "job-management"
+  | "data-lake"
+  | "monitoring"
+  | "integration-hub"
+  | "streaming"
+  | "cdc"
+  | "jobs"
+  | "integrity"
+  | "settings";
 
 export interface LogEntry {
   id: string;

@@ -215,11 +215,10 @@ function createWindow() {
       allowRunningInsecureContent: false,
     },
     // Use native Windows title bar
-    frame: false,
+    frame: true,
     titleBarStyle: "default",
-    show: false,
+    show: true,
     backgroundColor: "#0a0a0a",
-    autoHideMenuBar: false, // Show menu bar
   });
 
   // Load the app

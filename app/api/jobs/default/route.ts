@@ -1,10 +1,29 @@
 import { NextRequest, NextResponse } from "next/server";
 import { DefaultJobsService } from "../../../../lib/services/DefaultJobsService";
+import { MongoDatabase } from "../../../../lib/server/database/MongoDatabase";
 
 // Force dynamic rendering to avoid build-time database initialization
 export const dynamic = 'force-dynamic';
 
 let defaultJobsService: DefaultJobsService | null = null;
+let db: MongoDatabase | null = null;
+let initPromise: Promise<MongoDatabase> | null = null;
+
+async function ensureDb() {
+  if (db) return db;
+  if (initPromise) return initPromise;
+  
+  initPromise = (async () => {
+    console.log('[Default Jobs API] Initializing MongoDB...');
+    const instance = MongoDatabase.getInstance();
+    await instance.initialize();
+    db = instance;
+    console.log('[Default Jobs API] MongoDB initialized successfully');
+    return instance;
+  })();
+  
+  return initPromise;
+}
 
 function getJobsService() {
   if (!defaultJobsService) {
@@ -15,6 +34,16 @@ function getJobsService() {
 
 export async function GET(request: NextRequest) {
   try {
+    // Ensure database is initialized first
+    const database = await ensureDb();
+    
+    if (!database.isHealthy()) {
+      return NextResponse.json(
+        { error: "Database not ready" },
+        { status: 503 }
+      );
+    }
+
     const { searchParams } = new URL(request.url);
     const action = searchParams.get('action');
 
@@ -40,6 +69,16 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   try {
+    // Ensure database is initialized first
+    const database = await ensureDb();
+    
+    if (!database.isHealthy()) {
+      return NextResponse.json(
+        { error: "Database not ready" },
+        { status: 503 }
+      );
+    }
+
     const body = await request.json();
     const { action, jobType } = body;
 
@@ -81,6 +120,18 @@ async function createDefaultJobs() {
 }
 
 async function runJobManually(jobType: 'backup' | 'integrity_check') {
-  const result = await getJobsService().runJobManually(jobType);
-  return NextResponse.json(result);
+  try {
+    console.log(`[Default Jobs API] Running job: ${jobType}`);
+    const service = getJobsService();
+    const result = await service.runJobManually(jobType);
+    console.log(`[Default Jobs API] Job ${jobType} completed:`, result);
+    return NextResponse.json(result);
+  } catch (error) {
+    console.error(`[Default Jobs API] Error running job ${jobType}:`, error);
+    return NextResponse.json({
+      success: false,
+      message: `Failed to run ${jobType} job`,
+      error: error instanceof Error ? error.message : String(error)
+    }, { status: 500 });
+  }
 }

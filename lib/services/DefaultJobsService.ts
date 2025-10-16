@@ -1,10 +1,7 @@
-import { SeparatedDatabaseManager } from "../database/SeparatedDatabaseManager";
-import { DataSourceDatabase } from "../server/database/DataSourceDatabase";
-import { CoreDatabase } from "../server/database/CoreDatabase";
+import { MongoDatabase } from "../server/database/MongoDatabase";
 import { logger } from "../utils/logger";
 import fs from "fs";
 import path from "path";
-import { app } from "electron";
 
 export interface JobResult {
   success: boolean;
@@ -14,16 +11,22 @@ export interface JobResult {
 }
 
 export class DefaultJobsService {
-  private dbManager: SeparatedDatabaseManager;
-  private coreDb: CoreDatabase;
+  private db: MongoDatabase;
 
   constructor() {
-    this.dbManager = SeparatedDatabaseManager.getInstance();
-    this.coreDb = CoreDatabase.getInstance();
+    this.db = MongoDatabase.getInstance();
+  }
+
+  async ensureInitialized(): Promise<void> {
+    if (!this.db.isHealthy()) {
+      await this.db.initialize();
+    }
   }
 
   async createDefaultJobs(): Promise<void> {
     try {
+      await this.ensureInitialized();
+      
       // Create backup job
       await this.createConfigBackupJob();
       
@@ -48,19 +51,21 @@ export class DefaultJobsService {
   }
 
   public async createConfigBackupJob(): Promise<void> {
+    await this.ensureInitialized();
+    
     const jobData = {
+      projectId: "default",
       name: "Core Config Backup",
       type: "backup",
-      description: "Automatically backup the core configuration database",
+      schedule: "0 2 * * *", // Daily at 2 AM
       config: {
         backupType: "core_config",
-        schedule: "0 2 * * *", // Daily at 2 AM
         retentionDays: 30,
         compression: true
       }
     };
 
-    await this.coreDb.createJob(jobData);
+    await this.db.createJob(jobData);
     
     logger.info(
       "Core config backup job created",
@@ -71,19 +76,21 @@ export class DefaultJobsService {
   }
 
   public async createIntegrityCheckJob(): Promise<void> {
+    await this.ensureInitialized();
+    
     const jobData = {
+      projectId: "default",
       name: "Data Source Integrity Check",
       type: "integrity_check",
-      description: "Verify metadata matches actual files on disk",
+      schedule: "0 3 * * 0", // Weekly on Sunday at 3 AM
       config: {
         checkType: "metadata_integrity",
-        schedule: "0 3 * * 0", // Weekly on Sunday at 3 AM
         checkAllProjects: true,
         autoRepair: false
       }
     };
 
-    await this.coreDb.createJob(jobData);
+    await this.db.createJob(jobData);
     
     logger.info(
       "Integrity check job created",
@@ -97,8 +104,10 @@ export class DefaultJobsService {
     const startTime = Date.now();
     
     try {
-      const coreDbPath = this.coreDb.getDbPath();
-      const backupDir = path.join(app.getPath("userData"), "backups", "core");
+      await this.ensureInitialized();
+      
+      // Get backup directory path - use process.cwd() data folder for web context
+      const backupDir = path.join(process.cwd(), "data", "backups", "core");
       
       // Ensure backup directory exists
       if (!fs.existsSync(backupDir)) {
@@ -107,23 +116,29 @@ export class DefaultJobsService {
 
       // Generate backup filename with timestamp
       const timestamp = new Date().toISOString().replace(/[:.]/g, "-");
-      const backupFileName = `core-config-backup-${timestamp}.db`;
+      const backupFileName = `mongodb-backup-${timestamp}.json`;
       const backupPath = path.join(backupDir, backupFileName);
 
-      // Copy core database file
-      fs.copyFileSync(coreDbPath, backupPath);
+      // Export MongoDB data to JSON
+      const projects = await this.db.getProjects();
+      const dataSources = await this.db.getDataSources();
+      const jobs = await this.db.getJobs();
+      const pipelines = await this.db.getPipelines();
+      
+      const backupData = {
+        timestamp: new Date().toISOString(),
+        projects,
+        dataSources,
+        jobs,
+        pipelines,
+      };
+
+      // Write backup to file
+      fs.writeFileSync(backupPath, JSON.stringify(backupData, null, 2));
 
       // Get file stats
       const stats = fs.statSync(backupPath);
-      const originalStats = fs.statSync(coreDbPath);
-
-      // Verify backup integrity
       const backupSize = stats.size;
-      const originalSize = originalStats.size;
-      
-      if (backupSize !== originalSize) {
-        throw new Error(`Backup size mismatch: original ${originalSize}, backup ${backupSize}`);
-      }
 
       const duration = Date.now() - startTime;
 
@@ -132,17 +147,19 @@ export class DefaultJobsService {
 
       const result: JobResult = {
         success: true,
-        message: `Core config backup completed successfully`,
+        message: `MongoDB backup completed successfully`,
         details: {
           backupPath,
           backupSize,
           duration,
-          timestamp: new Date().toISOString()
+          timestamp: new Date().toISOString(),
+          projectsCount: projects.length,
+          dataSourcesCount: dataSources.length,
         }
       };
 
       logger.success(
-        "Core config backup completed",
+        "MongoDB backup completed",
         "backup",
         {
           backupPath,
@@ -159,7 +176,7 @@ export class DefaultJobsService {
       const errorMessage = error instanceof Error ? error.message : String(error);
 
       logger.error(
-        "Core config backup failed",
+        "MongoDB backup failed",
         "backup",
         { error: errorMessage, duration },
         "DefaultJobsService"
@@ -167,7 +184,7 @@ export class DefaultJobsService {
 
       return {
         success: false,
-        message: "Core config backup failed",
+        message: "MongoDB backup failed",
         error: errorMessage,
         details: { duration }
       };
@@ -180,25 +197,31 @@ export class DefaultJobsService {
     const repairs: string[] = [];
 
     try {
+      await this.ensureInitialized();
+      
       // Get all projects
-      const projects = await this.coreDb.getProjects();
+      const projects = await this.db.getProjects();
+      
+      let totalDataSources = 0;
       
       for (const project of projects) {
         // Get all data sources for this project
-        const dataSources = await this.dbManager.getDataSources(project.id);
+        const projectId = (project as any)._id || (project as any).id;
+        const dataSources = await this.db.getDataSources(projectId);
+        totalDataSources += dataSources.length;
         
         for (const dataSource of dataSources) {
-          const integrityResult = await this.checkDataSourceIntegrity(project.id, dataSource);
+          const integrityResult = await this.checkDataSourceIntegrity(projectId, dataSource);
           
           if (integrityResult.issues.length > 0) {
             issues.push(...integrityResult.issues.map(issue => 
-              `Project ${project.name} > ${dataSource.name}: ${issue}`
+              `Project ${(project as any).name} > ${(dataSource as any).name}: ${issue}`
             ));
           }
           
           if (integrityResult.repairs.length > 0) {
             repairs.push(...integrityResult.repairs.map(repair => 
-              `Project ${project.name} > ${dataSource.name}: ${repair}`
+              `Project ${(project as any).name} > ${(dataSource as any).name}: ${repair}`
             ));
           }
         }
@@ -214,7 +237,7 @@ export class DefaultJobsService {
           : "Integrity check completed successfully - no issues found",
         details: {
           projectsChecked: projects.length,
-          totalDataSources: projects.reduce((sum, p) => sum + ((p as any).dataSources?.length || 0), 0),
+          totalDataSources,
           issuesFound: issues.length,
           repairsMade: repairs.length,
           duration,
@@ -277,14 +300,14 @@ export class DefaultJobsService {
     const repairs: string[] = [];
 
     try {
-      // Check if data source has snapshots (MongoDB-based)
+      // Check if data source has snapshots
       try {
-        const stats = await this.dbManager.getDataSourceStats(projectId, dataSource.id);
-        if (stats && stats.totalVersions === 0 && dataSource.lastSyncAt) {
+        const snapshots = await this.db.getSnapshots(dataSource.id || dataSource._id);
+        if (snapshots.length === 0 && dataSource.lastSyncAt) {
           issues.push(`Data source has no snapshots despite last sync: ${dataSource.lastSyncAt}`);
         }
       } catch (error) {
-        issues.push(`Failed to get data source stats: ${error}`);
+        issues.push(`Failed to get snapshots: ${error}`);
       }
 
       // Check if lastSyncAt is reasonable (not too old for active data sources)
@@ -313,7 +336,7 @@ export class DefaultJobsService {
       let deletedCount = 0;
       
       for (const file of files) {
-        if (file.startsWith('core-config-backup-') && file.endsWith('.db')) {
+        if (file.startsWith('mongodb-backup-') && file.endsWith('.json')) {
           const filePath = path.join(backupDir, file);
           const stats = fs.statSync(filePath);
           
@@ -347,12 +370,12 @@ export class DefaultJobsService {
     integrityCheckJob: any;
   }> {
     try {
-      const jobs = await this.coreDb.getJobs();
+      await this.ensureInitialized();
       
-      const configBackupJob = jobs.find(job => job.type === "backup" && 
-        job.config && JSON.parse(job.config).backupType === "core_config");
+      const jobs = await this.db.getJobs();
       
-      const integrityCheckJob = jobs.find(job => job.type === "integrity_check");
+      const configBackupJob = jobs.find((job: any) => job.type === "backup");
+      const integrityCheckJob = jobs.find((job: any) => job.type === "integrity_check");
 
       return {
         configBackupJob: configBackupJob || null,
@@ -373,13 +396,81 @@ export class DefaultJobsService {
   }
 
   async runJobManually(jobType: "backup" | "integrity_check"): Promise<JobResult> {
-    switch (jobType) {
-      case "backup":
-        return await this.executeConfigBackup();
-      case "integrity_check":
-        return await this.executeIntegrityCheck();
-      default:
-        throw new Error(`Unknown job type: ${jobType}`);
+    await this.ensureInitialized();
+    
+    try {
+      // Find the job in the database
+      const jobs = await this.db.getJobs();
+      const job = jobs.find((j: any) => j.type === jobType);
+      
+      if (!job) {
+        logger.warn(
+          `Job of type ${jobType} not found, creating it first`,
+          "jobs",
+          {},
+          "DefaultJobsService"
+        );
+        
+        // Create the job if it doesn't exist
+        if (jobType === "backup") {
+          await this.createConfigBackupJob();
+        } else {
+          await this.createIntegrityCheckJob();
+        }
+        
+        // Fetch the newly created job
+        const updatedJobs = await this.db.getJobs();
+        const newJob = updatedJobs.find((j: any) => j.type === jobType);
+        
+        if (!newJob) {
+          throw new Error(`Failed to create job of type ${jobType}`);
+        }
+      }
+      
+      // Get the job again to ensure we have the latest version
+      const allJobs = await this.db.getJobs();
+      const targetJob = allJobs.find((j: any) => j.type === jobType);
+      
+      if (targetJob) {
+        // Update job status to running
+        const jobId = (targetJob as any)._id || (targetJob as any).id;
+        await this.db.updateJob(jobId, {
+          status: 'running',
+          lastRun: new Date()
+        });
+      }
+      
+      // Execute the job
+      let result: JobResult;
+      switch (jobType) {
+        case "backup":
+          result = await this.executeConfigBackup();
+          break;
+        case "integrity_check":
+          result = await this.executeIntegrityCheck();
+          break;
+        default:
+          throw new Error(`Unknown job type: ${jobType}`);
+      }
+      
+      // Update job with result
+      if (targetJob) {
+        const jobId = (targetJob as any)._id || (targetJob as any).id;
+        await this.db.updateJob(jobId, {
+          status: result.success ? 'completed' : 'failed',
+          lastRun: new Date()
+        });
+      }
+      
+      return result;
+    } catch (error) {
+      logger.error(
+        `Failed to run ${jobType} job`,
+        "jobs",
+        { error },
+        "DefaultJobsService"
+      );
+      throw error;
     }
   }
 }

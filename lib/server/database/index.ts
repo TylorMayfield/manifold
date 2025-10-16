@@ -158,12 +158,11 @@ export class DatabaseManager {
   }
 }
 
-// Export new separated database architecture
-export { CoreDatabase } from "./CoreDatabase";
-export { ProjectDatabase } from "./ProjectDatabase";
-export { SimpleSQLiteDB } from "./SimpleSQLiteDB";
+// Export MongoDB-based database architecture
+export { MongoDatabase } from "./MongoDatabase";
 export { DataSourceDatabase } from "./DataSourceDatabase";
 export type { DataVersion, DataSourceStats } from "./DataSourceDatabase";
 
-// SeparatedDatabaseManager is now in lib/database/SeparatedDatabaseManager.ts (uses sql.js)
-// Import from there if needed: import { SeparatedDatabaseManager } from "../../database/SeparatedDatabaseManager";
+// Note: SimpleSQLiteDB is legacy and only used for Electron desktop mode
+// For server-side database operations, use MongoDatabase
+// For client-side database operations in Electron, use the Electron IPC bridge

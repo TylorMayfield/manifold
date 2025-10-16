@@ -1,0 +1,42 @@
+{
+  "timestamp": "2025-10-16T14:06:28.835Z",
+  "projects": [
+    {
+      "_id": "default",
+      "name": "Default Project",
+      "description": "Default ETL workspace",
+      "dataPath": "./data/projects/default",
+      "createdAt": "2025-10-16T13:49:36.735Z",
+      "updatedAt": "2025-10-16T13:49:36.735Z",
+      "__v": 0
+    }
+  ],
+  "dataSources": [],
+  "jobs": [
+    {
+      "_id": "job_1760623577703",
+      "projectId": "default",
+      "name": "Data Source Integrity Check",
+      "type": "integrity_check",
+      "schedule": "0 3 * * 0",
+      "status": "idle",
+      "enabled": true,
+      "createdAt": "2025-10-16T14:06:17.703Z",
+      "updatedAt": "2025-10-16T14:06:17.703Z",
+      "__v": 0
+    },
+    {
+      "_id": "job_1760623577700",
+      "projectId": "default",
+      "name": "Core Config Backup",
+      "type": "backup",
+      "schedule": "0 2 * * *",
+      "status": "idle",
+      "enabled": true,
+      "createdAt": "2025-10-16T14:06:17.700Z",
+      "updatedAt": "2025-10-16T14:06:17.700Z",
+      "__v": 0
+    }
+  ],
+  "pipelines": []
+}

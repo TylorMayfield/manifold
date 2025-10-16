@@ -76,14 +76,23 @@ export interface DataLakeConfig {
 export interface DataLakeMetadata {
   // Statistics
   totalRecords: number;
-  totalDataSources: number;
-  totalSize: number; // bytes
+  totalDataSources?: number;
+  totalSize?: number; // bytes
   lastRecordTimestamp?: Date;
+  lastBuiltAt?: Date;
+  
+  // Data source details
+  dataSources?: Array<{
+    dataSourceId: string;
+    recordCount: number;
+    lastSyncedAt: Date;
+  }>;
   
   // Schema information
-  schemaVersion: number;
-  columnCount: number;
-  dataTypes: Record<string, string>;
+  schemaVersion?: number;
+  columnCount?: number;
+  dataTypes?: Record<string, string>;
+  indexedFields?: string[];
   
   // Performance metrics
   buildTime?: number; // milliseconds
@@ -94,7 +103,8 @@ export interface DataLakeMetadata {
   qualityIssues?: DataQualityIssue[];
   
   // Storage information
-  storageLocation: string;
+  storageLocation?: string;
+  storageSize?: number;
   backupLocations?: string[];
 }
 
@@ -168,8 +178,11 @@ export interface DataTransformation {
 export interface DataFilter {
   id: string;
   name: string;
-  sourceDataSourceId: string;
-  condition: string;
+  sourceDataSourceId?: string;
+  condition?: string;
+  field?: string;
+  operator?: 'equals' | 'contains' | 'gt' | 'lt' | 'greater_than' | 'less_than' | 'in' | 'not_in' | 'between';
+  value?: any;
   isActive: boolean;
 }
 

@@ -57,20 +57,47 @@ export default function DefaultJobsManager() {
 
   const runJobManually = async (jobType: 'backup' | 'integrity_check') => {
     try {
+      console.log(`[DefaultJobsManager] Starting ${jobType} job...`);
       setRunningJob(jobType);
+      
       const response = await fetch('/api/jobs/default', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ action: 'run', jobType })
       });
       
+      console.log(`[DefaultJobsManager] Response status:`, response.status);
+      
+      if (!response.ok) {
+        const error = await response.json();
+        console.error(`[DefaultJobsManager] API error:`, error);
+        setLastResults(prev => ({ 
+          ...prev, 
+          [jobType]: { 
+            success: false, 
+            message: error.message || error.error || 'Failed to run job',
+            error: error.error 
+          } 
+        }));
+        return;
+      }
+      
       const result = await response.json();
+      console.log(`[DefaultJobsManager] Job result:`, result);
       setLastResults(prev => ({ ...prev, [jobType]: result }));
       
       // Reload status to get updated job information
       await loadJobStatus();
     } catch (error) {
-      console.error(`Failed to run ${jobType} job:`, error);
+      console.error(`[DefaultJobsManager] Failed to run ${jobType} job:`, error);
+      setLastResults(prev => ({ 
+        ...prev, 
+        [jobType]: { 
+          success: false, 
+          message: error instanceof Error ? error.message : 'Unknown error occurred',
+          error: String(error)
+        } 
+      }));
     } finally {
       setRunningJob(null);
     }

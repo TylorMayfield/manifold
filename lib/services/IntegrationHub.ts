@@ -426,6 +426,61 @@ export class IntegrationHub {
     return result;
   }
 
+  /**
+   * Handle post-execution tasks for a pipeline
+   */
+  async onPipelineExecuted(
+    pipelineId: string,
+    executionId: string,
+    success: boolean
+  ): Promise<void> {
+    try {
+      logger.info(`Pipeline execution completed: ${pipelineId}`, 'integration-hub', {
+        pipelineId,
+        executionId,
+        success,
+      });
+
+      // Track in pipeline integration
+      const integration = this.pipelineIntegrations.get(pipelineId);
+      if (integration) {
+        integration.executionHistory.push(executionId);
+      }
+
+      // Update catalog if cataloged
+      if (integration?.catalogEntryId) {
+        dataCatalog.updateAsset(integration.catalogEntryId, {
+          technicalMetadata: {
+            lastExecutionId: executionId,
+            lastExecutionStatus: success ? 'completed' : 'failed',
+            lastExecutionTime: new Date().toISOString(),
+          } as any,
+        });
+      }
+
+      // Track lineage if enabled
+      if (this.config.enableLineageTracking) {
+        dataLineage.trackPipelineExecution({
+          pipelineId,
+          inputSources: [],
+          transformations: [],
+        });
+      }
+
+      logger.success(`Pipeline execution tracked: ${pipelineId}`, 'integration-hub', {
+        executionId,
+        success,
+      });
+    } catch (error) {
+      logger.error('Failed to track pipeline execution', 'integration-hub', {
+        error,
+        pipelineId,
+        executionId,
+      });
+      // Don't throw - this is a non-critical tracking operation
+    }
+  }
+
   // ==================== STREAMING INTEGRATION ====================
 
   /**

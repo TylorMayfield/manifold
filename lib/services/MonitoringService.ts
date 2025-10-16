@@ -718,29 +718,71 @@ export class MonitoringService extends EventEmitter {
    * Collect system metrics
    */
   private collectSystemMetrics(): void {
-    // Simulate system metrics
-    // In production, would use actual system monitoring
-    
-    this.recordMetric({
-      name: 'system.cpu_usage',
-      type: 'gauge',
-      value: Math.random() * 100,
-      unit: '%',
-    });
+    try {
+      // Use Node.js os module for real system metrics
+      const os = require('os');
+      
+      // CPU Usage (average over all cores)
+      const cpus = os.cpus();
+      let totalIdle = 0;
+      let totalTick = 0;
+      
+      cpus.forEach((cpu: any) => {
+        for (const type in cpu.times) {
+          totalTick += cpu.times[type];
+        }
+        totalIdle += cpu.times.idle;
+      });
+      
+      const cpuUsage = 100 - (100 * totalIdle / totalTick);
+      
+      this.recordMetric({
+        name: 'system.cpu_usage',
+        type: 'gauge',
+        value: cpuUsage,
+        unit: '%',
+      });
 
-    this.recordMetric({
-      name: 'system.memory_usage',
-      type: 'gauge',
-      value: Math.random() * 100,
-      unit: '%',
-    });
+      // Memory Usage
+      const totalMemory = os.totalmem();
+      const freeMemory = os.freemem();
+      const usedMemory = totalMemory - freeMemory;
+      const memoryUsagePercent = (usedMemory / totalMemory) * 100;
+      
+      this.recordMetric({
+        name: 'system.memory_usage',
+        type: 'gauge',
+        value: memoryUsagePercent,
+        unit: '%',
+      });
 
-    this.recordMetric({
-      name: 'system.disk_usage',
-      type: 'gauge',
-      value: Math.random() * 1000,
-      unit: 'GB',
-    });
+      // Memory in MB for absolute values
+      this.recordMetric({
+        name: 'system.memory_used_mb',
+        type: 'gauge',
+        value: Math.round(usedMemory / 1024 / 1024),
+        unit: 'MB',
+      });
+      
+      this.recordMetric({
+        name: 'system.memory_total_mb',
+        type: 'gauge',
+        value: Math.round(totalMemory / 1024 / 1024),
+        unit: 'MB',
+      });
+
+      // Process Memory Usage (heap)
+      const processMemory = process.memoryUsage();
+      this.recordMetric({
+        name: 'process.heap_used_mb',
+        type: 'gauge',
+        value: Math.round(processMemory.heapUsed / 1024 / 1024),
+        unit: 'MB',
+      });
+      
+    } catch (error) {
+      logger.error('Failed to collect system metrics', 'monitoring', { error });
+    }
   }
 
   /**
