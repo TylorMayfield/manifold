@@ -52,7 +52,7 @@ class ClientDatabaseServiceImpl implements ClientDatabaseService {
     }
 
     // Fallback to localStorage for browser testing
-    const projects = localStorage.getItem("manifold_projects");
+    const projects = localStorage.getItem("lorsync_projects");
     return projects ? JSON.parse(projects) : [];
   }
 
@@ -79,7 +79,7 @@ class ClientDatabaseServiceImpl implements ClientDatabaseService {
       createdAt: new Date(),
     };
     projects.push(newProject);
-    localStorage.setItem("manifold_projects", JSON.stringify(projects));
+    localStorage.setItem("lorsync_projects", JSON.stringify(projects));
     return newProject;
   }
 
@@ -97,7 +97,7 @@ class ClientDatabaseServiceImpl implements ClientDatabaseService {
         ...updates,
         updatedAt: new Date(),
       };
-      localStorage.setItem("manifold_projects", JSON.stringify(projects));
+      localStorage.setItem("lorsync_projects", JSON.stringify(projects));
       return projects[index];
     }
     throw new Error(`Project ${id} not found`);
@@ -121,7 +121,7 @@ class ClientDatabaseServiceImpl implements ClientDatabaseService {
     }
 
     // Fallback to localStorage
-    const key = `manifold_data_sources_${projectId}`;
+    const key = `lorsync_data_sources_${projectId}`;
     const dataSources = localStorage.getItem(key);
     return dataSources ? JSON.parse(dataSources) : [];
   }
@@ -147,7 +147,7 @@ class ClientDatabaseServiceImpl implements ClientDatabaseService {
       createdAt: new Date(),
     };
     dataSources.push(newDataSource);
-    const key = `manifold_data_sources_${projectId}`;
+    const key = `lorsync_data_sources_${projectId}`;
     localStorage.setItem(key, JSON.stringify(dataSources));
     return newDataSource;
   }
@@ -174,7 +174,7 @@ class ClientDatabaseServiceImpl implements ClientDatabaseService {
         ...updates,
         updatedAt: new Date(),
       };
-      const key = `manifold_data_sources_${projectId}`;
+      const key = `lorsync_data_sources_${projectId}`;
       localStorage.setItem(key, JSON.stringify(dataSources));
       return dataSources[index];
     }
@@ -189,7 +189,7 @@ class ClientDatabaseServiceImpl implements ClientDatabaseService {
     // Fallback to localStorage
     const dataSources = await this.getDataSources(projectId);
     const filtered = dataSources.filter((ds) => ds.id !== id);
-    const key = `manifold_data_sources_${projectId}`;
+    const key = `lorsync_data_sources_${projectId}`;
     localStorage.setItem(key, JSON.stringify(filtered));
   }
 
@@ -200,7 +200,7 @@ class ClientDatabaseServiceImpl implements ClientDatabaseService {
     }
 
     // Fallback to localStorage
-    const key = `manifold_snapshots_${projectId}`;
+    const key = `lorsync_snapshots_${projectId}`;
     const snapshots = localStorage.getItem(key);
     return snapshots ? JSON.parse(snapshots) : [];
   }
@@ -226,7 +226,7 @@ class ClientDatabaseServiceImpl implements ClientDatabaseService {
       createdAt: new Date(),
     };
     snapshots.push(newSnapshot);
-    const key = `manifold_snapshots_${projectId}`;
+    const key = `lorsync_snapshots_${projectId}`;
     localStorage.setItem(key, JSON.stringify(snapshots));
     return newSnapshot;
   }
@@ -239,7 +239,7 @@ class ClientDatabaseServiceImpl implements ClientDatabaseService {
     // Fallback to localStorage
     const snapshots = await this.getSnapshots(projectId);
     const filtered = snapshots.filter((s) => s.id !== id);
-    const key = `manifold_snapshots_${projectId}`;
+    const key = `lorsync_snapshots_${projectId}`;
     localStorage.setItem(key, JSON.stringify(filtered));
   }
 
@@ -250,7 +250,7 @@ class ClientDatabaseServiceImpl implements ClientDatabaseService {
     }
 
     // Fallback to localStorage
-    const key = projectId ? `manifold_jobs_${projectId}` : "manifold_jobs";
+    const key = projectId ? `lorsync_jobs_${projectId}` : "lorsync_jobs";
     const jobs = localStorage.getItem(key);
     return jobs ? JSON.parse(jobs) : [];
   }
@@ -262,7 +262,7 @@ class ClientDatabaseServiceImpl implements ClientDatabaseService {
 
     // Fallback to localStorage - search all job keys
     const keys = Object.keys(localStorage).filter((key) =>
-      key.startsWith("manifold_jobs")
+      key.startsWith("lorsync_jobs")
     );
     for (const key of keys) {
       const jobs = JSON.parse(localStorage.getItem(key) || "[]");
@@ -279,8 +279,8 @@ class ClientDatabaseServiceImpl implements ClientDatabaseService {
 
     // Fallback to localStorage
     const key = job.projectId
-      ? `manifold_jobs_${job.projectId}`
-      : "manifold_jobs";
+      ? `lorsync_jobs_${job.projectId}`
+      : "lorsync_jobs";
     const jobs = JSON.parse(localStorage.getItem(key) || "[]");
     const newJob = { ...job, id: `job_${Date.now()}`, createdAt: new Date() };
     jobs.push(newJob);
@@ -295,7 +295,7 @@ class ClientDatabaseServiceImpl implements ClientDatabaseService {
 
     // Fallback to localStorage
     const keys = Object.keys(localStorage).filter((key) =>
-      key.startsWith("manifold_jobs")
+      key.startsWith("lorsync_jobs")
     );
     for (const key of keys) {
       const jobs = JSON.parse(localStorage.getItem(key) || "[]");
@@ -316,7 +316,7 @@ class ClientDatabaseServiceImpl implements ClientDatabaseService {
 
     // Fallback to localStorage
     const keys = Object.keys(localStorage).filter((key) =>
-      key.startsWith("manifold_jobs")
+      key.startsWith("lorsync_jobs")
     );
     for (const key of keys) {
       const jobs = JSON.parse(localStorage.getItem(key) || "[]");
@@ -335,7 +335,7 @@ class ClientDatabaseServiceImpl implements ClientDatabaseService {
     }
 
     // Fallback to localStorage
-    const key = `manifold_backups_${projectId}`;
+    const key = `lorsync_backups_${projectId}`;
     const backups = localStorage.getItem(key);
     return backups ? JSON.parse(backups) : [];
   }
@@ -358,7 +358,7 @@ class ClientDatabaseServiceImpl implements ClientDatabaseService {
       createdAt: new Date(),
     };
     backups.push(newBackup);
-    const key = `manifold_backups_${projectId}`;
+    const key = `lorsync_backups_${projectId}`;
     localStorage.setItem(key, JSON.stringify(backups));
     return newBackup;
   }
@@ -370,7 +370,7 @@ class ClientDatabaseServiceImpl implements ClientDatabaseService {
 
     // Fallback to localStorage
     const keys = Object.keys(localStorage).filter((key) =>
-      key.startsWith("manifold_backups_")
+      key.startsWith("lorsync_backups_")
     );
     for (const key of keys) {
       const backups = JSON.parse(localStorage.getItem(key) || "[]");
@@ -395,7 +395,7 @@ class ClientDatabaseServiceImpl implements ClientDatabaseService {
 
     // Fallback to localStorage
     const keys = Object.keys(localStorage).filter((key) =>
-      key.startsWith("manifold_backups_")
+      key.startsWith("lorsync_backups_")
     );
     for (const key of keys) {
       const backups = JSON.parse(localStorage.getItem(key) || "[]");

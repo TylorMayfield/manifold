@@ -22,6 +22,7 @@ import CellCard from "../ui/CellCard";
 import { DataProvider, DataProviderType } from "../../types";
 import { useDataSources } from "../../contexts/DataSourceContext";
 import ImportMethodConfigs from "./ImportMethodConfigs";
+import { TestTube, RefreshCw, CheckCircle, XCircle, Eye, List } from "lucide-react";
 
 // Step 1: Data Source Type Selection
 interface DataSourceTypeOption {
@@ -84,6 +85,11 @@ export default function UnifiedDataSourceWorkflow({
   const [dataSourceConfig, setDataSourceConfig] = useState<any>({});
   const [dataSourceName, setDataSourceName] = useState("");
   const [loading, setLoading] = useState(false);
+  const [testing, setTesting] = useState(false);
+  const [testResult, setTestResult] = useState<{success: boolean; message: string} | null>(null);
+  const [previewData, setPreviewData] = useState<any[] | null>(null);
+  const [availableTables, setAvailableTables] = useState<string[] | null>(null);
+  const [loadingTables, setLoadingTables] = useState(false);
 
   // Data source type options with their available import methods
   const dataSourceTypes: DataSourceTypeOption[] = [
@@ -267,6 +273,180 @@ export default function UnifiedDataSourceWorkflow({
     }
   };
 
+  const validateConfiguration = (): { valid: boolean; error?: string } => {
+    if (!selectedType || !selectedImportMethod || !dataSourceName.trim()) {
+      return { valid: false, error: 'Please fill in all required fields' };
+    }
+
+    // Type-specific validation
+    switch (selectedType) {
+      case 'mysql':
+        if (!dataSourceConfig.host?.trim()) {
+          return { valid: false, error: 'MySQL host is required' };
+        }
+        if (!dataSourceConfig.database?.trim()) {
+          return { valid: false, error: 'Database name is required' };
+        }
+        if (!dataSourceConfig.username?.trim()) {
+          return { valid: false, error: 'Username is required' };
+        }
+        break;
+      
+      case 'mssql':
+        if (!dataSourceConfig.host?.trim()) {
+          return { valid: false, error: 'MSSQL host is required' };
+        }
+        if (!dataSourceConfig.database?.trim()) {
+          return { valid: false, error: 'Database name is required' };
+        }
+        break;
+      
+      case 'odbc':
+        if (!dataSourceConfig.driver?.trim()) {
+          return { valid: false, error: 'ODBC driver name is required' };
+        }
+        if (!dataSourceConfig.database?.trim()) {
+          return { valid: false, error: 'Database name is required' };
+        }
+        break;
+      
+      case 'api_script':
+        if (!dataSourceConfig.url?.trim()) {
+          return { valid: false, error: 'API URL is required' };
+        }
+        try {
+          new URL(dataSourceConfig.url);
+        } catch {
+          return { valid: false, error: 'Invalid API URL format' };
+        }
+        break;
+      
+      case 'csv':
+        if (!dataSourceConfig.filePath?.trim() && !dataSourceConfig.uploadFile) {
+          return { valid: false, error: 'CSV file path or upload is required' };
+        }
+        break;
+      
+      case 'json':
+        if (!dataSourceConfig.filePath?.trim() && !dataSourceConfig.uploadFile) {
+          return { valid: false, error: 'JSON file path or upload is required' };
+        }
+        break;
+    }
+
+    return { valid: true };
+  };
+
+  const testConnection = async () => {
+    const validation = validateConfiguration();
+    if (!validation.valid) {
+      alert(validation.error);
+      return;
+    }
+
+    setTesting(true);
+    setTestResult(null);
+
+    try {
+      // Call appropriate test endpoint based on type
+      const response = await fetch('/api/data-sources/test-connection', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          type: selectedType,
+          config: dataSourceConfig,
+        }),
+      });
+
+      const result = await response.json();
+
+      if (response.ok && result.success) {
+        setTestResult({ success: true, message: result.message || 'Connection successful!' });
+      } else {
+        setTestResult({ success: false, message: result.message || result.error || 'Connection failed' });
+      }
+    } catch (error) {
+      setTestResult({ 
+        success: false, 
+        message: error instanceof Error ? error.message : 'Connection test failed' 
+      });
+    } finally {
+      setTesting(false);
+    }
+  };
+
+  const loadAvailableTables = async () => {
+    if (!['mysql', 'mssql', 'odbc', 'postgres'].includes(selectedType || '')) {
+      return;
+    }
+
+    setLoadingTables(true);
+    try {
+      const response = await fetch('/api/data-sources/introspect', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          type: selectedType,
+          config: dataSourceConfig,
+        }),
+      });
+
+      const result = await response.json();
+      if (response.ok && result.tables) {
+        setAvailableTables(result.tables);
+      }
+    } catch (error) {
+      console.error('Failed to load tables:', error);
+    } finally {
+      setLoadingTables(false);
+    }
+  };
+
+  const previewDataSource = async () => {
+    setLoading(true);
+    try {
+      const response = await fetch('/api/data-sources/preview', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          type: selectedType,
+          config: dataSourceConfig,
+        }),
+      });
+
+      const result = await response.json();
+      if (response.ok && result.data) {
+        setPreviewData(result.data);
+      }
+    } catch (error) {
+      console.error('Failed to preview data:', error);
+      alert('Failed to preview data. Please check your configuration.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const checkForDuplicates = async (name: string): Promise<boolean> => {
+    try {
+      const response = await fetch(`/api/data-sources?projectId=${projectId}`);
+      if (response.ok) {
+        const existingSources: DataProvider[] = await response.json();
+        const duplicate = existingSources.find(ds => 
+          ds.name.toLowerCase() === name.toLowerCase().trim()
+        );
+        if (duplicate) {
+          const confirm = window.confirm(
+            `A data source named "${name}" already exists. Create anyway?`
+          );
+          return !confirm; // Return true if user doesn't want to continue
+        }
+      }
+    } catch (error) {
+      console.error('Error checking for duplicates:', error);
+    }
+    return false;
+  };
+
   const handleCreateDataSource = async () => {
     console.log('[UnifiedDataSourceWorkflow] handleCreateDataSource called', {
       selectedType,
@@ -275,14 +455,27 @@ export default function UnifiedDataSourceWorkflow({
       dataSourceConfig
     });
 
-    if (!selectedType || !selectedImportMethod || !dataSourceName.trim()) {
-      console.warn('[UnifiedDataSourceWorkflow] Validation failed', {
-        selectedType,
-        selectedImportMethod,
-        dataSourceName
-      });
-      alert('Please fill in all required fields');
+    // Validate configuration
+    const validation = validateConfiguration();
+    if (!validation.valid) {
+      alert(validation.error);
       return;
+    }
+
+    // Check for duplicates
+    const isDuplicate = await checkForDuplicates(dataSourceName);
+    if (isDuplicate) {
+      return;
+    }
+
+    // Recommend testing connection if not already tested
+    if (!testResult?.success && ['mysql', 'mssql', 'odbc', 'postgres', 'api_script'].includes(selectedType || '')) {
+      const proceed = window.confirm(
+        'You haven\'t tested the connection yet. Create anyway?'
+      );
+      if (!proceed) {
+        return;
+      }
     }
 
     setLoading(true);
@@ -316,6 +509,8 @@ export default function UnifiedDataSourceWorkflow({
       console.error("Failed to create data source:", error);
       const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
       alert(`Failed to create data source: ${errorMessage}\n\nPlease check:\n1. MongoDB is running\n2. Connection string is correct in Settings > Database\n3. Browser console for more details`);
+      
+      // If creation failed, we don't need rollback since it's atomic
     } finally {
       setLoading(false);
     }
@@ -526,6 +721,9 @@ export default function UnifiedDataSourceWorkflow({
     const selectedTypeOption = dataSourceTypes.find(
       (t) => t.id === selectedType
     );
+    
+    const isDatabaseType = ['mysql', 'mssql', 'odbc', 'postgres'].includes(selectedType || '');
+    const isApiType = selectedType === 'api_script';
 
     return (
       <div className="space-y-6">
@@ -534,11 +732,12 @@ export default function UnifiedDataSourceWorkflow({
             Review Your Data Source
           </h2>
           <p className="text-body text-gray-600">
-            Confirm your settings before creating the data source
+            Test connection and preview data before creating
           </p>
         </div>
 
-        <div className="max-w-2xl mx-auto">
+        <div className="max-w-2xl mx-auto space-y-4">
+          {/* Summary Card */}
           <CellCard className="p-6">
             <div className="flex items-center mb-6">
               <div
@@ -571,6 +770,135 @@ export default function UnifiedDataSourceWorkflow({
               </div>
             </div>
           </CellCard>
+
+          {/* Connection Testing */}
+          {(isDatabaseType || isApiType) && (
+            <CellCard className="p-6">
+              <h3 className="text-subheading font-bold mb-4">Connection Testing</h3>
+              
+              <div className="flex space-x-3 mb-4">
+                <CellButton
+                  onClick={testConnection}
+                  variant="secondary"
+                  disabled={testing}
+                  className="flex-1"
+                >
+                  {testing ? (
+                    <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
+                  ) : (
+                    <TestTube className="h-4 w-4 mr-2" />
+                  )}
+                  {testing ? 'Testing...' : 'Test Connection'}
+                </CellButton>
+
+                {isDatabaseType && (
+                  <CellButton
+                    onClick={loadAvailableTables}
+                    variant="secondary"
+                    disabled={loadingTables || !testResult?.success}
+                    className="flex-1"
+                  >
+                    {loadingTables ? (
+                      <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
+                    ) : (
+                      <List className="h-4 w-4 mr-2" />
+                    )}
+                    {loadingTables ? 'Loading...' : 'Browse Tables'}
+                  </CellButton>
+                )}
+
+                <CellButton
+                  onClick={previewDataSource}
+                  variant="secondary"
+                  disabled={loading || !testResult?.success}
+                  className="flex-1"
+                >
+                  {loading ? (
+                    <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
+                  ) : (
+                    <Eye className="h-4 w-4 mr-2" />
+                  )}
+                  Preview Data
+                </CellButton>
+              </div>
+
+              {/* Test Result */}
+              {testResult && (
+                <div
+                  className={`p-4 border-2 border-black flex items-center space-x-3 ${
+                    testResult.success
+                      ? 'bg-green-50'
+                      : 'bg-red-50'
+                  }`}
+                >
+                  {testResult.success ? (
+                    <CheckCircle className="h-5 w-5 text-green-600" />
+                  ) : (
+                    <XCircle className="h-5 w-5 text-red-600" />
+                  )}
+                  <div className="flex-1">
+                    <p className={`text-body font-medium ${testResult.success ? 'text-green-800' : 'text-red-800'}`}>
+                      {testResult.success ? 'Connection Successful' : 'Connection Failed'}
+                    </p>
+                    <p className="text-caption text-gray-600">{testResult.message}</p>
+                  </div>
+                </div>
+              )}
+
+              {/* Available Tables */}
+              {availableTables && availableTables.length > 0 && (
+                <div className="mt-4">
+                  <h4 className="text-body font-bold mb-2">Available Tables ({availableTables.length})</h4>
+                  <div className="max-h-40 overflow-y-auto border-2 border-black p-3 bg-gray-50">
+                    <div className="space-y-1">
+                      {availableTables.slice(0, 20).map((table, idx) => (
+                        <div key={idx} className="text-caption font-mono text-gray-700 flex items-center">
+                          <Check className="h-3 w-3 mr-2 text-green-600" />
+                          {table}
+                        </div>
+                      ))}
+                      {availableTables.length > 20 && (
+                        <div className="text-caption text-gray-500 italic">
+                          ... and {availableTables.length - 20} more tables
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Data Preview */}
+              {previewData && previewData.length > 0 && (
+                <div className="mt-4">
+                  <h4 className="text-body font-bold mb-2">Data Preview (First {previewData.length} rows)</h4>
+                  <div className="max-h-60 overflow-auto border-2 border-black">
+                    <table className="w-full text-caption">
+                      <thead className="bg-gray-100 sticky top-0">
+                        <tr>
+                          {Object.keys(previewData[0]).map((key) => (
+                            <th key={key} className="px-3 py-2 text-left border border-gray-300 font-bold">
+                              {key}
+                            </th>
+                          ))}
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {previewData.map((row, idx) => (
+                          <tr key={idx} className="hover:bg-gray-50">
+                            {Object.values(row).map((value: any, colIdx) => (
+                              <td key={colIdx} className="px-3 py-2 border border-gray-300 font-mono">
+                                {String(value)}
+                              </td>
+                            ))}
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              )}
+            </CellCard>
+          )}
         </div>
       </div>
     );

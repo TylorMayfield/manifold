@@ -145,7 +145,7 @@ export class MongoDatabase {
   private constructor() {
     // Default to local MongoDB instance using IPv4 (127.0.0.1 instead of localhost)
     // This prevents IPv6 connection issues on Windows
-    this.connectionString = process.env.MONGODB_URI || 'mongodb://127.0.0.1:27017/manifold';
+    this.connectionString = process.env.MONGODB_URI || 'mongodb://127.0.0.1:27017/lorsync';
   }
 
   static getInstance(): MongoDatabase {

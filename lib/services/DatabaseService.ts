@@ -62,7 +62,7 @@ export class DatabaseService {
       }
 
       // Fallback to localStorage for browser testing
-      const projects = localStorage.getItem("manifold_projects");
+      const projects = localStorage.getItem("lorsync_projects");
       return projects ? JSON.parse(projects) : [];
     } catch (error) {
       console.error("Failed to get projects:", error);
@@ -108,7 +108,7 @@ export class DatabaseService {
         console.log("Creating project via localStorage fallback:", project);
         const projects = await this.getProjects();
         projects.push(project);
-        localStorage.setItem("manifold_projects", JSON.stringify(projects));
+        localStorage.setItem("lorsync_projects", JSON.stringify(projects));
       }
     } catch (error) {
       console.error("Failed to create project:", error);
@@ -131,7 +131,7 @@ export class DatabaseService {
         const index = projects.findIndex((p) => p.id === id);
         if (index !== -1) {
           projects[index] = { ...projects[index], ...updates };
-          localStorage.setItem("manifold_projects", JSON.stringify(projects));
+          localStorage.setItem("lorsync_projects", JSON.stringify(projects));
         }
       }
     } catch (error) {
@@ -159,7 +159,7 @@ export class DatabaseService {
         const index = projects.findIndex((p) => p.id === project.id);
         if (index !== -1) {
           projects[index] = project;
-          localStorage.setItem("manifold_projects", JSON.stringify(projects));
+          localStorage.setItem("lorsync_projects", JSON.stringify(projects));
           console.log("Project updated successfully via localStorage");
         } else {
           throw new Error(`Project with id ${project.id} not found`);
@@ -200,7 +200,7 @@ export class DatabaseService {
       }
       // Fallback to localStorage for browser testing
       const dataSources = localStorage.getItem(
-        `manifold_data_sources_${projectId}`
+        `lorsync_data_sources_${projectId}`
       );
       return dataSources ? JSON.parse(dataSources) : [];
     } catch (error) {
@@ -257,7 +257,7 @@ export class DatabaseService {
         const dataSources = await this.getDataSources(dataSource.projectId);
         dataSources.push(dataSource);
         localStorage.setItem(
-          `manifold_data_sources_${dataSource.projectId}`,
+          `lorsync_data_sources_${dataSource.projectId}`,
           JSON.stringify(dataSources)
         );
         console.log("Data source created successfully via localStorage");
@@ -287,7 +287,7 @@ export class DatabaseService {
         if (index !== -1) {
           dataSources[index] = { ...dataSources[index], ...updates };
           localStorage.setItem(
-            `manifold_data_sources_${updates.projectId}`,
+            `lorsync_data_sources_${updates.projectId}`,
             JSON.stringify(dataSources)
           );
         }
@@ -307,7 +307,7 @@ export class DatabaseService {
         const dataSources = await this.getDataSources(projectId);
         const filtered = dataSources.filter((ds) => ds.id !== id);
         localStorage.setItem(
-          `manifold_data_sources_${projectId}`,
+          `lorsync_data_sources_${projectId}`,
           JSON.stringify(filtered)
         );
       }
@@ -327,7 +327,7 @@ export class DatabaseService {
       }
       // Fallback to localStorage for browser testing
       const models = localStorage.getItem(
-        `manifold_consolidated_models_${projectId}`
+        `lorsync_consolidated_models_${projectId}`
       );
       return models ? JSON.parse(models) : [];
     } catch (error) {
@@ -355,7 +355,7 @@ export class DatabaseService {
         const models = await this.getConsolidatedModels(model.projectId);
         models.push(model);
         localStorage.setItem(
-          `manifold_consolidated_models_${model.projectId}`,
+          `lorsync_consolidated_models_${model.projectId}`,
           JSON.stringify(models)
         );
         console.log("Consolidated model created successfully via localStorage");
@@ -387,7 +387,7 @@ export class DatabaseService {
         if (index !== -1) {
           models[index] = { ...models[index], ...updates };
           localStorage.setItem(
-            `manifold_consolidated_models_${updates.projectId}`,
+            `lorsync_consolidated_models_${updates.projectId}`,
             JSON.stringify(models)
           );
         }
@@ -407,7 +407,7 @@ export class DatabaseService {
         const models = await this.getConsolidatedModels(projectId);
         const filtered = models.filter((m) => m.id !== id);
         localStorage.setItem(
-          `manifold_consolidated_models_${projectId}`,
+          `lorsync_consolidated_models_${projectId}`,
           JSON.stringify(filtered)
         );
       }
@@ -431,7 +431,7 @@ export class DatabaseService {
       }
 
       // Fallback to localStorage for browser testing
-      const key = `manifold_snapshots_${projectId}`;
+      const key = `lorsync_snapshots_${projectId}`;
       console.log("Using localStorage for getSnapshots with key:", key);
 
       const snapshots = localStorage.getItem(key);
@@ -464,7 +464,7 @@ export class DatabaseService {
         snapshots.push(snapshot);
         console.log("Snapshots after adding new one:", snapshots);
 
-        const key = `manifold_snapshots_${snapshot.projectId}`;
+        const key = `lorsync_snapshots_${snapshot.projectId}`;
         localStorage.setItem(key, JSON.stringify(snapshots));
         console.log(
           "Snapshot created successfully via localStorage with key:",

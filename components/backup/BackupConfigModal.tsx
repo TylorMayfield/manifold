@@ -58,7 +58,7 @@ export default function BackupConfigModal({
   });
   const [localConfig, setLocalConfig] = useState<LocalBackupConfig>({
     directory: "./backups",
-    fileNamePrefix: "manifold-backup",
+    fileNamePrefix: "lorsync-backup",
   });
   const [loading, setLoading] = useState(false);
   const [testing, setTesting] = useState(false);
@@ -437,7 +437,7 @@ export default function BackupConfigModal({
                     })
                   }
                   className="w-full p-3 rounded-lg bg-white/10 border border-white/20 text-white placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  placeholder="manifold-backup"
+                  placeholder="lorsync-backup"
                 />
               </div>
             </div>

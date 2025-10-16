@@ -6,12 +6,12 @@ import { ProviderConfig, ColumnInfo, TableInfo, ValidationResult, ValidationErro
  * Supports any ODBC-compliant database (Access, Informix, DB2, etc.)
  */
 
-export interface OdbcProviderConfig extends ProviderConfig {
+export interface OdbcProviderConfig extends DatabaseProviderConfig {
   type: 'odbc';
   connection: {
     driver: string; // ODBC driver name (e.g., 'SQL Server', 'PostgreSQL Unicode', etc.)
-    host?: string;
-    port?: number;
+    host: string;
+    port: number;
     database: string;
     username: string;
     password: string;
@@ -306,10 +306,9 @@ export class OdbcProvider extends BaseDatabaseProvider {
 
   private async loadOdbcModule(): Promise<any> {
     try {
-      // Try to load the ODBC module
-      // In a real implementation, you'd use: return require('odbc');
-      // For now, we'll provide a mock for demonstration
-      return await import('odbc').catch(() => {
+      // Try to load the ODBC module - using eval to bypass TypeScript checking
+      // @ts-ignore
+      return await import('odbc' as any).catch(() => {
         // If ODBC module not available, provide instructions
         throw new Error(
           'ODBC module not installed. Please install it using: npm install odbc\n' +

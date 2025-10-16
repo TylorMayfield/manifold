@@ -113,7 +113,7 @@ export default function SnapshotViewer({
           size: dataSize,
           location: isElectron
             ? `SQLite: ${projectId}.db`
-            : `localStorage: manifold_snapshots_${projectId}`,
+            : `localStorage: lorsync_snapshots_${projectId}`,
         };
       });
 
@@ -401,7 +401,7 @@ export default function SnapshotViewer({
                 <strong>Browser Mode:</strong> Snapshots are stored in
                 localStorage with keys like{" "}
                 <code className="bg-white/10 px-1 rounded">
-                  manifold_snapshots_[projectId]
+                  lorsync_snapshots_[projectId]
                 </code>
                 .
               </p>

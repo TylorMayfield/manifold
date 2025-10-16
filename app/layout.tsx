@@ -23,7 +23,7 @@ const jetBrainsMono = JetBrains_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Manifold - ETL Tool",
+  title: "LorSync - Data Integration Platform",
   description:
     "A lightweight desktop ETL tool for data ingestion, transformation, and versioning",
   other: {

@@ -1,5 +1,5 @@
 {
-  "name": "manifold",
+  "name": "lorsync",
   "version": "0.1.0",
   "description": "A powerful, context-agnostic desktop application for data integration and consolidation",
   "author": "Tylor Mayfield",
@@ -116,8 +116,8 @@
     "wait-on": "^7.2.0"
   },
   "build": {
-    "appId": "com.manifold.app",
-    "productName": "Manifold",
+    "appId": "com.lorsync.app",
+    "productName": "LorSync",
     "icon": "icon.png",
     "directories": {
       "output": "dist",

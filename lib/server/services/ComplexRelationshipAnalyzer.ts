@@ -1,5 +1,6 @@
 import { logger } from "../utils/logger";
-import { DatabaseService } from "../../services/DatabaseService";
+import mongoose from 'mongoose';
+import { MongoDatabase } from "../database/MongoDatabase";
 import { DataSource, Snapshot } from "../../../types";
 import {
   ComplexRelationship,
@@ -18,10 +19,10 @@ import {
 
 export class ComplexRelationshipAnalyzer {
   private static instance: ComplexRelationshipAnalyzer;
-  private dbService: DatabaseService;
+  private db: MongoDatabase;
 
   private constructor() {
-    this.dbService = DatabaseService.getInstance();
+    this.db = MongoDatabase.getInstance();
   }
 
   public static getInstance(): ComplexRelationshipAnalyzer {
@@ -48,12 +49,14 @@ export class ComplexRelationshipAnalyzer {
     );
 
     try {
-      // Get data sources and their snapshots
-      const dataSources = await this.dbService.getDataSources(projectId);
-      const snapshots = await this.dbService.getSnapshots(projectId);
+      // Get data sources and their snapshots using Mongoose
+      const DataSourceModel = mongoose.model('DataSource');
+      const SnapshotModel = mongoose.model('Snapshot');
+      const dataSources: any[] = await DataSourceModel.find({ projectId }).lean();
+      const snapshots: any[] = await SnapshotModel.find({ projectId }).lean();
 
       const selectedDataSources = dataSources.filter((ds) =>
-        dataSourceIds.includes(ds.id)
+        dataSourceIds.includes(ds._id)
       );
 
       // Analyze each data source

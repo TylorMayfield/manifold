@@ -189,6 +189,7 @@ function MysqlDirectConfig({
   onConfigChange,
   onNext,
 }: ImportMethodConfigProps) {
+  const [showAdvanced, setShowAdvanced] = useState(false);
   const [connectionConfig, setConnectionConfig] = useState({
     host: config.mysqlConfig?.host || "localhost",
     port: config.mysqlConfig?.port || 3306,
@@ -196,6 +197,19 @@ function MysqlDirectConfig({
     username: config.mysqlConfig?.username || "",
     password: config.mysqlConfig?.password || "",
     ssl: config.mysqlConfig?.ssl || false,
+    tables: config.mysqlConfig?.tables || [],
+    // Delta sync options
+    deltaSync: config.mysqlConfig?.deltaSync || {
+      enabled: false,
+      trackingColumn: 'updated_at',
+      trackingType: 'timestamp',
+    },
+    // Batch export options
+    batchExport: config.mysqlConfig?.batchExport || {
+      enabled: false,
+      batchSize: 1000,
+      pauseBetweenBatches: 100,
+    },
   });
 
   const handleNext = () => {
@@ -322,6 +336,152 @@ function MysqlDirectConfig({
         </label>
       </div>
 
+      {/* Advanced Options */}
+      <div className="border-t border-gray-200 pt-4">
+        <button
+          onClick={() => setShowAdvanced(!showAdvanced)}
+          className="text-sm font-medium text-blue-600 hover:text-blue-700 flex items-center"
+        >
+          <Settings className="h-4 w-4 mr-1" />
+          {showAdvanced ? 'Hide' : 'Show'} Advanced Options
+        </button>
+
+        {showAdvanced && (
+          <div className="mt-4 space-y-4 p-4 bg-gray-50 rounded-lg">
+            {/* Delta Sync */}
+            <div>
+              <div className="flex items-center mb-3">
+                <input
+                  type="checkbox"
+                  id="delta-sync"
+                  checked={connectionConfig.deltaSync.enabled}
+                  onChange={(e) =>
+                    setConnectionConfig({
+                      ...connectionConfig,
+                      deltaSync: { ...connectionConfig.deltaSync, enabled: e.target.checked },
+                    })
+                  }
+                  className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                />
+                <label htmlFor="delta-sync" className="ml-2 block text-sm font-medium text-gray-900">
+                  Enable Delta/Incremental Sync
+                </label>
+              </div>
+              
+              {connectionConfig.deltaSync.enabled && (
+                <div className="ml-6 space-y-3">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Tracking Column
+                    </label>
+                    <input
+                      type="text"
+                      value={connectionConfig.deltaSync.trackingColumn}
+                      onChange={(e) =>
+                        setConnectionConfig({
+                          ...connectionConfig,
+                          deltaSync: { ...connectionConfig.deltaSync, trackingColumn: e.target.value },
+                        })
+                      }
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm"
+                      placeholder="updated_at"
+                    />
+                    <p className="text-xs text-gray-500 mt-1">Column used to track changes</p>
+                  </div>
+                  
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Tracking Type
+                    </label>
+                    <select
+                      value={connectionConfig.deltaSync.trackingType}
+                      onChange={(e) =>
+                        setConnectionConfig({
+                          ...connectionConfig,
+                          deltaSync: { ...connectionConfig.deltaSync, trackingType: e.target.value as any },
+                        })
+                      }
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm"
+                    >
+                      <option value="timestamp">Timestamp</option>
+                      <option value="integer">Integer/Version</option>
+                      <option value="version">Row Version</option>
+                    </select>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Batch Export */}
+            <div>
+              <div className="flex items-center mb-3">
+                <input
+                  type="checkbox"
+                  id="batch-export"
+                  checked={connectionConfig.batchExport.enabled}
+                  onChange={(e) =>
+                    setConnectionConfig({
+                      ...connectionConfig,
+                      batchExport: { ...connectionConfig.batchExport, enabled: e.target.checked },
+                    })
+                  }
+                  className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                />
+                <label htmlFor="batch-export" className="ml-2 block text-sm font-medium text-gray-900">
+                  Enable Batch Export (Reduce DB Load)
+                </label>
+              </div>
+              
+              {connectionConfig.batchExport.enabled && (
+                <div className="ml-6 space-y-3">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Batch Size
+                    </label>
+                    <input
+                      type="number"
+                      value={connectionConfig.batchExport.batchSize}
+                      onChange={(e) =>
+                        setConnectionConfig({
+                          ...connectionConfig,
+                          batchExport: { ...connectionConfig.batchExport, batchSize: parseInt(e.target.value) },
+                        })
+                      }
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm"
+                      placeholder="1000"
+                      min="100"
+                      max="10000"
+                    />
+                    <p className="text-xs text-gray-500 mt-1">Number of rows per batch (100-10000)</p>
+                  </div>
+                  
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Pause Between Batches (ms)
+                    </label>
+                    <input
+                      type="number"
+                      value={connectionConfig.batchExport.pauseBetweenBatches}
+                      onChange={(e) =>
+                        setConnectionConfig({
+                          ...connectionConfig,
+                          batchExport: { ...connectionConfig.batchExport, pauseBetweenBatches: parseInt(e.target.value) },
+                        })
+                      }
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm"
+                      placeholder="100"
+                      min="0"
+                      max="5000"
+                    />
+                    <p className="text-xs text-gray-500 mt-1">Delay to reduce database load</p>
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+      </div>
+
       <div className="flex justify-end">
         <Button
           onClick={handleNext}
@@ -332,7 +492,7 @@ function MysqlDirectConfig({
             !connectionConfig.username
           }
         >
-          Test Connection & Continue
+          Continue
         </Button>
       </div>
     </div>

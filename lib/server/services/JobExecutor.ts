@@ -1,4 +1,7 @@
 import { logger } from "../utils/logger";
+import mongoose from 'mongoose';
+import { MongoDatabase } from "../database/MongoDatabase";
+
 // System monitor removed - using local type definitions
 interface ScheduledTask {
   id: string;
@@ -26,7 +29,6 @@ interface TaskHistory {
   error?: string;
 }
 import { DataProvider } from "../../../types";
-import { DatabaseService } from "../../services/DatabaseService";
 import { BackupScheduler } from "./BackupScheduler";
 import { MySqlProvider } from "../../services/MySqlProvider";
 import { ApiProvider } from "../../services/ApiProvider";
@@ -44,7 +46,7 @@ export interface JobExecutionContext {
 export class JobExecutor {
   private static instance: JobExecutor;
   private runningJobs: Map<string, JobExecutionContext> = new Map();
-  private dbService = DatabaseService.getInstance();
+  private db = MongoDatabase.getInstance();
   private backupScheduler = BackupScheduler.getInstance();
   private mysqlProvider = MySqlProvider.getInstance();
   private apiProvider = ApiProvider.getInstance();
@@ -133,8 +135,9 @@ export class JobExecutor {
         throw new Error("Project ID is required for backup tasks");
       }
 
-      // Get project data sources
-      const dataSources = await this.dbService.getDataSources(task.projectId);
+      // Get project data sources using Mongoose
+      const DataSourceModel = mongoose.model('DataSource');
+      const dataSources = await DataSourceModel.find({ projectId: task.projectId }).lean();
       context.onProgress(
         30,
         `Found ${dataSources.length} data sources to backup`
@@ -183,8 +186,9 @@ export class JobExecutor {
         throw new Error("Data source ID is required for sync tasks");
       }
 
-      // Get data source
-      const dataSource = await this.dbService.getDataSource(task.dataSourceId);
+      // Get data source using Mongoose
+      const DataSourceModel = mongoose.model('DataSource');
+      const dataSource: any = await DataSourceModel.findById(task.dataSourceId).lean();
       if (!dataSource) {
         throw new Error(`Data source not found: ${task.dataSourceId}`);
       }
@@ -198,18 +202,15 @@ export class JobExecutor {
           context.onProgress(70, "MySQL sync in progress");
           break;
         case "api_script":
-          // Get API config from data source
-          const apiDataSource = await this.dbService.getDataSource(
-            task.dataSourceId
-          );
-          if (apiDataSource?.config?.apiUrl) {
+          // Get API config from data source (already loaded above)
+          if (dataSource?.config?.apiUrl) {
             await this.apiProvider.fetchData({
-              url: apiDataSource.config.apiUrl,
-              method: apiDataSource.config.apiMethod || "GET",
-              headers: apiDataSource.config.apiHeaders || {},
-              params: apiDataSource.config.apiParams || {},
-              authType: apiDataSource.config.apiAuthType || "none",
-              authConfig: apiDataSource.config.apiAuthConfig || {},
+              url: dataSource.config.apiUrl,
+              method: dataSource.config.apiMethod || "GET",
+              headers: dataSource.config.apiHeaders || {},
+              params: dataSource.config.apiParams || {},
+              authType: dataSource.config.apiAuthType || "none",
+              authConfig: dataSource.config.apiAuthConfig || {},
             });
           }
           context.onProgress(70, "API sync in progress");
@@ -251,7 +252,9 @@ export class JobExecutor {
         throw new Error("Data source ID is required for API poll tasks");
       }
 
-      const dataSource = await this.dbService.getDataSource(task.dataSourceId);
+      // Get data source using Mongoose
+      const DataSourceModel = mongoose.model('DataSource');
+      const dataSource: any = await DataSourceModel.findById(task.dataSourceId).lean();
       if (!dataSource || dataSource.type !== "api_script") {
         throw new Error(`API data source not found: ${task.dataSourceId}`);
       }
@@ -260,17 +263,14 @@ export class JobExecutor {
       context.onProgress(60, "Processing response");
 
       // Execute API sync
-      const apiDataSource = await this.dbService.getDataSource(
-        task.dataSourceId
-      );
-      if (apiDataSource?.config?.apiUrl) {
+      if (dataSource?.config?.apiUrl) {
         await this.apiProvider.fetchData({
-          url: apiDataSource.config.apiUrl,
-          method: apiDataSource.config.apiMethod || "GET",
-          headers: apiDataSource.config.apiHeaders || {},
-          params: apiDataSource.config.apiParams || {},
-          authType: apiDataSource.config.apiAuthType || "none",
-          authConfig: apiDataSource.config.apiAuthConfig || {},
+          url: dataSource.config.apiUrl,
+          method: dataSource.config.apiMethod || "GET",
+          headers: dataSource.config.apiHeaders || {},
+          params: dataSource.config.apiParams || {},
+          authType: dataSource.config.apiAuthType || "none",
+          authConfig: dataSource.config.apiAuthConfig || {},
         });
       }
 
@@ -306,7 +306,9 @@ export class JobExecutor {
         throw new Error("Data source ID is required for custom script tasks");
       }
 
-      const dataSource = await this.dbService.getDataSource(task.dataSourceId);
+      // Get data source using Mongoose
+      const DataSourceModel = mongoose.model('DataSource');
+      const dataSource: any = await DataSourceModel.findById(task.dataSourceId).lean();
       if (!dataSource || dataSource.type !== "sql_dump") {
         throw new Error(
           `Custom script data source not found: ${task.dataSourceId}`
@@ -370,14 +372,16 @@ export class JobExecutor {
    * Create jobs from data sources
    */
   async createJobsFromDataSources(projectId: string): Promise<ScheduledTask[]> {
-    const dataSources = await this.dbService.getDataSources(projectId);
+    // Get data sources using Mongoose
+    const DataSourceModel = mongoose.model('DataSource');
+    const dataSources: any[] = await DataSourceModel.find({ projectId }).lean();
     const jobs: ScheduledTask[] = [];
 
     for (const dataSource of dataSources) {
       // Create sync job for each data source
       if (dataSource.type === "mysql" || dataSource.type === "api_script") {
         const syncJob: ScheduledTask = {
-          id: `sync_${dataSource.id}`,
+          id: `sync_${dataSource._id}`,
           name: `Sync: ${dataSource.name}`,
           description: `Automated sync for ${dataSource.name}`,
           type: "sync",
@@ -391,7 +395,7 @@ export class JobExecutor {
           ),
           status: "pending",
           isActive: true,
-          dataSourceId: dataSource.id,
+          dataSourceId: dataSource._id,
           projectId: dataSource.projectId,
           metadata: {
             dataSourceType: dataSource.type,
@@ -404,7 +408,7 @@ export class JobExecutor {
       // Create API poll job for API data sources
       if (dataSource.type === "api_script") {
         const pollJob: ScheduledTask = {
-          id: `poll_${dataSource.id}`,
+          id: `poll_${dataSource._id}`,
           name: `Poll: ${dataSource.name}`,
           description: `Automated polling for ${dataSource.name}`,
           type: "api_poll",
@@ -412,7 +416,7 @@ export class JobExecutor {
           nextRun: new Date(Date.now() + 5 * 60 * 1000),
           status: "pending",
           isActive: true,
-          dataSourceId: dataSource.id,
+          dataSourceId: dataSource._id,
           projectId: dataSource.projectId,
           metadata: {
             dataSourceType: dataSource.type,
@@ -428,7 +432,7 @@ export class JobExecutor {
         dataSource.config?.customScriptConfig?.schedule
       ) {
         const scriptJob: ScheduledTask = {
-          id: `script_${dataSource.id}`,
+          id: `script_${dataSource._id}`,
           name: `Script: ${dataSource.name}`,
           description: `Automated script execution for ${dataSource.name}`,
           type: "custom_script",
@@ -436,7 +440,7 @@ export class JobExecutor {
           nextRun: new Date(Date.now() + 60 * 60 * 1000), // Default to 1 hour
           status: "pending",
           isActive: true,
-          dataSourceId: dataSource.id,
+          dataSourceId: dataSource._id,
           projectId: dataSource.projectId,
           metadata: {
             dataSourceType: dataSource.type,

@@ -1,4 +1,4 @@
-# Manifold - Data Integration Platform
+# LorSync - Data Integration Platform
 
 A powerful, context-agnostic desktop application for data integration and consolidation built with Next.js and Electron. Features a stunning glassmorphic design and comprehensive logging system.
 
@@ -67,7 +67,7 @@ A powerful, context-agnostic desktop application for data integration and consol
 
 ```bash
 git clone <repository-url>
-cd manifold
+cd lorsync
 ```
 
 2. Install dependencies:
@@ -190,7 +190,7 @@ npm run release <version> # Create a new release (e.g., npm run release 1.0.0)
 ## 📁 Project Structure
 
 ```
-manifold/
+lorsync/
 ├── app/                    # Next.js app directory
 │   ├── page.tsx           # Home page with glassmorphic design
 │   ├── project/[id]/      # Project workspace pages
@@ -325,4 +325,4 @@ Private project - All rights reserved.
 
 ---
 
-**Manifold** - Transforming data integration with beautiful, modern interfaces and powerful logging capabilities. 🚀
+**LorSync** - Transforming data integration with beautiful, modern interfaces and powerful logging capabilities. 🚀

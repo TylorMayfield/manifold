@@ -68,12 +68,10 @@ export class LocalBackupService {
       const backupId = `backup-${project.id}-${Date.now()}`;
       const timestamp = new Date();
 
-      // Get all snapshots (data) for this project
-      const { DatabaseService } = await import(
-        "../../services/DatabaseService"
-      );
-      const dbService = DatabaseService.getInstance();
-      const snapshots = await dbService.getSnapshots(project.id);
+      // Get all snapshots (data) for this project using Mongoose
+      const mongoose = await import('mongoose');
+      const SnapshotModel = mongoose.default.model('Snapshot');
+      const snapshots = await SnapshotModel.find({ projectId: project.id }).lean();
 
       logger.info(
         "Including snapshots in local backup",

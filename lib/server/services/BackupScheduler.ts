@@ -1,4 +1,6 @@
 import { logger } from "../utils/logger";
+import mongoose from 'mongoose';
+import { MongoDatabase } from "../database/MongoDatabase";
 import { Project, DataSource } from "../../../types";
 import {
   BackupConfig,
@@ -8,12 +10,11 @@ import {
 } from "../../../types/backup";
 import { S3BackupService } from "./S3BackupService";
 import { LocalBackupService } from "./LocalBackupService";
-import { DatabaseService } from "../../services/DatabaseService";
 
 export class BackupScheduler {
   private static instance: BackupScheduler;
   private schedules: Map<string, NodeJS.Timeout> = new Map();
-  private dbService = DatabaseService.getInstance();
+  private db = MongoDatabase.getInstance();
   private s3Service = S3BackupService.getInstance();
   private localService = LocalBackupService.getInstance();
 
@@ -159,9 +160,11 @@ export class BackupScheduler {
         "BackupScheduler"
       );
 
-      // Get project and data sources
-      const project = await this.dbService.getProject(projectId);
-      const dataSources = await this.dbService.getDataSources(projectId);
+      // Get project and data sources using Mongoose
+      const ProjectModel = mongoose.model('Project');
+      const DataSourceModel = mongoose.model('DataSource');
+      const project = await ProjectModel.findById(projectId).lean();
+      const dataSources = await DataSourceModel.find({ projectId }).lean();
 
       if (!project) {
         throw new Error(`Project ${projectId} not found`);
@@ -180,8 +183,8 @@ export class BackupScheduler {
           throw new Error("S3 backup not configured");
         }
         metadata = await this.s3Service.backupProject(
-          project,
-          dataSources,
+          project as any,
+          dataSources as any,
           `Scheduled backup - ${new Date().toLocaleString()}`
         );
       } else if (config.provider === "local") {
@@ -189,8 +192,8 @@ export class BackupScheduler {
           throw new Error("Local backup not configured");
         }
         metadata = await this.localService.backupProject(
-          project,
-          dataSources,
+          project as any,
+          dataSources as any,
           `Scheduled backup - ${new Date().toLocaleString()}`
         );
       } else {
@@ -237,9 +240,10 @@ export class BackupScheduler {
 
   async getBackupConfig(projectId: string): Promise<BackupConfig | null> {
     try {
-      const configKey = `backup_config_${projectId}`;
-      const configJson = localStorage.getItem(configKey);
-      return configJson ? JSON.parse(configJson) : null;
+      // Get backup config from Project document
+      const ProjectModel = mongoose.model('Project');
+      const project: any = await ProjectModel.findById(projectId).lean();
+      return project?.config?.backup || null;
     } catch (error) {
       logger.error(
         "Failed to get backup config",
@@ -253,9 +257,10 @@ export class BackupScheduler {
 
   async getBackupSchedule(projectId: string): Promise<BackupSchedule | null> {
     try {
-      const scheduleKey = `backup_schedule_${projectId}`;
-      const scheduleJson = localStorage.getItem(scheduleKey);
-      return scheduleJson ? JSON.parse(scheduleJson) : null;
+      // Get backup schedule from Project document
+      const ProjectModel = mongoose.model('Project');
+      const project: any = await ProjectModel.findById(projectId).lean();
+      return project?.config?.backupSchedule || null;
     } catch (error) {
       logger.error(
         "Failed to get backup schedule",
@@ -273,13 +278,16 @@ export class BackupScheduler {
     return new Date(now.getTime() + interval);
   }
 
-  private async saveBackupConfig(
+  private   async saveBackupConfig(
     projectId: string,
     config: BackupConfig
   ): Promise<void> {
     try {
-      const configKey = `backup_config_${projectId}`;
-      localStorage.setItem(configKey, JSON.stringify(config));
+      // Save backup config to Project document
+      const ProjectModel = mongoose.model('Project');
+      await ProjectModel.findByIdAndUpdate(projectId, {
+        $set: { 'config.backup': config }
+      });
     } catch (error) {
       logger.error(
         "Failed to save backup config",
@@ -291,10 +299,13 @@ export class BackupScheduler {
     }
   }
 
-  private async saveBackupSchedule(schedule: BackupSchedule): Promise<void> {
+  private   async saveBackupSchedule(schedule: BackupSchedule): Promise<void> {
     try {
-      const scheduleKey = `backup_schedule_${schedule.projectId}`;
-      localStorage.setItem(scheduleKey, JSON.stringify(schedule));
+      // Save backup schedule to Project document
+      const ProjectModel = mongoose.model('Project');
+      await ProjectModel.findByIdAndUpdate(schedule.projectId, {
+        $set: { 'config.backupSchedule': schedule }
+      });
     } catch (error) {
       logger.error(
         "Failed to save backup schedule",
@@ -400,20 +411,21 @@ export class BackupScheduler {
         "BackupScheduler"
       );
 
-      // Get all projects
-      const projects = await this.dbService.getProjects();
+      // Get all projects using Mongoose
+      const ProjectModel = mongoose.model('Project');
+      const projects: any[] = await ProjectModel.find().lean();
 
       for (const project of projects) {
         try {
-          const config = await this.getBackupConfig(project.id);
+          const config = await this.getBackupConfig(project._id);
           if (config && config.enabled && config.frequency !== "disabled") {
-            await this.startBackup(project.id, config);
+            await this.startBackup(project._id, config);
           }
         } catch (error) {
           logger.error(
             "Failed to initialize backup schedule for project",
             "system",
-            { error, projectId: project.id },
+            { error, projectId: project._id },
             "BackupScheduler"
           );
         }
@@ -477,11 +489,13 @@ export class BackupScheduler {
     }>
   > {
     try {
-      const projects = await this.dbService.getProjects();
+      // Get all projects using Mongoose
+      const ProjectModel = mongoose.model('Project');
+      const projects: any[] = await ProjectModel.find().lean();
       const scheduledBackups = [];
 
       for (const project of projects) {
-        const schedule = await this.getBackupSchedule(project.id);
+        const schedule = await this.getBackupSchedule(project._id);
         if (schedule && schedule.isRunning && schedule.config.enabled) {
           // Convert frequency to cron expression
           const cronExpression = this.frequencyToCron(
@@ -489,8 +503,8 @@ export class BackupScheduler {
           );
 
           scheduledBackups.push({
-            id: `backup_${project.id}`,
-            projectId: project.id,
+            id: `backup_${project._id}`,
+            projectId: project._id,
             projectName: project.name,
             schedule: cronExpression,
             nextRun: schedule.nextRun?.getTime() || Date.now(),

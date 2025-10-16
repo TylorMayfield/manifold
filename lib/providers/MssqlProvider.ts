@@ -519,8 +519,9 @@ export class MssqlProvider extends BaseDatabaseProvider {
 
   private async loadMssqlModule(): Promise<any> {
     try {
-      // Try to load the mssql module
-      return await import('mssql').catch(() => {
+      // Try to load the mssql module - using eval to bypass TypeScript checking
+      // @ts-ignore
+      return await import('mssql' as any).catch(() => {
         throw new Error(
           'mssql module not installed. Please install it using: npm install mssql\n' +
           'Note: For production use, you may also need to install tedious: npm install tedious'

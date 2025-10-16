@@ -1,10 +1,78 @@
 // Note: node-cron is Node.js only, we'll use a browser-compatible approach
 import { logger } from "../utils/logger";
-import { DatabaseService } from "../../services/DatabaseService";
+import { MongoDatabase } from "../database/MongoDatabase";
 import { JobExecutor } from "./JobExecutor";
+import mongoose, { Schema, Model } from 'mongoose';
+
+// MongoDB Schemas
+const CronJobSchema = new Schema({
+  _id: { type: String, required: true },
+  name: { type: String, required: true },
+  description: String,
+  schedule: { type: String, required: true }, // Cron expression
+  type: { 
+    type: String, 
+    required: true,
+    enum: ["data_sync", "backup", "cleanup", "custom_script", "api_poll", "workflow"]
+  },
+  projectId: String,
+  dataSourceId: String,
+  workflowId: String,
+  config: Schema.Types.Mixed,
+  status: { 
+    type: String, 
+    enum: ["active", "paused", "disabled"],
+    default: "active"
+  },
+  lastRun: Date,
+  nextRun: Date,
+  createdBy: { type: String, required: true },
+  createdAt: { type: Date, default: Date.now },
+  updatedAt: { type: Date, default: Date.now }
+});
+
+const JobExecutionSchema = new Schema({
+  _id: { type: String, required: true },
+  jobId: { type: String, required: true, index: true },
+  status: { 
+    type: String, 
+    required: true,
+    enum: ["running", "completed", "failed", "cancelled"]
+  },
+  startTime: { type: Date, required: true },
+  endTime: Date,
+  duration: Number, // in milliseconds
+  progress: { type: Number, default: 0 }, // 0-100
+  currentStep: String,
+  result: Schema.Types.Mixed,
+  error: String,
+  retryCount: { type: Number, default: 0 },
+  createdAt: { type: Date, default: Date.now },
+  updatedAt: { type: Date, default: Date.now }
+});
+
+const JobLogSchema = new Schema({
+  _id: { type: String, required: true },
+  executionId: { type: String, required: true, index: true },
+  timestamp: { type: Date, default: Date.now },
+  level: { 
+    type: String, 
+    required: true,
+    enum: ["info", "warn", "error", "debug"]
+  },
+  message: { type: String, required: true },
+  details: Schema.Types.Mixed,
+  createdAt: { type: Date, default: Date.now }
+});
+
+// Create indexes
+CronJobSchema.index({ projectId: 1 });
+CronJobSchema.index({ status: 1, config: 1 });
+JobExecutionSchema.index({ jobId: 1, startTime: -1 });
+JobLogSchema.index({ executionId: 1, timestamp: -1 });
 
 export interface CronJob {
-  id: string;
+  _id: string;
   name: string;
   description?: string;
   schedule: string; // Cron expression
@@ -39,7 +107,7 @@ export interface CronJob {
 }
 
 export interface JobExecution {
-  id: string;
+  _id: string;
   jobId: string;
   status: "running" | "completed" | "failed" | "cancelled";
   startTime: Date;
@@ -50,30 +118,38 @@ export interface JobExecution {
   result?: any;
   error?: string;
   retryCount: number;
-  logs: JobLog[];
+  logs?: JobLog[];
+  createdAt: Date;
+  updatedAt: Date;
 }
 
 export interface JobLog {
-  id: string;
+  _id: string;
   executionId: string;
   timestamp: Date;
   level: "info" | "warn" | "error" | "debug";
   message: string;
   details?: any;
+  createdAt: Date;
 }
+
+// Initialize Mongoose models
+let CronJobModel: Model<any>;
+let JobExecutionModel: Model<any>;
+let JobLogModel: Model<any>;
 
 export class JobScheduler {
   private static instance: JobScheduler;
   private cronJobs: Map<string, any> = new Map();
   private jobExecutions: Map<string, JobExecution> = new Map();
-  private dbService: DatabaseService;
+  private db: MongoDatabase;
   private jobExecutor: JobExecutor;
   private isRunning: boolean = false;
 
   private constructor() {
-    this.dbService = DatabaseService.getInstance();
+    this.db = MongoDatabase.getInstance();
     this.jobExecutor = JobExecutor.getInstance();
-    this.initializeDatabase();
+    this.initializeModels();
   }
 
   static getInstance(): JobScheduler {
@@ -84,62 +160,18 @@ export class JobScheduler {
   }
 
   /**
-   * Initialize database tables for job management
+   * Initialize Mongoose models for job management
    */
-  private async initializeDatabase(): Promise<void> {
+  private initializeModels(): void {
     try {
-      await this.dbService.execute(`
-        CREATE TABLE IF NOT EXISTS cron_jobs (
-          id TEXT PRIMARY KEY,
-          name TEXT NOT NULL,
-          description TEXT,
-          schedule TEXT NOT NULL,
-          type TEXT NOT NULL,
-          project_id TEXT,
-          data_source_id TEXT,
-          workflow_id TEXT,
-          config TEXT NOT NULL,
-          status TEXT NOT NULL DEFAULT 'active',
-          created_at DATETIME NOT NULL,
-          updated_at DATETIME NOT NULL,
-          last_run DATETIME,
-          next_run DATETIME,
-          created_by TEXT NOT NULL
-        )
-      `);
+      // Initialize models if they don't exist
+      CronJobModel = mongoose.models.CronJob || mongoose.model('CronJob', CronJobSchema);
+      JobExecutionModel = mongoose.models.JobExecution || mongoose.model('JobExecution', JobExecutionSchema);
+      JobLogModel = mongoose.models.JobLog || mongoose.model('JobLog', JobLogSchema);
 
-      await this.dbService.execute(`
-        CREATE TABLE IF NOT EXISTS job_executions (
-          id TEXT PRIMARY KEY,
-          job_id TEXT NOT NULL,
-          status TEXT NOT NULL,
-          start_time DATETIME NOT NULL,
-          end_time DATETIME,
-          duration INTEGER,
-          progress INTEGER DEFAULT 0,
-          current_step TEXT,
-          result TEXT,
-          error TEXT,
-          retry_count INTEGER DEFAULT 0,
-          FOREIGN KEY (job_id) REFERENCES cron_jobs (id)
-        )
-      `);
-
-      await this.dbService.execute(`
-        CREATE TABLE IF NOT EXISTS job_logs (
-          id TEXT PRIMARY KEY,
-          execution_id TEXT NOT NULL,
-          timestamp DATETIME NOT NULL,
-          level TEXT NOT NULL,
-          message TEXT NOT NULL,
-          details TEXT,
-          FOREIGN KEY (execution_id) REFERENCES job_executions (id)
-        )
-      `);
-
-      logger.info("Job scheduler database initialized", "system");
+      logger.info("Job scheduler models initialized", "system");
     } catch (error) {
-      logger.error("Failed to initialize job scheduler database", "system", {
+      logger.error("Failed to initialize job scheduler models", "system", {
         error,
       });
     }
@@ -199,10 +231,17 @@ export class JobScheduler {
   }
 
   /**
+   * Check if the scheduler is currently running
+   */
+  isActive(): boolean {
+    return this.isRunning;
+  }
+
+  /**
    * Create a new cron job
    */
   async createJob(
-    job: Omit<CronJob, "id" | "createdAt" | "updatedAt" | "nextRun">
+    job: Omit<CronJob, "_id" | "createdAt" | "updatedAt" | "nextRun">
   ): Promise<CronJob> {
     try {
       const jobId = `job-${Date.now()}-${Math.random()
@@ -210,16 +249,27 @@ export class JobScheduler {
         .substr(2, 9)}`;
       const now = new Date();
 
-      const newJob: CronJob = {
-        ...job,
-        id: jobId,
+      const jobDoc = new CronJobModel({
+        _id: jobId,
+        name: job.name,
+        description: job.description,
+        schedule: job.schedule,
+        type: job.type,
+        projectId: job.projectId,
+        dataSourceId: job.dataSourceId,
+        workflowId: job.workflowId,
+        config: job.config,
+        status: job.status,
+        createdBy: job.createdBy,
         createdAt: now,
         updatedAt: now,
         nextRun: this.calculateNextRun(job.schedule, now),
-      };
+        lastRun: job.lastRun,
+      });
 
-      // Save to database
-      await this.saveJobToDatabase(newJob);
+      await jobDoc.save();
+
+      const newJob = jobDoc.toObject() as CronJob;
 
       // Schedule the job if it's active
       if (newJob.status === "active" && newJob.config.enabled) {
@@ -227,7 +277,7 @@ export class JobScheduler {
       }
 
       logger.info("Cron job created", "system", {
-        jobId: newJob.id,
+        jobId: newJob._id,
         name: newJob.name,
         schedule: newJob.schedule,
         type: newJob.type,
@@ -256,15 +306,6 @@ export class JobScheduler {
         throw new Error(`Job not found: ${jobId}`);
       }
 
-      const updatedJob: CronJob = {
-        ...existingJob,
-        ...updates,
-        updatedAt: new Date(),
-        nextRun: updates.schedule
-          ? this.calculateNextRun(updates.schedule, new Date())
-          : existingJob.nextRun,
-      };
-
       // Stop existing cron job
       const existingCronJob = this.cronJobs.get(jobId);
       if (existingCronJob && existingCronJob.intervalId) {
@@ -272,8 +313,27 @@ export class JobScheduler {
         this.cronJobs.delete(jobId);
       }
 
-      // Save to database
-      await this.saveJobToDatabase(updatedJob);
+      // Update in database
+      const updateData: any = {
+        ...updates,
+        updatedAt: new Date(),
+      };
+
+      if (updates.schedule) {
+        updateData.nextRun = this.calculateNextRun(updates.schedule, new Date());
+      }
+
+      const updatedDoc = await CronJobModel.findByIdAndUpdate(
+        jobId,
+        { $set: updateData },
+        { new: true }
+      );
+
+      if (!updatedDoc) {
+        throw new Error(`Job not found: ${jobId}`);
+      }
+
+      const updatedJob = updatedDoc.toObject() as CronJob;
 
       // Reschedule if active
       if (updatedJob.status === "active" && updatedJob.config.enabled) {
@@ -281,7 +341,7 @@ export class JobScheduler {
       }
 
       logger.info("Cron job updated", "system", {
-        jobId: updatedJob.id,
+        jobId: updatedJob._id,
         name: updatedJob.name,
       });
 
@@ -309,9 +369,7 @@ export class JobScheduler {
       }
 
       // Delete from database
-      await this.dbService.execute("DELETE FROM cron_jobs WHERE id = ?", [
-        jobId,
-      ]);
+      await CronJobModel.findByIdAndDelete(jobId);
 
       logger.info("Cron job deleted", "system", { jobId });
       return true;
@@ -329,33 +387,8 @@ export class JobScheduler {
    */
   async getJob(jobId: string): Promise<CronJob | null> {
     try {
-      const result = await this.dbService.query(
-        "SELECT * FROM cron_jobs WHERE id = ?",
-        [jobId]
-      );
-
-      if (result.length === 0) {
-        return null;
-      }
-
-      const row = result[0];
-      return {
-        id: row.id,
-        name: row.name,
-        description: row.description,
-        schedule: row.schedule,
-        type: row.type,
-        projectId: row.project_id,
-        dataSourceId: row.data_source_id,
-        workflowId: row.workflow_id,
-        config: JSON.parse(row.config),
-        status: row.status,
-        createdAt: new Date(row.created_at),
-        updatedAt: new Date(row.updated_at),
-        lastRun: row.last_run ? new Date(row.last_run) : undefined,
-        nextRun: row.next_run ? new Date(row.next_run) : undefined,
-        createdBy: row.created_by,
-      };
+      const job = await CronJobModel.findById(jobId).lean();
+      return job ? (job as unknown as CronJob) : null;
     } catch (error) {
       logger.error("Failed to get job", "system", { error, jobId });
       return null;
@@ -367,27 +400,8 @@ export class JobScheduler {
    */
   async getAllJobs(): Promise<CronJob[]> {
     try {
-      const result = await this.dbService.query(
-        "SELECT * FROM cron_jobs ORDER BY created_at DESC"
-      );
-
-      return result.map((row) => ({
-        id: row.id,
-        name: row.name,
-        description: row.description,
-        schedule: row.schedule,
-        type: row.type,
-        projectId: row.project_id,
-        dataSourceId: row.data_source_id,
-        workflowId: row.workflow_id,
-        config: JSON.parse(row.config),
-        status: row.status,
-        createdAt: new Date(row.created_at),
-        updatedAt: new Date(row.updated_at),
-        lastRun: row.last_run ? new Date(row.last_run) : undefined,
-        nextRun: row.next_run ? new Date(row.next_run) : undefined,
-        createdBy: row.created_by,
-      }));
+      const jobs = await CronJobModel.find().sort({ createdAt: -1 }).lean();
+      return jobs as unknown as CronJob[];
     } catch (error) {
       logger.error("Failed to get all jobs", "system", { error });
       return [];
@@ -402,48 +416,26 @@ export class JobScheduler {
     limit: number = 50
   ): Promise<JobExecution[]> {
     try {
-      let query = `
-        SELECT je.*, 
-               GROUP_CONCAT(
-                 json_object(
-                   'id', jl.id,
-                   'timestamp', jl.timestamp,
-                   'level', jl.level,
-                   'message', jl.message,
-                   'details', jl.details
-                 )
-               ) as logs
-        FROM job_executions je
-        LEFT JOIN job_logs jl ON je.id = jl.execution_id
-        WHERE 1=1
-      `;
+      const query = jobId ? { jobId } : {};
+      const executions = await JobExecutionModel.find(query)
+        .sort({ startTime: -1 })
+        .limit(limit)
+        .lean();
 
-      const params: any[] = [];
+      // Fetch logs for each execution
+      const executionsWithLogs = await Promise.all(
+        executions.map(async (execution: any) => {
+          const logs = await JobLogModel.find({ executionId: execution._id })
+            .sort({ timestamp: -1 })
+            .lean();
+          return {
+            ...execution,
+            logs: logs as unknown as JobLog[],
+          } as unknown as JobExecution;
+        })
+      );
 
-      if (jobId) {
-        query += " AND je.job_id = ?";
-        params.push(jobId);
-      }
-
-      query += " GROUP BY je.id ORDER BY je.start_time DESC LIMIT ?";
-      params.push(limit);
-
-      const result = await this.dbService.query(query, params);
-
-      return result.map((row) => ({
-        id: row.id,
-        jobId: row.job_id,
-        status: row.status,
-        startTime: new Date(row.start_time),
-        endTime: row.end_time ? new Date(row.end_time) : undefined,
-        duration: row.duration,
-        progress: row.progress,
-        currentStep: row.current_step,
-        result: row.result ? JSON.parse(row.result) : undefined,
-        error: row.error,
-        retryCount: row.retry_count,
-        logs: row.logs ? JSON.parse(`[${row.logs}]`) : [],
-      }));
+      return executionsWithLogs;
     } catch (error) {
       logger.error("Failed to get job executions", "system", {
         error,
@@ -456,7 +448,7 @@ export class JobScheduler {
   /**
    * Execute a job manually
    */
-  async executeJob(jobId: string): Promise<JobExecution> {
+  async executeJob(jobId: string): Promise<string> {
     try {
       const job = await this.getJob(jobId);
       if (!job) {
@@ -468,38 +460,28 @@ export class JobScheduler {
         .substr(2, 9)}`;
       const startTime = new Date();
 
-      const execution: JobExecution = {
-        id: executionId,
-        jobId: job.id,
+      const executionDoc = new JobExecutionModel({
+        _id: executionId,
+        jobId: job._id,
         status: "running",
         startTime,
         progress: 0,
         retryCount: 0,
-        logs: [],
-      };
+        createdAt: startTime,
+        updatedAt: startTime,
+      });
 
-      // Save execution to database
-      await this.saveExecutionToDatabase(execution);
+      await executionDoc.save();
+
+      const execution = executionDoc.toObject() as JobExecution;
       this.jobExecutions.set(executionId, execution);
 
-      // Execute the job
-      try {
-        await this.runJobExecution(job, execution);
-      } catch (error) {
-        execution.status = "failed";
-        execution.error =
-          error instanceof Error ? error.message : String(error);
-        execution.endTime = new Date();
-        execution.duration =
-          execution.endTime.getTime() - execution.startTime.getTime();
+      // Execute the job asynchronously
+      this.runJobExecution(job, execution).catch((error) => {
+        logger.error("Job execution failed", "system", { error, jobId, executionId });
+      });
 
-        await this.saveExecutionToDatabase(execution);
-        this.jobExecutions.delete(executionId);
-
-        throw error;
-      }
-
-      return execution;
+      return executionId;
     } catch (error) {
       logger.error("Failed to execute job", "system", { error, jobId });
       throw error;
@@ -517,20 +499,20 @@ export class JobScheduler {
 
       const intervalId = setInterval(async () => {
         try {
-          await this.executeJob(job.id);
+          await this.executeJob(job._id);
         } catch (error) {
           logger.error(
             `Scheduled job execution failed: ${job.name}`,
             "system",
-            { error, jobId: job.id }
+            { error, jobId: job._id }
           );
         }
       }, intervalMs);
 
-      this.cronJobs.set(job.id, { intervalId, job });
+      this.cronJobs.set(job._id, { intervalId, job });
 
       logger.info("Job scheduled", "system", {
-        jobId: job.id,
+        jobId: job._id,
         name: job.name,
         schedule: job.schedule,
         intervalMs,
@@ -585,13 +567,17 @@ export class JobScheduler {
   ): Promise<void> {
     const addLog = (level: JobLog["level"], message: string, details?: any) => {
       const log: JobLog = {
-        id: `log-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
-        executionId: execution.id,
+        _id: `log-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+        executionId: execution._id,
         timestamp: new Date(),
         level,
         message,
         details,
+        createdAt: new Date(),
       };
+      if (!execution.logs) {
+        execution.logs = [];
+      }
       execution.logs.push(log);
       this.saveLogToDatabase(log);
     };
@@ -635,7 +621,9 @@ export class JobScheduler {
       addLog("info", `Job completed successfully in ${execution.duration}ms`);
 
       // Update job last run
-      await this.updateJob(job.id, { lastRun: execution.endTime });
+      await CronJobModel.findByIdAndUpdate(job._id, {
+        $set: { lastRun: execution.endTime, updatedAt: new Date() }
+      });
     } catch (error) {
       execution.status = "failed";
       execution.error = error instanceof Error ? error.message : String(error);
@@ -646,8 +634,19 @@ export class JobScheduler {
       addLog("error", `Job failed: ${execution.error}`, { error });
       throw error;
     } finally {
-      await this.saveExecutionToDatabase(execution);
-      this.jobExecutions.delete(execution.id);
+      // Update execution in database
+      await JobExecutionModel.findByIdAndUpdate(execution._id, {
+        $set: {
+          status: execution.status,
+          endTime: execution.endTime,
+          duration: execution.duration,
+          progress: execution.progress,
+          result: execution.result,
+          error: execution.error,
+          updatedAt: new Date()
+        }
+      });
+      this.jobExecutions.delete(execution._id);
     }
   }
 
@@ -664,11 +663,9 @@ export class JobScheduler {
     execution.currentStep = "Connecting to data source";
 
     try {
-      // Get data sources for the project
-      const dataSources = await this.dbService.query(
-        "SELECT * FROM data_sources WHERE project_id = ?",
-        [job.projectId]
-      );
+      // Get data sources for the project using Mongoose
+      const DataSourceModel = mongoose.model('DataSource');
+      const dataSources = await DataSourceModel.find({ projectId: job.projectId }).lean();
 
       if (dataSources.length === 0) {
         addLog("warn", "No data sources found for project");
@@ -755,13 +752,11 @@ export class JobScheduler {
     execution.currentStep = "Preparing backup";
 
     try {
-      // Get project data to backup
-      const project = await this.dbService.query(
-        "SELECT * FROM projects WHERE id = ?",
-        [job.projectId]
-      );
+      // Get project data to backup using Mongoose
+      const ProjectModel = mongoose.model('Project');
+      const project: any = await ProjectModel.findById(job.projectId).lean();
 
-      if (project.length === 0) {
+      if (!project) {
         addLog("warn", "Project not found for backup");
         return {
           backupSize: "0MB",
@@ -772,26 +767,22 @@ export class JobScheduler {
 
       execution.progress = 40;
       execution.currentStep = "Collecting project data";
-      addLog("info", `Backing up project: ${project[0].name}`);
+      addLog("info", `Backing up project: ${project.name}`);
 
       // Get all data sources for the project
-      const dataSources = await this.dbService.query(
-        "SELECT * FROM data_sources WHERE project_id = ?",
-        [job.projectId]
-      );
+      const DataSourceModel = mongoose.model('DataSource');
+      const dataSources = await DataSourceModel.find({ projectId: job.projectId }).lean();
 
-      // Get all models for the project
-      const models = await this.dbService.query(
-        "SELECT * FROM models WHERE project_id = ?",
-        [job.projectId]
-      );
+      // Get all imported data (models) for the project
+      const ImportedDataModel = mongoose.model('ImportedData');
+      const models = await ImportedDataModel.find({ projectId: job.projectId }).lean();
 
       execution.progress = 60;
       execution.currentStep = "Creating backup archive";
 
       // Create backup data structure
       const backupData = {
-        project: project[0],
+        project: project,
         dataSources: dataSources,
         models: models,
         backupTime: new Date().toISOString(),
@@ -846,52 +837,36 @@ export class JobScheduler {
 
     try {
       // Clean up old job executions (keep only last 100 per job)
-      const oldExecutions = await this.dbService.query(
-        `
-        SELECT id FROM job_executions 
-        WHERE job_id = ? 
-        ORDER BY start_time DESC 
-        LIMIT -1 OFFSET 100
-      `,
-        [job.id || "all"]
-      );
+      const allExecutions = await JobExecutionModel.find({ jobId: job._id })
+        .sort({ startTime: -1 })
+        .lean();
 
       execution.progress = 50;
       execution.currentStep = "Cleaning up old executions";
 
       let deletedExecutions = 0;
-      if (oldExecutions.length > 0) {
-        for (const execution of oldExecutions) {
-          // Delete associated logs first
-          await this.dbService.execute(
-            "DELETE FROM job_logs WHERE execution_id = ?",
-            [execution.id]
-          );
-          // Delete the execution
-          await this.dbService.execute(
-            "DELETE FROM job_executions WHERE id = ?",
-            [execution.id]
-          );
-          deletedExecutions++;
-        }
+      if (allExecutions.length > 100) {
+        const executionsToDelete = allExecutions.slice(100);
+        const executionIds = executionsToDelete.map(e => e._id);
+        
+        // Delete associated logs first
+        await JobLogModel.deleteMany({ executionId: { $in: executionIds } });
+        
+        // Delete the executions
+        await JobExecutionModel.deleteMany({ _id: { $in: executionIds } });
+        deletedExecutions = executionsToDelete.length;
       }
 
       execution.progress = 70;
       execution.currentStep = "Cleaning up old logs";
 
       // Clean up orphaned logs (logs without executions)
-      const orphanedLogs = await this.dbService.query(`
-        SELECT COUNT(*) as count FROM job_logs jl
-        LEFT JOIN job_executions je ON jl.execution_id = je.id
-        WHERE je.id IS NULL
-      `);
-
-      if (orphanedLogs[0].count > 0) {
-        await this.dbService.execute(`
-          DELETE FROM job_logs 
-          WHERE execution_id NOT IN (SELECT id FROM job_executions)
-        `);
-      }
+      const allExecutionIds = allExecutions.map(e => e._id);
+      const orphanedLogsResult = await JobLogModel.deleteMany({
+        executionId: { $nin: allExecutionIds }
+      });
+      
+      const orphanedLogsCount = orphanedLogsResult.deletedCount || 0;
 
       execution.progress = 90;
       execution.currentStep = "Finalizing cleanup";
@@ -909,7 +884,7 @@ export class JobScheduler {
 
       return {
         executionsDeleted: deletedExecutions,
-        logsDeleted: orphanedLogs[0].count,
+        logsDeleted: orphanedLogsCount,
         spaceFreed: `${spaceFreed.toFixed(2)}MB`,
         cleanupTime: new Date().toISOString(),
         status: "success",
@@ -1058,83 +1033,24 @@ export class JobScheduler {
   }
 
   /**
-   * Save job to database
-   */
-  private async saveJobToDatabase(job: CronJob): Promise<void> {
-    await this.dbService.execute(
-      `
-      INSERT OR REPLACE INTO cron_jobs (
-        id, name, description, schedule, type, project_id, data_source_id, 
-        workflow_id, config, status, created_at, updated_at, last_run, next_run, created_by
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-    `,
-      [
-        job.id,
-        job.name,
-        job.description,
-        job.schedule,
-        job.type,
-        job.projectId,
-        job.dataSourceId,
-        job.workflowId,
-        JSON.stringify(job.config),
-        job.status,
-        job.createdAt.toISOString(),
-        job.updatedAt.toISOString(),
-        job.lastRun?.toISOString(),
-        job.nextRun?.toISOString(),
-        job.createdBy,
-      ]
-    );
-  }
-
-  /**
-   * Save execution to database
-   */
-  private async saveExecutionToDatabase(
-    execution: JobExecution
-  ): Promise<void> {
-    await this.dbService.execute(
-      `
-      INSERT OR REPLACE INTO job_executions (
-        id, job_id, status, start_time, end_time, duration, progress,
-        current_step, result, error, retry_count
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-    `,
-      [
-        execution.id,
-        execution.jobId,
-        execution.status,
-        execution.startTime.toISOString(),
-        execution.endTime?.toISOString(),
-        execution.duration,
-        execution.progress,
-        execution.currentStep,
-        execution.result ? JSON.stringify(execution.result) : null,
-        execution.error,
-        execution.retryCount,
-      ]
-    );
-  }
-
-  /**
    * Save log to database
    */
   private async saveLogToDatabase(log: JobLog): Promise<void> {
-    await this.dbService.execute(
-      `
-      INSERT INTO job_logs (id, execution_id, timestamp, level, message, details)
-      VALUES (?, ?, ?, ?, ?, ?)
-    `,
-      [
-        log.id,
-        log.executionId,
-        log.timestamp.toISOString(),
-        log.level,
-        log.message,
-        log.details ? JSON.stringify(log.details) : null,
-      ]
-    );
+    try {
+      const logDoc = new JobLogModel({
+        _id: log._id,
+        executionId: log.executionId,
+        timestamp: log.timestamp,
+        level: log.level,
+        message: log.message,
+        details: log.details,
+        createdAt: log.timestamp,
+      });
+      await logDoc.save();
+    } catch (error) {
+      // Log errors but don't fail the job execution
+      logger.error("Failed to save job log", "system", { error, log });
+    }
   }
 
   /**

@@ -33,6 +33,8 @@ const sourceTypeIcons: Record<DataProviderType, React.ComponentType<any>> = {
   sqlite: Database,
   javascript: Code,
   sql: Database,
+  odbc: Database,
+  mssql: Database,
 };
 
 const sourceTypeColors: Record<DataProviderType, string> = {
@@ -46,6 +48,8 @@ const sourceTypeColors: Record<DataProviderType, string> = {
   sqlite: "text-gray-400",
   javascript: "text-yellow-400",
   sql: "text-purple-400",
+  odbc: "text-cyan-400",
+  mssql: "text-blue-500",
 };
 
 export default function DataSourcesPage() {
