@@ -262,14 +262,14 @@ export class MongoDatabase {
 
   // ==================== PROJECTS ====================
 
-  getProjects() {
+  async getProjects() {
     if (!this.isConnected) throw new Error("Database not connected");
-    return Project.find().sort({ createdAt: -1 }).lean();
+    return await Project.find().sort({ createdAt: -1 }).lean();
   }
 
-  getProject(id: string) {
+  async getProject(id: string) {
     if (!this.isConnected) throw new Error("Database not connected");
-    return Project.findById(id).lean();
+    return await Project.findById(id).lean();
   }
 
   async createProject(project: any) {
