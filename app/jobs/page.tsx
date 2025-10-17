@@ -27,6 +27,11 @@ import {
   RefreshCw,
   Eye,
   ArrowLeft,
+  Zap,
+  FileCode,
+  RefreshCcw,
+  Database,
+  Cog,
 } from "lucide-react";
 
 interface Job {
@@ -65,11 +70,34 @@ export default function JobsPage() {
   const [showExecutionModal, setShowExecutionModal] = useState(false);
   const [selectedExecution, setSelectedExecution] =
     useState<JobExecution | null>(null);
+  
+  // Form state for create modal
+  const [newJobForm, setNewJobForm] = useState({
+    name: "",
+    description: "",
+    type: "pipeline" as Job["type"],
+    schedule: "0 2 * * *",
+    pipelineId: "",
+    dataSourceId: "",
+    script: "",
+    backupPath: "",
+  });
+  const [pipelines, setPipelines] = useState<any[]>([]);
 
   const filteredJobs =
     filterStatus === "all"
       ? jobs
       : jobs.filter((job) => job.status === filterStatus);
+
+  // Load pipelines when create modal opens
+  React.useEffect(() => {
+    if (showCreateModal && newJobForm.type === "pipeline" && pipelines.length === 0) {
+      fetch("/api/pipelines?projectId=default")
+        .then((res) => res.json())
+        .then((data) => setPipelines(data || []))
+        .catch((err) => console.error("Failed to load pipelines:", err));
+    }
+  }, [showCreateModal, newJobForm.type]);
 
   const getStatusIcon = (status: Job["status"]) => {
     switch (status) {
@@ -102,17 +130,18 @@ export default function JobsPage() {
   };
 
   const getTypeIcon = (type: Job["type"]) => {
+    const iconClass = "w-4 h-4";
     switch (type) {
       case "pipeline":
-        return "⚡";
+        return <Zap className={iconClass} />;
       case "script":
-        return "📜";
+        return <FileCode className={iconClass} />;
       case "sync":
-        return "🔄";
+        return <RefreshCcw className={iconClass} />;
       case "backup":
-        return "💾";
+        return <Database className={iconClass} />;
       default:
-        return "⚙️";
+        return <Cog className={iconClass} />;
     }
   };
 
@@ -280,8 +309,8 @@ export default function JobsPage() {
             <CellCard key={job.id} className="p-6 hover:border-blue-500 transition-all">
               <div className="flex items-center justify-between mb-4">
                 <div className="flex items-center space-x-4">
-                  <div className="p-2 border-2 border-gray-700 bg-gray-800 rounded">
-                    <span className="text-lg">{getTypeIcon(job.type)}</span>
+                  <div className="p-2 border-2 border-gray-700 bg-gray-800 rounded text-white">
+                    {getTypeIcon(job.type)}
                   </div>
                   <div>
                     <h3 className="font-mono font-bold text-lg text-white">{job.name}</h3>
@@ -408,7 +437,19 @@ export default function JobsPage() {
       {/* Create Job Modal */}
       <CellModal
         isOpen={showCreateModal}
-        onClose={() => setShowCreateModal(false)}
+        onClose={() => {
+          setShowCreateModal(false);
+          setNewJobForm({
+            name: "",
+            description: "",
+            type: "pipeline",
+            schedule: "0 2 * * *",
+            pipelineId: "",
+            dataSourceId: "",
+            script: "",
+            backupPath: "",
+          });
+        }}
         title="Schedule New Job"
         size="lg"
       >
@@ -417,12 +458,20 @@ export default function JobsPage() {
             <CellInput
               label="Job Name"
               placeholder="e.g., Daily Customer Sync"
+              value={newJobForm.name}
+              onChange={(e) =>
+                setNewJobForm({ ...newJobForm, name: e.target.value })
+              }
             />
           </div>
           <div>
             <CellInput
               label="Description"
               placeholder="What does this job do?"
+              value={newJobForm.description}
+              onChange={(e) =>
+                setNewJobForm({ ...newJobForm, description: e.target.value })
+              }
             />
           </div>
           <div>
@@ -433,15 +482,26 @@ export default function JobsPage() {
               {["pipeline", "script", "sync", "backup"].map((type) => (
                 <label
                   key={type}
-                  className="flex items-center p-3 border border-gray-200 cursor-pointer hover:bg-gray-50"
+                  className={`flex items-center p-3 border-2 cursor-pointer hover:bg-gray-50 transition-all ${
+                    newJobForm.type === type
+                      ? "border-blue-500 bg-blue-50"
+                      : "border-gray-200"
+                  }`}
                 >
                   <input
                     type="radio"
                     name="jobType"
                     value={type}
+                    checked={newJobForm.type === type}
+                    onChange={(e) =>
+                      setNewJobForm({
+                        ...newJobForm,
+                        type: e.target.value as Job["type"],
+                      })
+                    }
                     className="mr-3"
                   />
-                  <span className="text-lg mr-2">
+                  <span className="mr-2">
                     {getTypeIcon(type as Job["type"])}
                   </span>
                   <span className="font-mono text-sm capitalize">{type}</span>
@@ -449,20 +509,231 @@ export default function JobsPage() {
               ))}
             </div>
           </div>
+
+          {/* Conditional Fields Based on Job Type */}
+          {newJobForm.type === "pipeline" && (
+            <div>
+              <label className="block text-sm font-mono font-bold mb-2">
+                Select Pipeline
+              </label>
+              <select
+                value={newJobForm.pipelineId}
+                onChange={(e) =>
+                  setNewJobForm({ ...newJobForm, pipelineId: e.target.value })
+                }
+                className="w-full px-3 py-2 border-2 border-black bg-white font-mono"
+                onClick={async () => {
+                  // Load pipelines if not already loaded
+                  if (pipelines.length === 0) {
+                    try {
+                      const response = await fetch("/api/pipelines?projectId=default");
+                      if (response.ok) {
+                        const data = await response.json();
+                        setPipelines(data);
+                      }
+                    } catch (error) {
+                      console.error("Failed to load pipelines:", error);
+                    }
+                  }
+                }}
+              >
+                <option value="">-- Select a pipeline --</option>
+                {pipelines.map((pipeline) => (
+                  <option key={pipeline.id} value={pipeline.id}>
+                    {pipeline.name}
+                  </option>
+                ))}
+              </select>
+              <p className="text-xs text-gray-600 mt-1">
+                The pipeline that will be executed on this schedule
+              </p>
+            </div>
+          )}
+
+          {newJobForm.type === "sync" && (
+            <div>
+              <label className="block text-sm font-mono font-bold mb-2">
+                Select Data Source to Sync
+              </label>
+              <select
+                value={newJobForm.dataSourceId}
+                onChange={(e) =>
+                  setNewJobForm({ ...newJobForm, dataSourceId: e.target.value })
+                }
+                className="w-full px-3 py-2 border-2 border-black bg-white font-mono"
+              >
+                <option value="">-- Select a data source --</option>
+                {dataSources.map((source) => (
+                  <option key={source.id} value={source.id}>
+                    {source.name} ({source.type})
+                  </option>
+                ))}
+              </select>
+              <p className="text-xs text-gray-600 mt-1">
+                The data source that will be refreshed/synced on this schedule
+              </p>
+            </div>
+          )}
+
+          {newJobForm.type === "script" && (
+            <div>
+              <label className="block text-sm font-mono font-bold mb-2">
+                Script Content
+              </label>
+              <textarea
+                value={newJobForm.script}
+                onChange={(e) =>
+                  setNewJobForm({ ...newJobForm, script: e.target.value })
+                }
+                className="w-full px-3 py-2 border-2 border-black bg-white font-mono text-sm"
+                rows={6}
+                placeholder="// JavaScript code to execute&#10;&#10;return { success: true, data: [] };"
+              />
+              <p className="text-xs text-gray-600 mt-1">
+                JavaScript code that will be executed on schedule. Must return an object.
+              </p>
+            </div>
+          )}
+
+          {newJobForm.type === "backup" && (
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-mono font-bold mb-2">
+                  Backup Destination
+                </label>
+                <CellInput
+                  placeholder="/path/to/backups or s3://bucket-name/path"
+                  value={newJobForm.backupPath}
+                  onChange={(e) =>
+                    setNewJobForm({ ...newJobForm, backupPath: e.target.value })
+                  }
+                />
+                <p className="text-xs text-gray-600 mt-1">
+                  Local filesystem path or S3 URL for backup storage
+                </p>
+              </div>
+              <div className="bg-blue-50 border border-blue-200 rounded p-3 text-sm">
+                <p className="font-semibold mb-1">Backup includes:</p>
+                <ul className="list-disc list-inside text-gray-700 space-y-1">
+                  <li>All data sources and snapshots</li>
+                  <li>Pipeline configurations</li>
+                  <li>Job definitions</li>
+                  <li>Application settings</li>
+                </ul>
+              </div>
+            </div>
+          )}
+
           <div>
             <CellInput
               label="Schedule (Cron Expression)"
               placeholder="0 2 * * * (Daily at 2 AM)"
+              value={newJobForm.schedule}
+              onChange={(e) =>
+                setNewJobForm({ ...newJobForm, schedule: e.target.value })
+              }
             />
+            <p className="text-xs text-gray-600 mt-1">
+              Examples: <code className="bg-gray-100 px-1">*/5 * * * *</code> (every 5 min),{" "}
+              <code className="bg-gray-100 px-1">0 */6 * * *</code> (every 6 hours),{" "}
+              <code className="bg-gray-100 px-1">0 0 * * 0</code> (weekly)
+            </p>
           </div>
+
           <div className="flex justify-end space-x-2">
             <CellButton
-              variant="ghost"
-              onClick={() => setShowCreateModal(false)}
+              variant="secondary"
+              onClick={() => {
+                setShowCreateModal(false);
+                setNewJobForm({
+                  name: "",
+                  description: "",
+                  type: "pipeline",
+                  schedule: "0 2 * * *",
+                  pipelineId: "",
+                  dataSourceId: "",
+                  script: "",
+                  backupPath: "",
+                });
+              }}
             >
               Cancel
             </CellButton>
-            <CellButton variant="primary">Schedule Job</CellButton>
+            <CellButton
+              onClick={async () => {
+                // Validate required fields
+                if (!newJobForm.name || !newJobForm.schedule) {
+                  alert("Please fill in Job Name and Schedule");
+                  return;
+                }
+
+                // Type-specific validation
+                if (newJobForm.type === "pipeline" && !newJobForm.pipelineId) {
+                  alert("Please select a pipeline");
+                  return;
+                }
+                if (newJobForm.type === "sync" && !newJobForm.dataSourceId) {
+                  alert("Please select a data source");
+                  return;
+                }
+                if (newJobForm.type === "script" && !newJobForm.script) {
+                  alert("Please enter script content");
+                  return;
+                }
+                if (newJobForm.type === "backup" && !newJobForm.backupPath) {
+                  alert("Please enter backup destination");
+                  return;
+                }
+
+                try {
+                  const response = await fetch("/api/jobs", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({
+                      projectId: "default",
+                      name: newJobForm.name,
+                      description: newJobForm.description,
+                      type: newJobForm.type,
+                      schedule: newJobForm.schedule,
+                      pipelineId: newJobForm.pipelineId || undefined,
+                      dataSourceId: newJobForm.dataSourceId || undefined,
+                      enabled: true,
+                      config: {
+                        script: newJobForm.script || undefined,
+                        backupPath: newJobForm.backupPath || undefined,
+                      },
+                    }),
+                  });
+
+                  if (response.ok) {
+                    const newJob = await response.json();
+                    setJobs([...jobs, newJob]);
+                    setShowCreateModal(false);
+                    setNewJobForm({
+                      name: "",
+                      description: "",
+                      type: "pipeline",
+                      schedule: "0 2 * * *",
+                      pipelineId: "",
+                      dataSourceId: "",
+                      script: "",
+                      backupPath: "",
+                    });
+                    clientLogger.success("Job created successfully", "system", {
+                      jobName: newJob.name,
+                    });
+                  } else {
+                    const error = await response.text();
+                    alert(`Failed to create job: ${error}`);
+                  }
+                } catch (error) {
+                  console.error("Failed to create job:", error);
+                  alert("Failed to create job");
+                }
+              }}
+            >
+              Schedule Job
+            </CellButton>
           </div>
         </div>
       </CellModal>

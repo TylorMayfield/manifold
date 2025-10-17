@@ -27,7 +27,12 @@ import {
   Clock,
   Eye,
   Trash2,
-  Pause
+  Pause,
+  Zap,
+  FileCode,
+  RefreshCcw,
+  Database,
+  Cog,
 } from "lucide-react";
 
 interface Job {
@@ -94,12 +99,18 @@ export default function JobsPage() {
   };
 
   const getTypeIcon = (type: Job["type"]) => {
+    const iconClass = "w-4 h-4";
     switch (type) {
-      case "pipeline": return "⚡";
-      case "script": return "📜";
-      case "sync": return "🔄";
-      case "backup": return "💾";
-      default: return "⚙️";
+      case "pipeline":
+        return <Zap className={iconClass} />;
+      case "script":
+        return <FileCode className={iconClass} />;
+      case "sync":
+        return <RefreshCcw className={iconClass} />;
+      case "backup":
+        return <Database className={iconClass} />;
+      default:
+        return <Cog className={iconClass} />;
     }
   };
 

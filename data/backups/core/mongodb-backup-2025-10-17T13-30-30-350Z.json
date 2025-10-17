@@ -1,0 +1,34 @@
+{
+  "timestamp": "2025-10-17T13:30:30.356Z",
+  "projects": [],
+  "dataSources": [],
+  "jobs": [
+    {
+      "_id": "job_1760707823939",
+      "projectId": "default",
+      "name": "Data Source Integrity Check",
+      "type": "integrity_check",
+      "schedule": "0 3 * * 0",
+      "status": "completed",
+      "enabled": true,
+      "createdAt": "2025-10-17T13:30:23.939Z",
+      "updatedAt": "2025-10-17T13:30:29.716Z",
+      "__v": 0,
+      "lastRun": "2025-10-17T13:30:29.716Z"
+    },
+    {
+      "_id": "job_1760707823925",
+      "projectId": "default",
+      "name": "Core Config Backup",
+      "type": "backup",
+      "schedule": "0 2 * * *",
+      "status": "running",
+      "enabled": true,
+      "createdAt": "2025-10-17T13:30:23.925Z",
+      "updatedAt": "2025-10-17T13:30:30.348Z",
+      "__v": 0,
+      "lastRun": "2025-10-17T13:30:30.348Z"
+    }
+  ],
+  "pipelines": []
+}
