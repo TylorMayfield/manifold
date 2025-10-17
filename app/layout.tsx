@@ -3,6 +3,7 @@ import { Inter, JetBrains_Mono } from "next/font/google";
 import "./globals.css";
 import { LogProvider } from "../contexts/LogContext";
 import { DataSourceProvider } from "../contexts/DataSourceContext";
+import { DataDictionaryProvider } from "../contexts/DataDictionaryContext";
 import { SettingsProvider } from "../contexts/SettingsContext";
 import TopLoadingBar from "../components/ui/TopLoadingBar";
 import ClientOnly from "../components/providers/ClientOnly";
@@ -72,13 +73,15 @@ export default function RootLayout({
           <SettingsProvider>
             <LogProvider>
               <DataSourceProvider>
-                <CommandPaletteProvider>
-                  <TransitionProvider>
-                    <TopLoadingBar />
-                    {children}
-                    <StatusFooter />
-                  </TransitionProvider>
-                </CommandPaletteProvider>
+                <DataDictionaryProvider>
+                  <CommandPaletteProvider>
+                    <TransitionProvider>
+                      <TopLoadingBar />
+                      {children}
+                      <StatusFooter />
+                    </TransitionProvider>
+                  </CommandPaletteProvider>
+                </DataDictionaryProvider>
               </DataSourceProvider>
             </LogProvider>
           </SettingsProvider>

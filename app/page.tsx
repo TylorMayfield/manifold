@@ -23,6 +23,7 @@ import {
   Layers,
   Webhook,
   Command,
+  BookOpen,
 } from "lucide-react";
 
 function HomePageContent() {
@@ -253,6 +254,11 @@ function HomePageContent() {
             icon: Plus,
             href: "/add-data-source",
             variant: "primary",
+          },
+          {
+            label: "Data Dictionary",
+            icon: BookOpen,
+            href: "/dictionary",
           },
           {
             label: "View Pipelines",
