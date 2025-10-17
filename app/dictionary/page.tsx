@@ -6,6 +6,7 @@ import { useDataSources } from "../../contexts/DataSourceContext";
 import { DataDictionaryCard } from "../../components/data-dictionary/DataDictionaryCard";
 import { FieldDefinitionTable } from "../../components/data-dictionary/FieldDefinitionTable";
 import { RelationshipViewer } from "../../components/data-dictionary/RelationshipViewer";
+import { RelationshipSuggestions } from "../../components/data-dictionary/RelationshipSuggestions";
 import CellButton from "../../components/ui/CellButton";
 import CellInput from "../../components/ui/CellInput";
 import CellBadge from "../../components/ui/CellBadge";
@@ -25,6 +26,7 @@ import {
   ArrowLeft,
 } from "lucide-react";
 import { DataDictionaryEntry } from "../../types/dataDictionary";
+import { RelationshipSuggestion } from "../../lib/services/RelationshipDetectionService";
 
 function DataDictionaryPageContent() {
   const {
@@ -35,6 +37,8 @@ function DataDictionaryPageContent() {
     refreshEntries,
     deleteField,
     deleteRelationship,
+    detectRelationships,
+    acceptSuggestions,
   } = useDataDictionary();
 
   const { dataSources } = useDataSources();
@@ -49,6 +53,9 @@ function DataDictionaryPageContent() {
   const [generating, setGenerating] = useState(false);
   const [statistics, setStatistics] = useState<any>(null);
   const [activeTab, setActiveTab] = useState<"fields" | "relationships">("fields");
+  const [showSuggestions, setShowSuggestions] = useState(false);
+  const [suggestions, setSuggestions] = useState<RelationshipSuggestion[]>([]);
+  const [detectingRelationships, setDetectingRelationships] = useState(false);
 
   // Load statistics
   useEffect(() => {
@@ -129,6 +136,49 @@ function DataDictionaryPageContent() {
         console.error("Failed to delete entry:", error);
         alert("Failed to delete entry");
       }
+    }
+  };
+
+  // Handle detect relationships
+  const handleDetectRelationships = async () => {
+    if (!selectedEntry) return;
+
+    try {
+      setDetectingRelationships(true);
+      const result = await detectRelationships(selectedEntry.id);
+      
+      const entrySuggestions = result.suggestions[selectedEntry.id] || [];
+      setSuggestions(entrySuggestions);
+      setShowSuggestions(true);
+
+      if (entrySuggestions.length === 0) {
+        alert("No relationship suggestions found for this entry.");
+      }
+    } catch (error) {
+      console.error("Failed to detect relationships:", error);
+      alert("Failed to detect relationships");
+    } finally {
+      setDetectingRelationships(false);
+    }
+  };
+
+  // Handle accept suggestions
+  const handleAcceptSuggestions = async (suggestionIds: string[]) => {
+    if (!selectedEntry) return;
+
+    try {
+      await acceptSuggestions(selectedEntry.id, suggestionIds);
+      setShowSuggestions(false);
+      setSuggestions([]);
+      
+      // Refresh the selected entry
+      const updatedEntry = entries.find((e) => e.id === selectedEntry.id);
+      if (updatedEntry) {
+        setSelectedEntry(updatedEntry);
+      }
+    } catch (error) {
+      console.error("Failed to accept suggestions:", error);
+      alert("Failed to accept suggestions");
     }
   };
 
@@ -412,21 +462,51 @@ function DataDictionaryPageContent() {
               )}
 
               {activeTab === "relationships" && (
-                <RelationshipViewer
-                  relationships={selectedEntry.relationships}
-                  onAdd={() => alert("Add relationship dialog not implemented yet")}
-                  onDelete={async (relationshipId) => {
-                    if (confirm("Are you sure you want to delete this relationship?")) {
-                      try {
-                        await deleteRelationship(selectedEntry.id, relationshipId);
-                        await refreshEntries();
-                      } catch (error) {
-                        console.error("Failed to delete relationship:", error);
-                        alert("Failed to delete relationship");
-                      }
-                    }
-                  }}
-                />
+                showSuggestions ? (
+                  <div className="space-y-4">
+                    <RelationshipSuggestions
+                      suggestions={suggestions}
+                      entryName={selectedEntry.businessName}
+                      onAccept={handleAcceptSuggestions}
+                      onReject={() => {
+                        setShowSuggestions(false);
+                        setSuggestions([]);
+                      }}
+                    />
+                  </div>
+                ) : (
+                  <div className="space-y-4">
+                    {/* Detect Relationships Button */}
+                    <div className="flex justify-end">
+                      <CellButton
+                        variant="accent"
+                        onClick={handleDetectRelationships}
+                        disabled={detectingRelationships || entries.length < 2}
+                      >
+                        <Sparkles className="h-4 w-4 mr-2" />
+                        {detectingRelationships
+                          ? "Detecting..."
+                          : "Detect Relationships"}
+                      </CellButton>
+                    </div>
+
+                    <RelationshipViewer
+                      relationships={selectedEntry.relationships}
+                      onAdd={() => alert("Add relationship dialog not implemented yet")}
+                      onDelete={async (relationshipId) => {
+                        if (confirm("Are you sure you want to delete this relationship?")) {
+                          try {
+                            await deleteRelationship(selectedEntry.id, relationshipId);
+                            await refreshEntries();
+                          } catch (error) {
+                            console.error("Failed to delete relationship:", error);
+                            alert("Failed to delete relationship");
+                          }
+                        }
+                      }}
+                    />
+                  </div>
+                )
               )}
             </CellCard>
           </div>

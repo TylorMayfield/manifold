@@ -8,6 +8,7 @@ import {
   DictionarySearchCriteria,
   DictionarySearchResult,
 } from "../types/dataDictionary";
+import { RelationshipSuggestion, DetectionOptions } from "../lib/services/RelationshipDetectionService";
 
 interface DataDictionaryContextType {
   entries: DataDictionaryEntry[];
@@ -34,6 +35,19 @@ interface DataDictionaryContextType {
   
   // Generation
   generateFromDataSource: (dataSourceId: string, projectId: string) => Promise<DataDictionaryEntry>;
+  
+  // Relationship Detection
+  detectRelationships: (entryId?: string, options?: DetectionOptions) => Promise<{
+    suggestions: Record<string, RelationshipSuggestion[]>;
+    summary: {
+      totalSuggestions: number;
+      highConfidence: number;
+      mediumConfidence: number;
+      lowConfidence: number;
+      entriesAnalyzed: number;
+    };
+  }>;
+  acceptSuggestions: (entryId: string, suggestionIds: string[]) => Promise<void>;
   
   // Refresh
   refreshEntries: () => Promise<void>;
@@ -264,6 +278,58 @@ export function DataDictionaryProvider({ children }: DataDictionaryProviderProps
     return newEntry;
   };
 
+  const detectRelationships = async (
+    entryId?: string,
+    options?: DetectionOptions
+  ): Promise<{
+    suggestions: Record<string, RelationshipSuggestion[]>;
+    summary: {
+      totalSuggestions: number;
+      highConfidence: number;
+      mediumConfidence: number;
+      lowConfidence: number;
+      entriesAnalyzed: number;
+    };
+  }> => {
+    const response = await fetch("/api/data-dictionary/detect-relationships", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        entryId,
+        projectId: "default",
+        options,
+      }),
+    });
+
+    if (!response.ok) {
+      throw new Error("Failed to detect relationships");
+    }
+
+    return response.json();
+  };
+
+  const acceptSuggestions = async (
+    entryId: string,
+    suggestionIds: string[]
+  ): Promise<void> => {
+    const response = await fetch("/api/data-dictionary/detect-relationships", {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        entryId,
+        projectId: "default",
+        suggestionIds,
+      }),
+    });
+
+    if (!response.ok) {
+      throw new Error("Failed to accept suggestions");
+    }
+
+    // Refresh entries to get updated relationships
+    await refreshEntries();
+  };
+
   const refreshEntries = async (): Promise<void> => {
     await loadEntries();
   };
@@ -285,6 +351,8 @@ export function DataDictionaryProvider({ children }: DataDictionaryProviderProps
         deleteRelationship,
         search,
         generateFromDataSource,
+        detectRelationships,
+        acceptSuggestions,
         refreshEntries,
       }}
     >
