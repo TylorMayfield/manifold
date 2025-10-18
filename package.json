@@ -83,7 +83,7 @@
     "react-dropzone": "^14.2.3",
     "react-is": "^19.1.1",
     "reactflow": "^11.10.1",
-    "recharts": "^3.2.0",
+    "recharts": "^3.3.0",
     "tailwindcss": "^3.4.17",
     "uuid": "^9.0.1",
     "zod": "^4.1.11"
@@ -167,7 +167,9 @@
       "target": [
         {
           "target": "portable",
-          "arch": ["x64"]
+          "arch": [
+            "x64"
+          ]
         }
       ],
       "sign": null,
