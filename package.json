@@ -90,7 +90,7 @@
   },
   "devDependencies": {
     "@playwright/experimental-ct-react": "^1.55.1",
-    "@playwright/test": "^1.55.1",
+    "@playwright/test": "^1.56.1",
     "@swc/core": "^1.13.5",
     "@swc/jest": "^0.2.39",
     "@testing-library/jest-dom": "^6.8.0",
@@ -167,7 +167,9 @@
       "target": [
         {
           "target": "portable",
-          "arch": ["x64"]
+          "arch": [
+            "x64"
+          ]
         }
       ],
       "sign": null,
