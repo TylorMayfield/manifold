@@ -461,8 +461,8 @@ export default function SnapshotsPage() {
                 className="flex-1"
               />
             </div>
-            <div className="flex items-center space-x-4">
-              <Filter className="w-4 h-4 text-gray-500" />
+            <div className="ml-8 flex items-center space-x-4">
+            
               <select
                 value={filterSource}
                 onChange={(e) => setFilterSource(e.target.value)}
