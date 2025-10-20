@@ -626,12 +626,24 @@ export class MongoDatabase {
     };
   }
 
+  async getSnapshot(id: string): Promise<any | null> {
+    if (!this.isConnected) throw new Error("Database not connected");
+    
+    const snapshot = await Snapshot.findById(id).lean();
+    if (!snapshot) return null;
+    
+    return {
+      ...snapshot,
+      id: snapshot._id,
+    };
+  }
+
   async deleteSnapshot(id: string) {
     if (!this.isConnected) throw new Error("Database not connected");
-    await Snapshot.findByIdAndDelete(id);
+    const result = await Snapshot.findByIdAndDelete(id);
     // Also delete associated imported data
     await ImportedData.deleteMany({ snapshotId: id });
-    return true;
+    return result !== null;
   }
 
   // ==================== DATA IMPORT/RETRIEVAL ====================

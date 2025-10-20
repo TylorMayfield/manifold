@@ -61,6 +61,7 @@ export default function SnapshotsPage() {
   const [page, setPage] = useState<number>(1);
   const [pageSize, setPageSize] = useState<number>(20);
   const [keepCount, setKeepCount] = useState<number>(5);
+  const [deletingSnapshot, setDeletingSnapshot] = useState<string | null>(null);
 
   // Use only actual snapshots from context
   const allSnapshots = snapshots.map((snap) => {
@@ -103,6 +104,94 @@ export default function SnapshotsPage() {
 
     return list.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
   }, [allSnapshots, searchTerm, filterSource, dateFrom, dateTo]);
+
+  const handleDeleteSnapshot = async (snapshotId: string, snapshotName: string) => {
+    const confirmDelete = window.confirm(
+      `Are you sure you want to delete this snapshot?\n\n${snapshotName}\nID: ${snapshotId}\n\nThis action cannot be undone.`
+    );
+
+    if (!confirmDelete) return;
+
+    setDeletingSnapshot(snapshotId);
+
+    try {
+      const response = await fetch(`/api/snapshots/${snapshotId}`, {
+        method: 'DELETE',
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.message || 'Failed to delete snapshot');
+      }
+
+      alert(`✅ Snapshot deleted successfully!`);
+      
+      // Reload page to refresh snapshot list
+      window.location.reload();
+    } catch (error) {
+      console.error('Failed to delete snapshot:', error);
+      alert(`❌ Failed to delete snapshot\n\n${error instanceof Error ? error.message : 'Unknown error'}`);
+    } finally {
+      setDeletingSnapshot(null);
+    }
+  };
+
+  const handleDownloadSnapshot = async (snapshot: SnapshotWithSource) => {
+    try {
+      // Fetch the snapshot data
+      const response = await fetch(`/api/data-sources/${snapshot.dataSourceId}/data?snapshotId=${snapshot.id}&limit=1000000`);
+      
+      if (!response.ok) {
+        throw new Error('Failed to fetch snapshot data');
+      }
+
+      const result = await response.json();
+      const data = result.data || [];
+
+      if (data.length === 0) {
+        alert('No data to download for this snapshot');
+        return;
+      }
+
+      // Convert to CSV format
+      const headers = Object.keys(data[0] || {});
+      const csvRows = [
+        headers.join(','), // Header row
+        ...data.map((row: any) => 
+          headers.map(header => {
+            const value = row[header];
+            // Escape commas and quotes
+            if (value === null || value === undefined) return '';
+            const stringValue = String(value);
+            if (stringValue.includes(',') || stringValue.includes('"') || stringValue.includes('\n')) {
+              return `"${stringValue.replace(/"/g, '""')}"`;
+            }
+            return stringValue;
+          }).join(',')
+        )
+      ];
+
+      const csvContent = csvRows.join('\n');
+      
+      // Create download link
+      const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+      const link = document.createElement('a');
+      const url = URL.createObjectURL(blob);
+      
+      link.setAttribute('href', url);
+      link.setAttribute('download', `${snapshot.dataSourceName}_v${snapshot.version}_${snapshot.id}.csv`);
+      link.style.visibility = 'hidden';
+      
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      
+      console.log(`Downloaded snapshot: ${snapshot.dataSourceName} v${snapshot.version}`);
+    } catch (error) {
+      console.error('Failed to download snapshot:', error);
+      alert(`❌ Failed to download snapshot\n\n${error instanceof Error ? error.message : 'Unknown error'}`);
+    }
+  };
 
   const totalPages = Math.max(1, Math.ceil(filteredSnapshots.length / pageSize));
   const currentPage = Math.min(page, totalPages);
@@ -244,7 +333,7 @@ export default function SnapshotsPage() {
             </CellButton>
           )}
           <div className="flex items-center space-x-2">
-            <span className="text-caption">Keep last</span>
+            <span className="text-white">Keep last</span>
             <input
               type="number"
               min={0}
@@ -253,7 +342,7 @@ export default function SnapshotsPage() {
               className="w-16 px-2 py-1 border border-gray-300 bg-white rounded text-sm"
               aria-label="Keep count"
             />
-            <span className="text-caption">for</span>
+            <span className="text-white">for</span>
             <select
               value={filterSource}
               onChange={(e) => setFilterSource(e.target.value)}
@@ -274,7 +363,10 @@ export default function SnapshotsPage() {
                 try {
                   const sourceId = filterSource !== 'all' ? filterSource : undefined;
                   if (!sourceId) {
-                    alert('Please select a data source');
+                    alert('Please select a data source first');
+                    return;
+                  }
+                  if (!confirm(`Delete old snapshots for this source?\n\nKeep last: ${keepCount}\nSource: ${uniqueSources.find(s => s.id === sourceId)?.name}\n\nOlder snapshots will be deleted.`)) {
                     return;
                   }
                   const resp = await fetch('/api/snapshots/cleanup', {
@@ -288,65 +380,16 @@ export default function SnapshotsPage() {
                     return;
                   }
                   const result = await resp.json();
-                  alert(`Cleanup complete. Deleted ${result.deletedCount}, kept ${result.keptCount}.`);
+                  alert(`✅ Cleanup complete!\n\nDeleted: ${result.deletedCount}\nKept: ${result.keptCount}`);
                   window.location.reload();
                 } catch (e) {
-                  alert('Cleanup failed. See console for details.');
+                  alert('❌ Cleanup failed. See console for details.');
                   console.error(e);
                 }
               }}
             >
-              Apply
-            </CellButton>
-            <CellButton
-              variant="ghost"
-              size="sm"
-              onClick={async () => {
-                try {
-                  const resp = await fetch('/api/snapshots/checker', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ projectId: 'default', dryRun: true })
-                  });
-                  const data = await resp.json();
-                  if (!resp.ok || !data.success) {
-                    alert(`Dry-run failed: ${data.error || resp.statusText}`);
-                    return;
-                  }
-                  alert(`Dry-run ready. Affected sources: ${data.actions.length}`);
-                } catch (e) {
-                  alert('Dry-run failed');
-                  console.error(e);
-                }
-              }}
-            >
-              Dry Run
-            </CellButton>
-            <CellButton
-              variant="primary"
-              size="sm"
-              onClick={async () => {
-                try {
-                  if (!confirm('Apply snapshot retention policies now? This will delete old snapshots.')) return;
-                  const resp = await fetch('/api/snapshots/checker', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ projectId: 'default', dryRun: false })
-                  });
-                  const data = await resp.json();
-                  if (!resp.ok || !data.success) {
-                    alert(`Apply failed: ${data.error || resp.statusText}`);
-                    return;
-                  }
-                  alert(`Policies applied. Cleaned sources: ${data.actions.filter((a:any)=>a.delete.length>0).length}`);
-                  window.location.reload();
-                } catch (e) {
-                  alert('Apply failed');
-                  console.error(e);
-                }
-              }}
-            >
-              Apply Policies
+              <Trash2 className="w-4 h-4 mr-2" />
+              Clean Up Old Snapshots
             </CellButton>
           </div>
           <CellButton variant="secondary" size="sm" onClick={() => window.location.reload()}>
@@ -564,11 +607,21 @@ export default function SnapshotsPage() {
                     >
                       <Eye className="w-4 h-4" />
                     </CellButton>
-                    <CellButton size="sm" variant="ghost">
+                    <CellButton 
+                      size="sm" 
+                      variant="ghost"
+                      onClick={() => handleDownloadSnapshot(snapshot)}
+                      title="Download as CSV"
+                    >
                       <Download className="w-4 h-4" />
                     </CellButton>
-                    <CellButton size="sm" variant="ghost">
-                      <Trash2 className="w-4 h-4" />
+                    <CellButton 
+                      size="sm" 
+                      variant="ghost"
+                      onClick={() => handleDeleteSnapshot(snapshot.id, `${snapshot.dataSourceName} v${snapshot.version}`)}
+                      disabled={deletingSnapshot === snapshot.id}
+                    >
+                      <Trash2 className={`w-4 h-4 ${deletingSnapshot === snapshot.id ? 'animate-pulse text-red-500' : ''}`} />
                     </CellButton>
                   </div>
                 </div>
