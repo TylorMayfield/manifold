@@ -100,8 +100,8 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       }),
     ]);
 
-    const fromData = fromDataResult.data.map(d => d.data);
-    const toData = toDataResult.data.map(d => d.data);
+    const fromData = fromDataResult.data;
+    const toData = toDataResult.data;
 
     console.log(`[Snapshot Compare] Loaded data: ${fromData.length} vs ${toData.length} records`);
 

@@ -90,7 +90,7 @@ export async function POST(
           limit: 100000, // Large limit for pipeline execution
         });
         
-        inputData[sourceId] = importedDataResult.data.map(d => d.data);
+        inputData[sourceId] = importedDataResult.data;
         
         console.log(`[Pipeline Execute] Loaded ${inputData[sourceId].length} records from source: ${sourceId}`);
       } catch (error) {

@@ -103,7 +103,7 @@ function FileUploadConfig({
               <p className="text-gray-600 mb-2">Choose a file to upload</p>
               <input
                 type="file"
-                accept=".csv,.json,.xlsx,.xls"
+                accept=".csv,.json,.xlsx,.xls,.xlsm"
                 onChange={(e) => {
                   const files = e.target.files;
                   if (files && files.length > 0) {

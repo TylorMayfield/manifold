@@ -90,7 +90,7 @@ export async function POST(
             limit: 1000, // Sample for testing
           });
           
-          productionData[sourceId] = importedDataResult.data.map(d => d.data);
+          productionData[sourceId] = importedDataResult.data;
           
           console.log(`[Pipeline Test] Loaded ${productionData[sourceId].length} records from ${sourceId}`);
         }

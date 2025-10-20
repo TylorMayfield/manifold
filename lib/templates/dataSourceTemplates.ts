@@ -338,15 +338,16 @@ export const DATA_SOURCE_TEMPLATES: DataSourceTemplate[] = [
   {
     id: "excel-file",
     name: "Excel File",
-    description: "Import data from an Excel file",
+    description: "Import data from an Excel file (XLS, XLSX)",
     category: "file",
-    type: "csv",
+    type: "excel",
     config: {
       filePath: "",
-      fileType: "csv", // Will be extended to support Excel
+      fileType: "excel",
     },
     icon: "file-text",
-    tags: ["excel", "file", "import"],
+    tags: ["excel", "file", "import", "xlsx", "xls"],
+    popular: true,
   },
 
   // SQL Dump Templates

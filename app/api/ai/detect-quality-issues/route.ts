@@ -66,7 +66,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       limit: 500, // Sample for quality analysis
     });
 
-    const data = importedDataResult.data.map(d => d.data);
+    const data = importedDataResult.data;
 
     console.log(`[AI] Loaded ${data.length} records for quality analysis`);
 

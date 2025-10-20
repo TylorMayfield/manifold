@@ -245,6 +245,33 @@ export default function UnifiedDataSourceWorkflow({
       ],
     },
     {
+      id: "excel",
+      name: "Excel File",
+      description: "Import data from Excel files (XLS, XLSX) with sheet selection",
+      icon: <FileText className="h-6 w-6" />,
+      color: "bg-emerald-500",
+      importMethods: [
+        {
+          id: "file-upload",
+          name: "File Upload",
+          description: "Upload Excel files directly",
+          icon: <Upload className="h-5 w-5" />,
+        },
+        {
+          id: "url-import",
+          name: "URL Import",
+          description: "Import Excel files from web URLs",
+          icon: <Download className="h-5 w-5" />,
+        },
+        {
+          id: "path-import",
+          name: "Local Path",
+          description: "Import from local file system paths",
+          icon: <FileText className="h-5 w-5" />,
+        },
+      ],
+    },
+    {
       id: "sql",
       name: "SQL Dump File",
       description: "Import data from SQL dump files or raw SQL statements",
@@ -474,6 +501,12 @@ export default function UnifiedDataSourceWorkflow({
           return { valid: false, error: 'JSON file path or upload is required' };
         }
         break;
+      
+      case 'excel':
+        if (!dataSourceConfig.filePath?.trim() && !dataSourceConfig.uploadFile) {
+          return { valid: false, error: 'Excel file path or upload is required' };
+        }
+        break;
     }
 
     return { valid: true };
@@ -594,6 +627,177 @@ export default function UnifiedDataSourceWorkflow({
     return false;
   };
 
+  const importFileData = async (dataSourceId: string, file: File, fileType: string) => {
+    return new Promise(async (resolve, reject) => {
+      console.log('[UnifiedDataSourceWorkflow] Starting file import:', { 
+        dataSourceId, 
+        fileName: file.name, 
+        fileSize: file.size, 
+        fileType 
+      });
+      
+      const reader = new FileReader();
+      
+      reader.onload = async (e) => {
+        try {
+          const content = e.target?.result as string;
+          console.log('[UnifiedDataSourceWorkflow] File read complete, content length:', content?.length);
+          
+          let data: any[] = [];
+          let schema: any = null;
+
+          // Parse based on file type
+          if (fileType === 'csv') {
+            console.log('[UnifiedDataSourceWorkflow] Parsing CSV...');
+            // Use papaparse to parse CSV
+            const Papa = await import('papaparse');
+            const parseResult = Papa.parse(content, {
+              header: true, // Assume headers by default for auto-import
+              skipEmptyLines: true,
+              dynamicTyping: true,
+            });
+            
+            console.log('[UnifiedDataSourceWorkflow] CSV parse result:', {
+              rowCount: parseResult.data.length,
+              errors: parseResult.errors.length,
+              fields: parseResult.meta?.fields
+            });
+            
+            if (parseResult.errors.length > 0) {
+              console.warn('[UnifiedDataSourceWorkflow] CSV parsing warnings:', parseResult.errors);
+            }
+            
+            data = parseResult.data.filter((row: any) => {
+              // Filter out empty rows
+              return Object.values(row).some(val => val !== null && val !== undefined && val !== '');
+            });
+            
+            console.log('[UnifiedDataSourceWorkflow] Filtered CSV data:', data.length, 'rows');
+          } else if (fileType === 'json') {
+            console.log('[UnifiedDataSourceWorkflow] Parsing JSON...');
+            // Parse JSON
+            const parsed = JSON.parse(content);
+            data = Array.isArray(parsed) ? parsed : [parsed];
+            console.log('[UnifiedDataSourceWorkflow] JSON parsed:', data.length, 'records');
+          } else if (fileType === 'excel') {
+            console.log('[UnifiedDataSourceWorkflow] Parsing Excel...');
+            // Parse Excel
+            const XLSX = await import('xlsx');
+            const workbook = XLSX.read(content, { type: 'binary' });
+            console.log('[UnifiedDataSourceWorkflow] Excel workbook sheets:', workbook.SheetNames);
+            
+            const sheetName = workbook.SheetNames[0];
+            const worksheet = workbook.Sheets[sheetName];
+            
+            // First try with headers
+            const testData = XLSX.utils.sheet_to_json(worksheet, { defval: null });
+            
+            // If first row looks like data (not headers), parse without headers
+            if (testData.length > 0) {
+              const firstRow = testData[0];
+              const keys = Object.keys(firstRow);
+              const values = Object.values(firstRow);
+              
+              // Check if keys look like auto-generated or data values
+              const keysLookLikeData = keys.some(key => !isNaN(Number(key)) || key.includes(' ') || key.length > 50);
+              
+              if (keysLookLikeData) {
+                console.log('[UnifiedDataSourceWorkflow] Excel appears to have no headers, using default column names');
+                // Re-parse without headers
+                const arrayData = XLSX.utils.sheet_to_json(worksheet, { 
+                  header: 1,
+                  defval: null 
+                });
+                
+                // Convert to objects with Column1, Column2, etc.
+                data = arrayData.map((row: any[]) => {
+                  const obj: any = {};
+                  row.forEach((val, idx) => {
+                    obj[`Column${idx + 1}`] = val;
+                  });
+                  return obj;
+                });
+              } else {
+                data = testData;
+              }
+            } else {
+              data = testData;
+            }
+            
+            console.log('[UnifiedDataSourceWorkflow] Excel parsed from sheet "' + sheetName + '":', data.length, 'rows');
+            console.log('[UnifiedDataSourceWorkflow] Sample data (first row):', data[0]);
+          }
+
+          // Check if we have data
+          if (!data || data.length === 0) {
+            throw new Error(`No data found in file. The file appears to be empty or could not be parsed correctly.`);
+          }
+
+          console.log('[UnifiedDataSourceWorkflow] Data parsed successfully:', {
+            recordCount: data.length,
+            sampleRecord: data[0]
+          });
+
+          // Infer schema from data
+          if (data.length > 0) {
+            const firstRow = data[0];
+            schema = {
+              columns: Object.keys(firstRow).map(key => ({
+                name: key,
+                type: typeof firstRow[key],
+                nullable: true
+              }))
+            };
+            console.log('[UnifiedDataSourceWorkflow] Schema inferred:', schema);
+          }
+
+          // Send to import endpoint
+          console.log('[UnifiedDataSourceWorkflow] Sending to import endpoint...');
+          const response = await fetch(`/api/data-sources/${dataSourceId}/import`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              data,
+              schema,
+              metadata: {
+                fileName: file.name,
+                fileSize: file.size,
+                fileType,
+                uploadedAt: new Date().toISOString()
+              }
+            })
+          });
+
+          if (!response.ok) {
+            const error = await response.json();
+            console.error('[UnifiedDataSourceWorkflow] Import failed:', error);
+            throw new Error(error.message || error.error || 'Failed to import data');
+          }
+
+          const result = await response.json();
+          console.log('[UnifiedDataSourceWorkflow] Import successful:', result);
+          resolve(result);
+        } catch (error) {
+          console.error('[UnifiedDataSourceWorkflow] Import error:', error);
+          reject(error);
+        }
+      };
+
+      reader.onerror = () => {
+        const error = new Error('Failed to read file');
+        console.error('[UnifiedDataSourceWorkflow]', error);
+        reject(error);
+      };
+
+      // Read file based on type
+      if (fileType === 'excel') {
+        reader.readAsBinaryString(file);
+      } else {
+        reader.readAsText(file);
+      }
+    });
+  };
+
   const handleCreateDataSource = async () => {
     console.log('[UnifiedDataSourceWorkflow] handleCreateDataSource called', {
       selectedType,
@@ -646,6 +850,18 @@ export default function UnifiedDataSourceWorkflow({
       console.log('[UnifiedDataSourceWorkflow] Creating data source:', dataSource);
       await addDataSource(dataSource);
       console.log('[UnifiedDataSourceWorkflow] Data source created successfully');
+
+      // If this is a file upload, automatically import the data to create initial snapshot
+      if (dataSourceConfig.uploadFile && ['csv', 'json', 'excel'].includes(selectedType || '')) {
+        console.log('[UnifiedDataSourceWorkflow] File upload detected, importing data...');
+        try {
+          await importFileData(dataSource.id, dataSourceConfig.uploadFile, selectedType);
+          console.log('[UnifiedDataSourceWorkflow] File data imported successfully');
+        } catch (error) {
+          console.error('[UnifiedDataSourceWorkflow] File import failed:', error);
+          alert(`Data source created but file import failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
+        }
+      }
 
       if (onComplete) {
         onComplete(dataSource);
@@ -722,7 +938,7 @@ export default function UnifiedDataSourceWorkflow({
         name: "Files",
         description: "Import data from various file formats",
         types: dataSourceTypes.filter(t => 
-          ['csv', 'json', 'sql'].includes(t.id)
+          ['csv', 'json', 'excel', 'sql'].includes(t.id)
         )
       },
       {

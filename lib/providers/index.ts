@@ -3,6 +3,7 @@ export { BaseProvider, ProviderFactory } from './BaseProvider';
 export { BaseDatabaseProvider } from './BaseDatabaseProvider';
 export { CsvProvider } from './CsvProvider';
 export { JsonProvider } from './JsonProvider';
+export { ExcelProvider } from './ExcelProvider';
 export { ScriptProvider } from './ScriptProvider';
 export { MockProvider } from './MockProvider';
 export { SqliteProvider } from './SqliteProvider';
@@ -26,6 +27,7 @@ export type {
 export type { DatabaseConnection, DatabaseProviderConfig } from './BaseDatabaseProvider';
 export type { CsvProviderConfig } from './CsvProvider';
 export type { JsonProviderConfig } from './JsonProvider';
+export type { ExcelProviderConfig } from './ExcelProvider';
 export type { ScriptProviderConfig } from './ScriptProvider';
 export type { MockProviderConfig, MockDataField } from './MockProvider';
 export type { SqliteProviderConfig } from './SqliteProvider';
@@ -36,6 +38,7 @@ export type { MssqlProviderConfig, MssqlConnection } from './MssqlProvider';
 import { ProviderFactory } from './BaseProvider';
 import { CsvProvider } from './CsvProvider';
 import { JsonProvider } from './JsonProvider';
+import { ExcelProvider } from './ExcelProvider';
 import { ScriptProvider } from './ScriptProvider';
 import { MockProvider } from './MockProvider';
 import { SqliteProvider } from './SqliteProvider';
@@ -45,6 +48,7 @@ import { MssqlProvider } from './MssqlProvider';
 // Register providers
 ProviderFactory.registerProvider('csv', CsvProvider);
 ProviderFactory.registerProvider('json', JsonProvider);
+ProviderFactory.registerProvider('excel', ExcelProvider);
 ProviderFactory.registerProvider('script', ScriptProvider);
 ProviderFactory.registerProvider('mock', MockProvider);
 ProviderFactory.registerProvider('sqlite', SqliteProvider);
@@ -78,6 +82,22 @@ export const PROVIDER_REGISTRY = {
       'JSONPath extraction',
       'NDJSON/JSONL support',
       'Array handling options',
+      'Transform functions',
+      'URL and local file support'
+    ],
+    category: 'file'
+  },
+  excel: {
+    class: ExcelProvider,
+    displayName: 'Excel Files',
+    description: 'Import data from Excel files (XLS, XLSX) with automatic type detection and sheet selection',
+    supportedFormats: ['.xls', '.xlsx', '.xlsm'],
+    features: [
+      'XLS, XLSX, and XLSM support',
+      'Multiple sheet support',
+      'Automatic type inference',
+      'Custom range selection',
+      'Header row configuration',
       'Transform functions',
       'URL and local file support'
     ],

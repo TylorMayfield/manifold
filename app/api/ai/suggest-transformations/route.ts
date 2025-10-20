@@ -66,7 +66,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       limit: 200, // Sample for transformation analysis
     });
 
-    const data = importedDataResult.data.map(d => d.data);
+    const data = importedDataResult.data;
 
     console.log(`[AI] Loaded ${data.length} records for analysis`);
 

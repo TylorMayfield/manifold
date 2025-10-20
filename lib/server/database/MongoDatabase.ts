@@ -123,6 +123,30 @@ ImportedDataSchema.index({ snapshotId: 1, rowIndex: 1 });
 ImportedDataSchema.index({ dataSourceId: 1, version: -1, rowIndex: 1 });
 ImportedDataSchema.index({ projectId: 1, dataSourceId: 1, version: -1 });
 
+// Schema for Data Dictionary entries
+const DataDictionarySchema = new Schema({
+  _id: { type: String, required: true },
+  projectId: { type: String, required: true, index: true },
+  dataSourceId: { type: String, required: true, index: true },
+  businessName: { type: String, required: true },
+  technicalName: { type: String, required: true },
+  description: String,
+  category: String,
+  domain: String,
+  tags: [String],
+  fields: [Schema.Types.Mixed],
+  relationships: [Schema.Types.Mixed],
+  dataQuality: Schema.Types.Mixed,
+  lineage: Schema.Types.Mixed,
+  owner: String,
+  steward: String,
+  createdAt: { type: Date, default: Date.now },
+  updatedAt: { type: Date, default: Date.now }
+});
+
+DataDictionarySchema.index({ projectId: 1, dataSourceId: 1 });
+DataDictionarySchema.index({ businessName: 'text', technicalName: 'text', description: 'text' });
+
 // ==================== MODELS ====================
 
 let Project: Model<any>;
@@ -134,6 +158,7 @@ let Webhook: Model<any>;
 let Snapshot: Model<any>;
 let ImportedData: Model<any>;
 let PipelineExecution: Model<any>;
+let DataDictionary: Model<any>;
 
 // ==================== DATABASE CLASS ====================
 
@@ -201,6 +226,7 @@ export class MongoDatabase {
       Snapshot = mongoose.models.Snapshot || mongoose.model('Snapshot', SnapshotSchema);
       ImportedData = mongoose.models.ImportedData || mongoose.model('ImportedData', ImportedDataSchema);
       PipelineExecution = mongoose.models.PipelineExecution || mongoose.model('PipelineExecution', PipelineExecutionSchema);
+      DataDictionary = mongoose.models.DataDictionary || mongoose.model('DataDictionary', DataDictionarySchema);
 
       logger.success(
         "MongoDB connected successfully",
@@ -870,6 +896,74 @@ export class MongoDatabase {
       logger.error('Failed to get pipeline execution', 'database', { error, executionId });
       throw error;
     }
+  }
+
+  // ==================== DATA DICTIONARY ====================
+
+  async createDictionaryEntry(entry: any): Promise<any> {
+    if (!this.isConnected) throw new Error("Database not connected");
+    
+    const doc = new DataDictionary({
+      _id: entry.id,
+      ...entry
+    });
+    
+    await doc.save();
+    const saved = doc.toObject();
+    return {
+      ...saved,
+      id: saved._id
+    };
+  }
+
+  async getDictionaryEntries(projectId?: string): Promise<any[]> {
+    if (!this.isConnected) throw new Error("Database not connected");
+    
+    const query = projectId ? { projectId } : {};
+    const entries = await DataDictionary.find(query)
+      .sort({ updatedAt: -1 })
+      .lean();
+    
+    return entries.map((entry: any) => ({
+      ...entry,
+      id: entry._id,
+    }));
+  }
+
+  async getDictionaryEntry(id: string): Promise<any> {
+    if (!this.isConnected) throw new Error("Database not connected");
+    
+    const entry = await DataDictionary.findOne({ _id: id }).lean();
+    if (!entry) return null;
+    
+    return {
+      ...entry,
+      id: entry._id,
+    };
+  }
+
+  async updateDictionaryEntry(id: string, updates: any): Promise<any> {
+    if (!this.isConnected) throw new Error("Database not connected");
+    
+    const updated = await DataDictionary.findOneAndUpdate(
+      { _id: id },
+      { ...updates, _id: id, updatedAt: new Date() },
+      { new: true, upsert: false }
+    ).lean();
+    
+    if (!updated) return null;
+    
+    return {
+      ...updated,
+      id: updated._id,
+    };
+  }
+
+  async deleteDictionaryEntry(id: string): Promise<boolean> {
+    if (!this.isConnected) throw new Error("Database not connected");
+    
+    const result = await DataDictionary.deleteOne({ _id: id });
+    return result.deletedCount > 0;
   }
 }
 

@@ -21,9 +21,34 @@ import { DataProvider, Snapshot } from "../../types";
 
 export class DataDictionaryService {
   private entries: Map<string, DataDictionaryEntry> = new Map();
+  private useDatabase: boolean = false; // Flag to determine if running server-side
+  private db: any = null;
 
   constructor() {
-    this.loadFromStorage();
+    // Only load from localStorage if in browser (client-side fallback)
+    if (typeof window !== "undefined") {
+      this.loadFromStorage();
+    } else {
+      // Server-side: will use MongoDB
+      this.useDatabase = true;
+    }
+  }
+
+  private async ensureDb() {
+    if (!this.useDatabase) return null;
+    
+    if (this.db) return this.db;
+    
+    try {
+      const { MongoDatabase } = await import('../server/database/MongoDatabase');
+      const instance = MongoDatabase.getInstance();
+      await instance.initialize();
+      this.db = instance;
+      return this.db;
+    } catch (error) {
+      console.error('Failed to initialize MongoDB:', error);
+      return null;
+    }
   }
 
   // CRUD Operations
@@ -38,6 +63,19 @@ export class DataDictionaryService {
       updatedAt: new Date(),
     };
 
+    // Try MongoDB first (server-side)
+    const db = await this.ensureDb();
+    if (db) {
+      try {
+        await db.createDictionaryEntry(newEntry);
+        this.entries.set(newEntry.id, newEntry);
+        return newEntry;
+      } catch (error) {
+        console.error('Failed to save to MongoDB, falling back to localStorage:', error);
+      }
+    }
+
+    // Fallback to localStorage (client-side or if MongoDB fails)
     this.entries.set(newEntry.id, newEntry);
     await this.saveToStorage();
 
@@ -72,6 +110,19 @@ export class DataDictionaryService {
       updatedAt: new Date(),
     };
 
+    // Try MongoDB first (server-side)
+    const db = await this.ensureDb();
+    if (db) {
+      try {
+        await db.updateDictionaryEntry(id, updatedEntry);
+        this.entries.set(id, updatedEntry);
+        return updatedEntry;
+      } catch (error) {
+        console.error('Failed to update in MongoDB, falling back to localStorage:', error);
+      }
+    }
+
+    // Fallback to localStorage
     this.entries.set(id, updatedEntry);
     await this.saveToStorage();
 
@@ -79,6 +130,19 @@ export class DataDictionaryService {
   }
 
   async deleteEntry(id: string): Promise<boolean> {
+    // Try MongoDB first (server-side)
+    const db = await this.ensureDb();
+    if (db) {
+      try {
+        await db.deleteDictionaryEntry(id);
+        this.entries.delete(id);
+        return true;
+      } catch (error) {
+        console.error('Failed to delete from MongoDB, falling back to localStorage:', error);
+      }
+    }
+
+    // Fallback to localStorage
     const deleted = this.entries.delete(id);
     if (deleted) {
       await this.saveToStorage();
@@ -87,6 +151,23 @@ export class DataDictionaryService {
   }
 
   async listEntries(projectId?: string): Promise<DataDictionaryEntry[]> {
+    // Try MongoDB first (server-side)
+    const db = await this.ensureDb();
+    if (db) {
+      try {
+        const dbEntries = await db.getDictionaryEntries(projectId);
+        // Update in-memory cache
+        this.entries.clear();
+        dbEntries.forEach((entry: DataDictionaryEntry) => {
+          this.entries.set(entry.id, entry);
+        });
+        return dbEntries;
+      } catch (error) {
+        console.error('Failed to load from MongoDB, falling back to localStorage:', error);
+      }
+    }
+
+    // Fallback to in-memory/localStorage
     const entries = Array.from(this.entries.values());
     if (projectId) {
       return entries.filter((entry) => entry.projectId === projectId);

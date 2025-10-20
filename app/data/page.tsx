@@ -64,6 +64,12 @@ export default function DataBrowserPage() {
   const [importData, setImportData] = useState("");
   const [isImporting, setIsImporting] = useState(false);
   const [importProgress, setImportProgress] = useState(0);
+  const [isCreatingSnapshot, setIsCreatingSnapshot] = useState(false);
+  const [showReimportModal, setShowReimportModal] = useState(false);
+  const [reimportFile, setReimportFile] = useState<File | null>(null);
+  const [fileHasHeaders, setFileHasHeaders] = useState(true);
+  const [showSnapshotConfigModal, setShowSnapshotConfigModal] = useState(false);
+  const [snapshotHasHeaders, setSnapshotHasHeaders] = useState(true);
 
   const api = useApi();
   const { get } = api;
@@ -72,6 +78,238 @@ export default function DataBrowserPage() {
   useEffect(() => {
     loadDataSources();
   }, []);
+
+  const handleCreateSnapshot = async () => {
+    if (!selectedSource) {
+      alert('Please select a data source first');
+      return;
+    }
+
+    // For file-based sources, show config modal first
+    if (['csv', 'json', 'excel'].includes(selectedSource.type)) {
+      setShowSnapshotConfigModal(true);
+      return;
+    }
+
+    // For other sources, proceed directly
+    await executeCreateSnapshot();
+  };
+
+  const executeCreateSnapshot = async (hasHeaders: boolean = true) => {
+    if (!selectedSource) return;
+
+    setIsCreatingSnapshot(true);
+    clientLogger.info('Creating snapshot', 'data-processing', {
+      dataSourceId: selectedSource.id,
+      dataSourceName: selectedSource.name,
+      dataSourceType: selectedSource.type
+    });
+
+    try {
+      // Call the refresh endpoint which creates a new snapshot
+      const response = await fetch(`/api/data-sources/${selectedSource.id}/refresh`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ 
+          createSnapshot: true,
+          hasHeaders: hasHeaders 
+        }),
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.message || 'Failed to create snapshot');
+      }
+
+      const result = await response.json();
+      
+      clientLogger.success('Snapshot created successfully', 'data-processing', {
+        dataSourceId: selectedSource.id,
+        snapshotId: result.snapshotId,
+        version: result.newVersion,
+        recordCount: result.recordCount
+      });
+
+      // Show success message
+      alert(
+        `✅ Snapshot created successfully!\n\n` +
+        `Version: ${result.newVersion}\n` +
+        `Records: ${result.recordCount?.toLocaleString() || 'N/A'}\n` +
+        `${result.changes ? `\nChanges:\n• Added: ${result.changes.added || 0}\n• Modified: ${result.changes.modified || 0}\n• Deleted: ${result.changes.deleted || 0}` : ''}`
+      );
+
+      // Reload the data to show the new snapshot
+      await loadSourceData(selectedSource.id, currentPage);
+      
+    } catch (error) {
+      clientLogger.error('Failed to create snapshot', 'data-processing', {
+        error,
+        dataSourceId: selectedSource.id
+      });
+      
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      alert(`❌ Failed to create snapshot\n\n${errorMessage}\n\nPlease check the console for more details.`);
+    } finally {
+      setIsCreatingSnapshot(false);
+    }
+  };
+
+  const handleReimportFile = async () => {
+    if (!selectedSource || !reimportFile) {
+      alert('Please select a file to import');
+      return;
+    }
+
+    setIsImporting(true);
+    clientLogger.info('Starting file reimport', 'data-processing', {
+      dataSourceId: selectedSource.id,
+      fileName: reimportFile.name,
+      fileSize: reimportFile.size
+    });
+
+    try {
+      // Read and parse the file
+      const reader = new FileReader();
+      
+      const fileData = await new Promise<any[]>((resolve, reject) => {
+        reader.onload = async (e) => {
+          try {
+            const content = e.target?.result as string;
+            let data: any[] = [];
+
+            // Parse based on file type
+            const fileType = selectedSource.type;
+            
+            if (fileType === 'csv') {
+              const Papa = await import('papaparse');
+              const result = Papa.parse(content, {
+                header: fileHasHeaders,
+                skipEmptyLines: true,
+                dynamicTyping: true,
+              });
+              data = result.data.filter((row: any) => 
+                Object.values(row).some(val => val !== null && val !== undefined && val !== '')
+              );
+              
+              // If no headers, add default column names
+              if (!fileHasHeaders && data.length > 0) {
+                const firstRow = data[0];
+                if (Array.isArray(firstRow)) {
+                  // Convert array rows to objects with Column1, Column2, etc.
+                  data = data.map((row: any[]) => {
+                    const obj: any = {};
+                    row.forEach((val, idx) => {
+                      obj[`Column${idx + 1}`] = val;
+                    });
+                    return obj;
+                  });
+                }
+              }
+            } else if (fileType === 'json') {
+              const parsed = JSON.parse(content);
+              data = Array.isArray(parsed) ? parsed : [parsed];
+            } else if (fileType === 'excel') {
+              const XLSX = await import('xlsx');
+              const workbook = XLSX.read(content, { type: 'binary' });
+              const sheetName = workbook.SheetNames[0];
+              const worksheet = workbook.Sheets[sheetName];
+              
+              if (fileHasHeaders) {
+                // Default behavior - first row is headers
+                data = XLSX.utils.sheet_to_json(worksheet, { defval: null });
+              } else {
+                // No headers - use default column names
+                data = XLSX.utils.sheet_to_json(worksheet, { 
+                  header: 1, // Read as arrays
+                  defval: null 
+                });
+                
+                // Convert array rows to objects with Column1, Column2, etc.
+                data = data.map((row: any[]) => {
+                  const obj: any = {};
+                  row.forEach((val, idx) => {
+                    obj[`Column${idx + 1}`] = val;
+                  });
+                  return obj;
+                });
+              }
+            }
+
+            resolve(data);
+          } catch (error) {
+            reject(error);
+          }
+        };
+
+        reader.onerror = () => reject(new Error('Failed to read file'));
+
+        if (selectedSource.type === 'excel') {
+          reader.readAsBinaryString(reimportFile);
+        } else {
+          reader.readAsText(reimportFile);
+        }
+      });
+
+      clientLogger.info('File parsed', 'data-processing', {
+        recordCount: fileData.length
+      });
+
+      if (fileData.length === 0) {
+        throw new Error('No data found in file');
+      }
+
+      // Infer schema
+      const schema = {
+        columns: Object.keys(fileData[0]).map(key => ({
+          name: key,
+          type: typeof fileData[0][key],
+          nullable: true
+        }))
+      };
+
+      // Import the data
+      const response = await fetch(`/api/data-sources/${selectedSource.id}/import`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          data: fileData,
+          schema,
+          metadata: {
+            fileName: reimportFile.name,
+            fileSize: reimportFile.size,
+            fileType: selectedSource.type,
+            uploadedAt: new Date().toISOString(),
+            reimport: true
+          }
+        })
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.message || 'Failed to import data');
+      }
+
+      const result = await response.json();
+      
+      clientLogger.success('File imported successfully', 'data-processing', {
+        recordCount: result.recordCount,
+        version: result.version
+      });
+
+      alert(`✅ File imported successfully!\n\n${result.recordCount} records imported\nSnapshot version: ${result.version}`);
+
+      // Reload data
+      await loadSourceData(selectedSource.id, currentPage);
+      setShowReimportModal(false);
+      setReimportFile(null);
+      
+    } catch (error) {
+      clientLogger.error('File import failed', 'data-processing', { error });
+      alert(`❌ Import failed\n\n${error instanceof Error ? error.message : 'Unknown error'}`);
+    } finally {
+      setIsImporting(false);
+    }
+  };
 
   const loadSourceData = async (
     sourceId: string,
@@ -514,10 +752,32 @@ export default function DataBrowserPage() {
       headerActions={
         <div className="flex items-center space-x-2">
           {selectedSource && (
-            <CellButton variant="secondary" size="sm">
-              <Download className="w-4 h-4 mr-2" />
-              Export
-            </CellButton>
+            <>
+              {['csv', 'json', 'excel'].includes(selectedSource.type) && (
+                <CellButton 
+                  variant="primary" 
+                  size="sm"
+                  onClick={() => setShowReimportModal(true)}
+                  disabled={isImporting || loading}
+                >
+                  <Upload className="w-4 h-4 mr-2" />
+                  Import File
+                </CellButton>
+              )}
+              <CellButton 
+                variant="secondary" 
+                size="sm"
+                onClick={handleCreateSnapshot}
+                disabled={isCreatingSnapshot || loading}
+              >
+                <Database className={`w-4 h-4 mr-2 ${isCreatingSnapshot ? 'animate-pulse' : ''}`} />
+                {isCreatingSnapshot ? 'Creating...' : 'Create Snapshot'}
+              </CellButton>
+              <CellButton variant="secondary" size="sm">
+                <Download className="w-4 h-4 mr-2" />
+                Export
+              </CellButton>
+            </>
           )}
           <CellButton
             variant="secondary"
@@ -865,6 +1125,167 @@ export default function DataBrowserPage() {
               </CellCard>
             )}
           </div>
+        </div>
+      )}
+
+      {/* Snapshot Configuration Modal (for file-based sources) */}
+      {showSnapshotConfigModal && selectedSource && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <CellCard className="w-full max-w-lg p-6 m-4">
+            <h3 className="text-lg font-bold mb-4 flex items-center">
+              <Database className="w-5 h-5 mr-2" />
+              Create Snapshot for {selectedSource.name}
+            </h3>
+            
+            <p className="text-sm text-gray-600 mb-4">
+              Configure how to parse the {selectedSource.type.toUpperCase()} data when creating the snapshot.
+            </p>
+
+            <div className="mb-6">
+              <div className="flex items-start">
+                <input
+                  type="checkbox"
+                  id="snapshotHasHeaders"
+                  checked={snapshotHasHeaders}
+                  onChange={(e) => setSnapshotHasHeaders(e.target.checked)}
+                  className="mt-1 h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                />
+                <label htmlFor="snapshotHasHeaders" className="ml-2 block">
+                  <span className="text-sm font-medium text-gray-700">
+                    File has header row
+                  </span>
+                  <p className="text-xs text-gray-500">
+                    {selectedSource.type === 'excel' 
+                      ? 'Uncheck if your Excel file doesn\'t have column headers in the first row.'
+                      : 'Uncheck if your file doesn\'t have column headers in the first row.'
+                    }
+                    {' '}Default column names (Column1, Column2, etc.) will be used.
+                  </p>
+                </label>
+              </div>
+            </div>
+
+            <div className="flex justify-end space-x-3">
+              <CellButton
+                variant="secondary"
+                onClick={() => {
+                  setShowSnapshotConfigModal(false);
+                  setSnapshotHasHeaders(true);
+                }}
+                disabled={isCreatingSnapshot}
+              >
+                Cancel
+              </CellButton>
+              <CellButton
+                variant="primary"
+                onClick={async () => {
+                  setShowSnapshotConfigModal(false);
+                  await executeCreateSnapshot(snapshotHasHeaders);
+                  setSnapshotHasHeaders(true); // Reset for next time
+                }}
+                disabled={isCreatingSnapshot}
+              >
+                <Database className="w-4 h-4 mr-2" />
+                Create Snapshot
+              </CellButton>
+            </div>
+          </CellCard>
+        </div>
+      )}
+
+      {/* Reimport File Modal */}
+      {showReimportModal && selectedSource && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <CellCard className="w-full max-w-lg p-6 m-4">
+            <h3 className="text-lg font-bold mb-4 flex items-center">
+              <Upload className="w-5 h-5 mr-2" />
+              Import File for {selectedSource.name}
+            </h3>
+            
+            <p className="text-sm text-gray-600 mb-4">
+              Select a {selectedSource.type.toUpperCase()} file to import. This will create a new snapshot with the imported data.
+            </p>
+
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Select File
+                </label>
+                <input
+                  type="file"
+                  accept={
+                    selectedSource.type === 'csv' ? '.csv' :
+                    selectedSource.type === 'json' ? '.json' :
+                    selectedSource.type === 'excel' ? '.xls,.xlsx,.xlsm' : '*'
+                  }
+                  onChange={(e) => {
+                    const file = e.target.files?.[0];
+                    if (file) {
+                      setReimportFile(file);
+                    }
+                  }}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500"
+                />
+                
+                {reimportFile && (
+                  <div className="mt-2 text-sm text-gray-600">
+                    Selected: <span className="font-semibold">{reimportFile.name}</span>
+                    {' '}({(reimportFile.size / 1024).toFixed(2)} KB)
+                  </div>
+                )}
+              </div>
+
+              <div className="flex items-start">
+                <input
+                  type="checkbox"
+                  id="fileHasHeaders"
+                  checked={fileHasHeaders}
+                  onChange={(e) => setFileHasHeaders(e.target.checked)}
+                  className="mt-1 h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                />
+                <label htmlFor="fileHasHeaders" className="ml-2 block">
+                  <span className="text-sm font-medium text-gray-700">
+                    File has header row
+                  </span>
+                  <p className="text-xs text-gray-500">
+                    Uncheck if your file doesn't have column headers in the first row. 
+                    Default column names (Column1, Column2, etc.) will be used.
+                  </p>
+                </label>
+              </div>
+            </div>
+
+            <div className="flex justify-end space-x-3">
+              <CellButton
+                variant="secondary"
+                onClick={() => {
+                  setShowReimportModal(false);
+                  setReimportFile(null);
+                  setFileHasHeaders(true);
+                }}
+                disabled={isImporting}
+              >
+                Cancel
+              </CellButton>
+              <CellButton
+                variant="primary"
+                onClick={handleReimportFile}
+                disabled={isImporting || !reimportFile}
+              >
+                {isImporting ? (
+                  <>
+                    <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
+                    Importing...
+                  </>
+                ) : (
+                  <>
+                    <Upload className="w-4 h-4 mr-2" />
+                    Import File
+                  </>
+                )}
+              </CellButton>
+            </div>
+          </CellCard>
         </div>
       )}
 

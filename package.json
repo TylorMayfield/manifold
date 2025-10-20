@@ -86,6 +86,7 @@
     "recharts": "^3.2.0",
     "tailwindcss": "^3.4.17",
     "uuid": "^9.0.1",
+    "xlsx": "^0.18.5",
     "zod": "^4.1.11"
   },
   "devDependencies": {
@@ -104,6 +105,7 @@
     "@types/react": "^19",
     "@types/react-dom": "^19",
     "@types/uuid": "^9.0.7",
+    "@types/xlsx": "^0.0.35",
     "concurrently": "^8.2.2",
     "electron": "^38.2.2",
     "electron-builder": "^24.6.4",
@@ -167,7 +169,9 @@
       "target": [
         {
           "target": "portable",
-          "arch": ["x64"]
+          "arch": [
+            "x64"
+          ]
         }
       ],
       "sign": null,

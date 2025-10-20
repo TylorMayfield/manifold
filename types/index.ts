@@ -25,6 +25,7 @@ export interface DataProvider {
 export type DataProviderType =
   | "csv"
   | "json"
+  | "excel"
   | "sql"
   | "sql_dump"
   | "api_script"
@@ -49,7 +50,7 @@ export interface DataProviderConfig {
 
   // File provider config
   filePath?: string;
-  fileType?: "csv" | "json";
+  fileType?: "csv" | "json" | "excel";
   uploadFile?: File;
   importUrl?: string;
 

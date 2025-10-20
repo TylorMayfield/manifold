@@ -69,7 +69,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       limit: 100, // Sample size for auto-mapping
     });
 
-    const sourceData = importedDataResult.data.map(d => d.data);
+    const sourceData = importedDataResult.data;
 
     if (sourceData.length === 0) {
       return NextResponse.json(

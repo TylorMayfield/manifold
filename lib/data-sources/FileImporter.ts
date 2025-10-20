@@ -1,6 +1,7 @@
 import fs from "fs";
 import path from "path";
 import Papa from "papaparse";
+import * as XLSX from "xlsx";
 import {
   DataSource,
   DataSourceConfig,
@@ -30,6 +31,8 @@ export class FileImporter {
       return this.importCSV(filePath, onProgress);
     } else if (ext === ".json") {
       return this.importJSON(filePath, onProgress);
+    } else if (ext === ".xls" || ext === ".xlsx" || ext === ".xlsm") {
+      return this.importExcel(filePath, onProgress);
     } else {
       throw new Error(`Unsupported file type: ${ext}`);
     }
@@ -144,6 +147,67 @@ export class FileImporter {
     }
   }
 
+  private async importExcel(
+    filePath: string,
+    onProgress?: (progress: ImportProgress) => void
+  ): Promise<{ data: any[]; schema: TableSchema }> {
+    try {
+      onProgress?.({
+        stage: "reading",
+        progress: 0,
+        message: "Reading Excel file...",
+      });
+
+      const fileBuffer = fs.readFileSync(filePath);
+      onProgress?.({
+        stage: "parsing",
+        progress: 25,
+        message: "Parsing Excel data...",
+      });
+
+      const workbook = XLSX.read(fileBuffer, { type: "buffer" });
+
+      if (!workbook.SheetNames || workbook.SheetNames.length === 0) {
+        throw new Error("No sheets found in Excel file");
+      }
+
+      // Use the first sheet by default
+      const sheetName = workbook.SheetNames[0];
+      const worksheet = workbook.Sheets[sheetName];
+
+      onProgress?.({
+        stage: "indexing",
+        progress: 50,
+        message: `Processing sheet "${sheetName}"...`,
+      });
+
+      // Convert to JSON
+      const data = XLSX.utils.sheet_to_json(worksheet, { defval: null }) as any[];
+
+      onProgress?.({
+        stage: "indexing",
+        progress: 75,
+        message: "Analyzing data structure...",
+      });
+      const schema = this.inferSchema(data);
+
+      onProgress?.({
+        stage: "complete",
+        progress: 100,
+        message: "Import completed successfully",
+      });
+      return { data, schema };
+    } catch (error) {
+      onProgress?.({
+        stage: "error",
+        progress: 0,
+        message: "Failed to parse Excel",
+        error: error instanceof Error ? error.message : "Unknown error",
+      });
+      throw error;
+    }
+  }
+
   private inferSchema(data: any[]): TableSchema {
     if (data.length === 0) {
       return { columns: [] };
@@ -200,16 +264,19 @@ export class FileImporter {
   ): Promise<DataSource> {
     const { data, schema } = await this.importFile(filePath, onProgress);
 
+    const ext = path.extname(filePath).toLowerCase().slice(1);
+    const fileType = (ext === "xls" || ext === "xlsx" || ext === "xlsm") ? "excel" : ext as "csv" | "json" | "excel";
+    
     const config: DataSourceConfig = {
       filePath,
-      fileType: path.extname(filePath).toLowerCase().slice(1) as "csv" | "json",
+      fileType,
     };
 
     const dataSource: DataSource = {
       id: `ds_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
       projectId,
       name,
-      type: "csv",
+      type: fileType === "json" ? "json" : fileType === "excel" ? "excel" : "csv",
       config,
       createdAt: new Date(),
       updatedAt: new Date(),

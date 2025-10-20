@@ -65,7 +65,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
         limit: 1000, // Sample for performance
       });
 
-      const data = importedDataResult.data.map(d => d.data);
+      const data = importedDataResult.data;
 
       tables.push({
         name: dataSource.name,

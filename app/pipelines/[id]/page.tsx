@@ -20,6 +20,7 @@ export default function PipelineDetailsPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [isEditing, setIsEditing] = useState(false);
+  const [editMode, setEditMode] = useState<'simple' | 'visual'>('simple');
 
   useEffect(() => {
     const load = async () => {
@@ -86,13 +87,13 @@ export default function PipelineDetailsPage() {
   };
 
   const handleDeleteStep = (index: number) => {
-    const newSteps = [...editedPipeline.steps];
+    const newSteps = [...(editedPipeline.steps || [])];
     newSteps.splice(index, 1);
     setEditedPipeline({ ...editedPipeline, steps: newSteps });
   };
 
   const handleStepChange = (index: number, field: string, value: any) => {
-    const newSteps = [...editedPipeline.steps];
+    const newSteps = [...(editedPipeline.steps || [])];
     newSteps[index] = { ...newSteps[index], [field]: value };
     setEditedPipeline({ ...editedPipeline, steps: newSteps });
   };
@@ -162,15 +163,26 @@ export default function PipelineDetailsPage() {
                 </CellButton>
                 {!isEditing && (
                   <CellButton
-                    variant="secondary"
+                    variant="primary"
                     size="sm"
                     onClick={() => setIsEditing(true)}
                   >
-                    <Settings className="w-4 h-4" />
+                    <Settings className="w-4 h-4 mr-2" />
+                    Edit Pipeline
                   </CellButton>
                 )}
               </div>
             </div>
+            
+            {!isEditing && (pipeline.steps || []).length === 0 && (
+              <div className="mt-4 p-4 bg-blue-50 border-l-4 border-l-blue-500 rounded">
+                <p className="text-sm text-blue-800">
+                  <strong>This pipeline has no transformation steps yet.</strong>
+                  <br />
+                  Click "Edit Pipeline" above to add steps like filter, map, aggregate, or join.
+                </p>
+              </div>
+            )}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div>
                 <div className="text-caption font-bold">Steps</div>
@@ -195,12 +207,66 @@ export default function PipelineDetailsPage() {
 
           {isEditing ? (
             // Edit mode
-            <CellCard className="p-6">
-              <h3 className="font-mono font-bold text-lg mb-3">
-                Transform Steps
-              </h3>
-              <div className="space-y-4">
-                {editedPipeline.steps.map((step: any, index: number) => (
+            <>
+              <CellCard className="p-6">
+                <h3 className="font-mono font-bold text-lg mb-4">
+                  Pipeline Details
+                </h3>
+                <div className="space-y-4">
+                  <CellInput
+                    label="Pipeline Name"
+                    placeholder="Enter pipeline name"
+                    value={editedPipeline.name || ''}
+                    onChange={(e) => setEditedPipeline({ ...editedPipeline, name: e.target.value })}
+                  />
+                  <div>
+                    <label className="block text-sm font-medium text-black mb-1">
+                      Description (Optional)
+                    </label>
+                    <textarea
+                      className="w-full border-2 border-black bg-white font-mono px-3 py-2 text-base transition-all duration-100 focus:outline-none focus:shadow-cell-inset placeholder:text-gray-400"
+                      placeholder="Enter pipeline description"
+                      value={editedPipeline.description || ''}
+                      onChange={(e) => setEditedPipeline({ ...editedPipeline, description: e.target.value })}
+                      rows={3}
+                    />
+                  </div>
+                </div>
+              </CellCard>
+
+              <CellCard className="p-6">
+                <div className="flex items-center justify-between mb-4">
+                  <h3 className="font-mono font-bold text-lg">
+                    Transform Steps
+                  </h3>
+                  <CellButton
+                    variant="primary"
+                    size="sm"
+                    onClick={handleAddStep}
+                  >
+                    <Plus className="w-4 h-4 mr-2" /> Add Step
+                  </CellButton>
+                </div>
+                
+                {(editedPipeline.steps || []).length === 0 ? (
+                  <div className="text-center py-12 border-2 border-dashed border-gray-300 rounded-lg bg-gray-50">
+                    <Zap className="w-12 h-12 mx-auto mb-4 text-gray-400" />
+                    <h4 className="text-lg font-bold text-gray-700 mb-2">
+                      No Transform Steps Yet
+                    </h4>
+                    <p className="text-gray-600 mb-4 max-w-md mx-auto">
+                      Transform steps define how to process your data. Add steps like filter, map, or aggregate to build your data transformation pipeline.
+                    </p>
+                    <CellButton
+                      variant="primary"
+                      onClick={handleAddStep}
+                    >
+                      <Plus className="w-4 h-4 mr-2" /> Add Your First Step
+                    </CellButton>
+                  </div>
+                ) : (
+                  <div className="space-y-4">
+                    {(editedPipeline.steps || []).map((step: any, index: number) => (
                   <div
                     key={index}
                     className="p-4 border border-gray-200 bg-white rounded"
@@ -235,27 +301,33 @@ export default function PipelineDetailsPage() {
                       }
                     />
                   </div>
-                ))}
-                <CellButton
-                  variant="secondary"
-                  size="sm"
-                  onClick={handleAddStep}
-                >
-                  <Plus className="w-4 h-4 mr-2" /> Add Step
-                </CellButton>
-              </div>
-              <div className="flex justify-end space-x-2 mt-6">
-                <CellButton
-                  variant="secondary"
-                  onClick={() => setIsEditing(false)}
-                >
-                  Cancel
-                </CellButton>
-                <CellButton variant="primary" onClick={handleSave}>
-                  <Save className="w-4 h-4 mr-2" /> Save
-                </CellButton>
-              </div>
-            </CellCard>
+                    ))}
+                    <CellButton
+                      variant="secondary"
+                      size="sm"
+                      onClick={handleAddStep}
+                      className="w-full"
+                    >
+                      <Plus className="w-4 h-4 mr-2" /> Add Another Step
+                    </CellButton>
+                  </div>
+                )}
+                <div className="flex justify-end space-x-2 mt-6">
+                  <CellButton
+                    variant="secondary"
+                    onClick={() => {
+                      setEditedPipeline(pipeline);
+                      setIsEditing(false);
+                    }}
+                  >
+                    Cancel
+                  </CellButton>
+                  <CellButton variant="primary" onClick={handleSave}>
+                    <Save className="w-4 h-4 mr-2" /> Save
+                  </CellButton>
+                </div>
+              </CellCard>
+            </>
           ) : (
             // View mode
             pipeline.steps &&

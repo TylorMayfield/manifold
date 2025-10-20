@@ -94,7 +94,7 @@ export async function POST(
         limit: 100000, // Large limit for CDC comparison
       });
       
-      existingData = importedDataResult.data.map(d => d.data);
+      existingData = importedDataResult.data;
       previousVersion = latestSnapshot.version || 0;
       
       console.log(`[CDC] Loaded ${existingData.length} existing records from version ${previousVersion}`);

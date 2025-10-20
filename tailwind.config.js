@@ -10,6 +10,12 @@ module.exports = {
       colors: {
         background: "var(--background)",
         foreground: "var(--foreground)",
+        // Badge and component colors
+        success: '#10b981', // green-500
+        warning: '#f59e0b', // amber-500
+        error: '#ef4444',   // red-500
+        info: '#3b82f6',    // blue-500
+        accent: '#8b5cf6',  // violet-500
       },
       keyframes: {
         'indeterminate-progress': {

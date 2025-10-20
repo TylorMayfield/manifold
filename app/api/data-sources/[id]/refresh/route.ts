@@ -8,10 +8,12 @@ export async function POST(
   try {
     const { id } = await context.params;
     const body = await request.json().catch(() => ({}));
-    const { createSnapshot = true } = body;
+    const { createSnapshot = true, hasHeaders } = body;
 
     const refreshManager = DataSourceRefreshManager.getInstance();
-    const result = await refreshManager.refreshDataSource(id, createSnapshot);
+    const result = await refreshManager.refreshDataSource(id, createSnapshot, {
+      hasHeaders: hasHeaders ?? true
+    });
 
     if (result.success) {
       return NextResponse.json(result);

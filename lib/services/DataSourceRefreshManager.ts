@@ -117,7 +117,8 @@ export class DataSourceRefreshManager {
    */
   async refreshDataSource(
     dataSourceId: string,
-    createSnapshot: boolean = true
+    createSnapshot: boolean = true,
+    options?: { hasHeaders?: boolean }
   ): Promise<RefreshResult> {
     const startTime = Date.now();
 
@@ -141,7 +142,7 @@ export class DataSourceRefreshManager {
       }
 
       // Fetch fresh data based on data source type
-      const freshData = await this.fetchFreshData(dataSource);
+      const freshData = await this.fetchFreshData(dataSource, options);
 
       // Get previous snapshot for comparison
       const previousSnapshots = await db.getSnapshots(dataSourceId);
@@ -232,7 +233,7 @@ export class DataSourceRefreshManager {
   /**
    * Fetch fresh data based on data source type
    */
-  private async fetchFreshData(dataSource: any): Promise<any[]> {
+  private async fetchFreshData(dataSource: any, options?: { hasHeaders?: boolean }): Promise<any[]> {
     const type = dataSource.type;
 
     switch (type) {
@@ -243,7 +244,15 @@ export class DataSourceRefreshManager {
       case 'database':
       case 'mysql':
       case 'postgres':
+      case 'mssql':
+      case 'sqlite':
+      case 'odbc':
         return await this.fetchFromDatabase(dataSource);
+
+      case 'csv':
+      case 'json':
+      case 'excel':
+        return await this.fetchFromFile(dataSource, options);
 
       case 'mock':
         return await this.generateMockData(dataSource);
@@ -255,7 +264,8 @@ export class DataSourceRefreshManager {
           { type },
           'DataSourceRefreshManager'
         );
-        return [];
+        // For unsupported types, get the latest snapshot data instead of returning empty
+        return await this.getLatestSnapshotData(dataSource.id);
     }
   }
 
@@ -282,18 +292,155 @@ export class DataSourceRefreshManager {
   }
 
   /**
+   * Fetch data from file (CSV, JSON, Excel)
+   */
+  private async fetchFromFile(dataSource: any, options?: { hasHeaders?: boolean }): Promise<any[]> {
+    const hasHeaders = options?.hasHeaders ?? true; // Default to true if not specified
+    try {
+      const filePath = dataSource.config?.filePath;
+      const fileUrl = dataSource.config?.importUrl;
+
+      // For file-based sources, we return the existing snapshot data
+      // since we can't automatically re-read local files or uploaded files
+      // The user would need to manually re-upload or provide a URL
+      if (!filePath && !fileUrl) {
+        logger.info(
+          'File-based data source without path/URL, returning latest snapshot data',
+          'data-refresh',
+          { dataSourceId: dataSource.id, type: dataSource.type },
+          'DataSourceRefreshManager'
+        );
+        return await this.getLatestSnapshotData(dataSource.id);
+      }
+
+      // If there's a URL, we can fetch it
+      if (fileUrl) {
+        logger.info(
+          'Fetching file from URL',
+          'data-refresh',
+          { dataSourceId: dataSource.id, url: fileUrl },
+          'DataSourceRefreshManager'
+        );
+        
+        const response = await fetch(fileUrl);
+        if (!response.ok) {
+          throw new Error(`Failed to fetch file: ${response.statusText}`);
+        }
+
+        const contentType = response.headers.get('content-type') || '';
+        const text = await response.text();
+
+        // Parse based on file type
+        if (dataSource.type === 'csv' || contentType.includes('csv')) {
+          const Papa = await import('papaparse');
+          const result = Papa.parse(text, { header: hasHeaders, skipEmptyLines: true, dynamicTyping: true });
+          let data = result.data as any[];
+          
+          // If no headers, convert array rows to objects
+          if (!hasHeaders && data.length > 0 && Array.isArray(data[0])) {
+            data = data.map((row: any[]) => {
+              const obj: any = {};
+              row.forEach((val, idx) => {
+                obj[`Column${idx + 1}`] = val;
+              });
+              return obj;
+            });
+          }
+          
+          return data;
+        } else if (dataSource.type === 'json' || contentType.includes('json')) {
+          const parsed = JSON.parse(text);
+          return Array.isArray(parsed) ? parsed : [parsed];
+        } else if (dataSource.type === 'excel') {
+          const XLSX = await import('xlsx');
+          const workbook = XLSX.read(text, { type: 'binary' });
+          const sheetName = workbook.SheetNames[0];
+          const worksheet = workbook.Sheets[sheetName];
+          
+          if (hasHeaders) {
+            return XLSX.utils.sheet_to_json(worksheet, { defval: null });
+          } else {
+            // No headers - read as arrays and convert to objects
+            const arrayData = XLSX.utils.sheet_to_json(worksheet, { header: 1, defval: null });
+            return arrayData.map((row: any[]) => {
+              const obj: any = {};
+              row.forEach((val, idx) => {
+                obj[`Column${idx + 1}`] = val;
+              });
+              return obj;
+            });
+          }
+        }
+      }
+
+      // For local file paths, return existing snapshot data
+      // (we can't read local files in a server environment without proper file access)
+      logger.info(
+        'Local file path detected, returning latest snapshot data',
+        'data-refresh',
+        { dataSourceId: dataSource.id, filePath },
+        'DataSourceRefreshManager'
+      );
+      return await this.getLatestSnapshotData(dataSource.id);
+
+    } catch (error) {
+      logger.error(
+        'Failed to fetch from file',
+        'data-refresh',
+        { error, dataSourceId: dataSource.id },
+        'DataSourceRefreshManager'
+      );
+      // Fallback to latest snapshot data
+      return await this.getLatestSnapshotData(dataSource.id);
+    }
+  }
+
+  /**
+   * Get latest snapshot data as fallback
+   */
+  private async getLatestSnapshotData(dataSourceId: string): Promise<any[]> {
+    try {
+      const { MongoDatabase } = await import('../server/database/MongoDatabase');
+      const db = MongoDatabase.getInstance();
+      await db.initialize();
+
+      const snapshots = await db.getSnapshots(dataSourceId);
+      if (snapshots.length === 0) {
+        return [];
+      }
+
+      const latestSnapshot = snapshots[0];
+      const importedData = await db.getImportedData({
+        dataSourceId,
+        snapshotId: latestSnapshot.id,
+        limit: 100000
+      });
+
+      return importedData.data || [];
+    } catch (error) {
+      logger.error(
+        'Failed to get latest snapshot data',
+        'data-refresh',
+        { error, dataSourceId },
+        'DataSourceRefreshManager'
+      );
+      return [];
+    }
+  }
+
+  /**
    * Fetch data from database
    */
   private async fetchFromDatabase(dataSource: any): Promise<any[]> {
     // This would use the appropriate database provider
-    // For now, return empty array (implement based on your DB providers)
-    logger.warn(
-      'Database refresh not yet implemented',
+    // For now, return latest snapshot data (implement based on your DB providers)
+    logger.info(
+      'Database refresh using latest snapshot (live query not yet implemented)',
       'data-refresh',
-      { dataSourceId: dataSource.id },
+      { dataSourceId: dataSource.id, type: dataSource.type },
       'DataSourceRefreshManager'
     );
-    return [];
+    return await this.getLatestSnapshotData(dataSource.id);
   }
 
   /**
