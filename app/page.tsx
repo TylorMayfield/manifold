@@ -25,12 +25,23 @@ import {
   Command,
   BookOpen,
 } from "lucide-react";
+import { SkeletonDataSourceCard, SkeletonList } from "../components/ui/SkeletonLoader";
 
 function HomePageContent() {
   const router = useRouter();
   const { dataSources, snapshots, addDataSource, addSnapshot } =
     useDataSources();
   const [creatingSnapshots, setCreatingSnapshots] = useState(false);
+  const [isLoadingData, setIsLoadingData] = useState(true);
+
+  useEffect(() => {
+    // Simulate loading check - wait for data sources to be loaded
+    const timer = setTimeout(() => {
+      setIsLoadingData(false);
+    }, 500); // Small delay to prevent flash
+    
+    return () => clearTimeout(timer);
+  }, [dataSources, snapshots]);
 
   // Check if any data sources are missing snapshots
   const sourcesWithoutSnapshots = dataSources.filter(
@@ -286,7 +297,9 @@ function HomePageContent() {
             Data Sources ({dataSources.length})
           </h2>
 
-          {dataSources.length === 0 ? (
+          {isLoadingData ? (
+            <SkeletonList count={3} className="mb-6" />
+          ) : dataSources.length === 0 ? (
             <div className="text-center py-8">
               <Database className="w-12 h-12 mx-auto mb-4 text-gray-600" />
               <p className="font-mono text-sm mb-4 text-gray-700">
@@ -425,7 +438,13 @@ function HomePageContent() {
           Data Snapshots ({snapshots.length})
         </h2>
 
-        {snapshots.length === 0 ? (
+        {isLoadingData ? (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-8">
+            {Array.from({ length: 6 }).map((_, i) => (
+              <SkeletonDataSourceCard key={i} />
+            ))}
+          </div>
+        ) : snapshots.length === 0 ? (
           <div className="text-center py-12">
             <FileText className="w-16 h-16 mx-auto mb-4 text-gray-600" />
             <p className="font-mono text-lg mb-2 text-gray-600">

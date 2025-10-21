@@ -84,6 +84,7 @@ export default function UnifiedDataSourceWorkflow({
     useState<ImportMethod | null>(null);
   const [dataSourceConfig, setDataSourceConfig] = useState<any>({});
   const [dataSourceName, setDataSourceName] = useState("");
+  const [dataSourceDescription, setDataSourceDescription] = useState("");
   const [loading, setLoading] = useState(false);
   const [testing, setTesting] = useState(false);
   const [testResult, setTestResult] = useState<{success: boolean; message: string} | null>(null);
@@ -837,6 +838,7 @@ export default function UnifiedDataSourceWorkflow({
           .substr(2, 9)}`,
         projectId,
         name: dataSourceName.trim(),
+        description: dataSourceDescription.trim() || undefined,
         type: selectedType,
         config: {
           importMethod: selectedImportMethod.id,
@@ -931,14 +933,14 @@ export default function UnifiedDataSourceWorkflow({
         name: "Databases",
         description: "Connect to SQL databases and data warehouses",
         types: dataSourceTypes.filter(t => 
-          ['mysql', 'postgres', 'mssql', 'sqlite', 'odbc'].includes(t.id)
+          ['mysql', 'postgres', 'mssql', 'sql', 'odbc'].includes(t.id)
         )
       },
       {
         name: "Files",
         description: "Import data from various file formats",
         types: dataSourceTypes.filter(t => 
-          ['csv', 'json', 'excel', 'sql'].includes(t.id)
+          ['csv', 'json', 'excel', 'sqlite', 'ftp', 'file_collection'].includes(t.id)
         )
       },
       {
@@ -1101,6 +1103,22 @@ export default function UnifiedDataSourceWorkflow({
                   placeholder="Enter a name for your data source"
                 />
               </div>
+              
+              <div>
+                <label className="block text-body font-bold text-gray-700 mb-2">
+                  Description <span className="text-gray-500 font-normal text-sm">(Optional)</span>
+                </label>
+                <textarea
+                  value={dataSourceDescription}
+                  onChange={(e) => setDataSourceDescription(e.target.value)}
+                  className="cell-input px-3 py-2 min-h-[80px]"
+                  placeholder="Add a description for this data source (optional)"
+                  rows={3}
+                />
+                <p className="text-xs text-gray-500 mt-1">
+                  Describe what this data source is for, what data it contains, or any other helpful information.
+                </p>
+              </div>
             </div>
 
             <ImportMethodConfigs
@@ -1150,6 +1168,11 @@ export default function UnifiedDataSourceWorkflow({
                   {dataSourceName || "Unnamed Data Source"}
                 </h3>
                 <p className="text-body text-gray-600">{selectedTypeOption?.name}</p>
+                {dataSourceDescription && (
+                  <p className="text-sm text-gray-600 mt-2 italic">
+                    {dataSourceDescription}
+                  </p>
+                )}
               </div>
             </div>
 

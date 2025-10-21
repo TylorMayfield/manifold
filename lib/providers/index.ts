@@ -39,6 +39,10 @@ import { ProviderFactory } from './BaseProvider';
 import { CsvProvider } from './CsvProvider';
 import { JsonProvider } from './JsonProvider';
 import { ExcelProvider } from './ExcelProvider';
+import { SQLiteProvider } from './SQLiteProvider';
+import { SQLProvider } from './SQLProvider';
+import { FTPProvider } from './FTPProvider';
+import { FileCollectionProvider } from './FileCollectionProvider';
 import { ScriptProvider } from './ScriptProvider';
 import { MockProvider } from './MockProvider';
 import { SqliteProvider } from './SqliteProvider';
@@ -49,9 +53,12 @@ import { MssqlProvider } from './MssqlProvider';
 ProviderFactory.registerProvider('csv', CsvProvider);
 ProviderFactory.registerProvider('json', JsonProvider);
 ProviderFactory.registerProvider('excel', ExcelProvider);
+ProviderFactory.registerProvider('sqlite', SQLiteProvider);
+ProviderFactory.registerProvider('sql', SQLProvider);
+ProviderFactory.registerProvider('ftp', FTPProvider);
+ProviderFactory.registerProvider('file_collection', FileCollectionProvider);
 ProviderFactory.registerProvider('script', ScriptProvider);
 ProviderFactory.registerProvider('mock', MockProvider);
-ProviderFactory.registerProvider('sqlite', SqliteProvider);
 ProviderFactory.registerProvider('odbc', OdbcProvider);
 ProviderFactory.registerProvider('mssql', MssqlProvider);
 
@@ -134,7 +141,7 @@ export const PROVIDER_REGISTRY = {
     category: 'generator'
   },
   sqlite: {
-    class: SqliteProvider,
+    class: SQLiteProvider,
     displayName: 'SQLite Database',
     description: 'Connect to SQLite databases for data extraction and analysis',
     supportedFormats: ['.db', '.sqlite', '.sqlite3'],
@@ -147,6 +154,53 @@ export const PROVIDER_REGISTRY = {
       'Performance optimizations'
     ],
     category: 'database'
+  },
+  sql: {
+    class: SQLProvider,
+    displayName: 'SQL Database',
+    description: 'Connect to PostgreSQL, MySQL, SQL Server, Oracle databases',
+    supportedFormats: ['postgresql', 'mysql', 'mssql', 'oracle'],
+    features: [
+      'Multiple database types',
+      'Connection string support',
+      'Custom SQL queries',
+      'Schema introspection',
+      'SSL support',
+      'Connection pooling'
+    ],
+    category: 'database'
+  },
+  ftp: {
+    class: FTPProvider,
+    displayName: 'FTP/SFTP Server',
+    description: 'Import files from FTP or SFTP servers',
+    supportedFormats: ['.csv', '.json', '.xml', '.txt'],
+    features: [
+      'FTP and SFTP support',
+      'Secure authentication',
+      'File download and parsing',
+      'Multiple file formats',
+      'Custom delimiters',
+      'Header detection'
+    ],
+    category: 'remote'
+  },
+  file_collection: {
+    class: FileCollectionProvider,
+    displayName: 'File Collection',
+    description: 'Manage collections of files (images, documents, etc.) with delta tracking',
+    supportedFormats: ['.jpg', '.png', '.gif', '.pdf', '.doc', '*'],
+    features: [
+      'File indexing and metadata extraction',
+      'Delta detection (added/removed/modified)',
+      'Image metadata (dimensions, EXIF)',
+      'Checksum calculation (MD5/SHA256)',
+      'Recursive directory scanning',
+      'File type filtering',
+      'Profile picture management',
+      'Document versioning'
+    ],
+    category: 'file'
   },
   odbc: {
     class: OdbcProvider,

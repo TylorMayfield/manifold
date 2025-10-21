@@ -31,6 +31,9 @@ const PipelineSchema = new Schema({
   name: { type: String, required: true },
   description: String,
   config: Schema.Types.Mixed,
+  steps: [Schema.Types.Mixed],
+  inputSourceIds: [String],
+  outputConfig: Schema.Types.Mixed,
   enabled: { type: Boolean, default: true },
   createdAt: { type: Date, default: Date.now },
   updatedAt: { type: Date, default: Date.now }
@@ -421,12 +424,26 @@ export class MongoDatabase {
     if (!this.isConnected) throw new Error("Database not connected");
     const doc: any = await Pipeline.findById(id).lean();
     if (!doc) return null;
-    // Map _id to id for frontend
-    return {
+    
+    console.log('[MongoDB] getPipeline raw result:', doc);
+    
+    // Ensure arrays exist even if null/undefined in database
+    const result = {
       ...doc,
       id: doc._id,
-      _id: undefined
+      _id: undefined,
+      inputSourceIds: doc.inputSourceIds || [],
+      steps: doc.steps || []
     };
+    
+    console.log('[MongoDB] getPipeline processed result:', {
+      id: result.id,
+      name: result.name,
+      inputSourceIds: result.inputSourceIds,
+      stepsCount: result.steps.length
+    });
+    
+    return result;
   }
 
   async createPipeline(projectId: string, pipelineData: any) {
@@ -456,12 +473,41 @@ export class MongoDatabase {
 
   async updatePipeline(id: string, updates: any) {
     if (!this.isConnected) throw new Error("Database not connected");
+    
+    console.log('[MongoDB] Updating pipeline:', id);
+    console.log('[MongoDB] Updates:', updates);
+    console.log('[MongoDB] Updates inputSourceIds:', updates.inputSourceIds);
+    
     const result = await Pipeline.findByIdAndUpdate(
       id,
-      { ...updates, updatedAt: new Date() },
-      { new: true }
+      { 
+        ...updates, 
+        _id: id, // Preserve ID
+        updatedAt: new Date() 
+      },
+      { new: true, runValidators: false }
     ).lean();
-    return result;
+    
+    console.log('[MongoDB] Updated pipeline raw result:', result);
+    
+    if (!result) return null;
+    
+    const processedResult = {
+      ...result,
+      id: result._id,
+      _id: undefined,
+      inputSourceIds: result.inputSourceIds || [],
+      steps: result.steps || []
+    };
+    
+    console.log('[MongoDB] Updated pipeline processed result:', {
+      id: processedResult.id,
+      name: processedResult.name,
+      inputSourceIds: processedResult.inputSourceIds,
+      stepsCount: processedResult.steps.length
+    });
+    
+    return processedResult;
   }
 
   async deletePipeline(id: string) {

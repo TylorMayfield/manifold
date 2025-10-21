@@ -11,6 +11,7 @@ export interface DataProvider {
   id: string;
   projectId: string;
   name: string;
+  description?: string;
   type: DataProviderType;
   config: DataProviderConfig;
   createdAt: Date;
@@ -28,11 +29,13 @@ export type DataProviderType =
   | "excel"
   | "sql"
   | "sql_dump"
+  | "sqlite"
+  | "ftp"
+  | "file_collection"
   | "api_script"
   | "mock"
   | "mysql"
   | "postgres"
-  | "sqlite"
   | "odbc"
   | "mssql"
   | "javascript"
@@ -50,7 +53,7 @@ export interface DataProviderConfig {
 
   // File provider config
   filePath?: string;
-  fileType?: "csv" | "json" | "excel";
+  fileType?: "csv" | "json" | "excel" | "sqlite" | "ftp";
   uploadFile?: File;
   importUrl?: string;
 
