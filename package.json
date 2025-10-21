@@ -68,7 +68,7 @@
     "zod": "^4.1.11"
   },
   "devDependencies": {
-    "@playwright/experimental-ct-react": "^1.55.1",
+    "@playwright/experimental-ct-react": "^1.56.1",
     "@playwright/test": "^1.55.1",
     "@swc/core": "^1.13.5",
     "@swc/jest": "^0.2.39",
