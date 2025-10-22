@@ -29,7 +29,7 @@
     "test:coverage": "jest --coverage"
   },
   "dependencies": {
-    "@aws-sdk/client-s3": "^3.490.0",
+    "@aws-sdk/client-s3": "^3.914.0",
     "@aws-sdk/s3-request-presigner": "^3.490.0",
     "@monaco-editor/react": "^4.6.0",
     "autoprefixer": "^10.4.21",
